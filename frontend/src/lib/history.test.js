@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep } from './history.js'
+import { modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, reorder, swapConfig } from './history.js'
 import { EXDB } from './exercises.js'
 
 // Real ids out of the shipped catalogue, so the body-part fallback is exercised for real.
@@ -394,5 +394,30 @@ describe('workoutVolume', () => {
   it('leaves an unloaded bodyweight set at zero volume rather than inventing a number', () => {
     const w = { entries: [{ id: BW, target: { bodyweight: true }, sets: [{ w: 0, r: 20, done: true }] }] }
     expect(workoutVolume(w)).toBe(0)
+  })
+})
+
+describe('reorder', () => {
+  it('moves an entry, clamps the target and drops a superset it broke', () => {
+    const ex = [{ id: 'a', sg: 's' }, { id: 'b', sg: 's' }, { id: 'c' }]
+    reorder(ex, 0, 9)
+    expect(ex).toEqual([{ id: 'b' }, { id: 'c' }, { id: 'a' }])
+    reorder(ex, 2, 0)
+    expect(ex.map(e => e.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('swapConfig', () => {
+  const lift = EXDB.find(e => e.id === LIFT)
+  const sameEq = EXDB.find(e => e.id !== LIFT && e.eq === lift.eq && e.bp !== 'cardio')
+  const otherEq = EXDB.find(e => e.eq !== lift.eq && e.bp !== 'cardio')
+  const cfg = { id: LIFT, sg: 'x', sets: 4, reps: 8, mode: 'reps', weight: 60, inc: 5, bodyweight: false, prog: 'double', repsMin: 6 }
+  it('keeps the shape, and the weight only on the same equipment', () => {
+    expect(swapConfig(cfg, lift, sameEq)).toEqual({ sets: 4, reps: 8, mode: 'reps', weight: 60, prog: 'double', repsMin: 6 })
+    expect(swapConfig(cfg, lift, otherEq).weight).toBe(0)
+  })
+  it('starts over when swapping between cardio and lifting', () => {
+    const cardio = EXDB.find(e => e.id === CARDIO)
+    expect(swapConfig(cfg, lift, cardio)).toEqual(defaultConfig(CARDIO))
   })
 })
