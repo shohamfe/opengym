@@ -26,7 +26,12 @@ export default function RoutineEdit() {
   if (!r) return null
 
   const edit = fn => update(s => { fn(s.routines.find(x => x.id === id).ex) })
-  const move = (i, dir) => edit(ex => reorder(ex, i, i + dir))
+  // Rows are keyed by index, so send focus after the moved exercise or a second press undoes the first.
+  const move = (i, dir) => {
+    edit(ex => reorder(ex, i, i + dir))
+    const j = Math.max(0, Math.min(r.ex.length - 1, i + dir))
+    requestAnimationFrame(() => listRef.current?.children[j]?.querySelectorAll('.sr-move button')[dir < 0 ? 0 : 1]?.focus())
+  }
   // Target = how many other rows' midpoints the dragged row's centre has passed.
   const dragAt = (d, y) => { const dy = y - d.y0, c = d.mids[d.from] + dy; return { ...d, dy, to: d.mids.filter((m, k) => k !== d.from && m < c).length } }
   const grip = i => ({
@@ -43,8 +48,9 @@ export default function RoutineEdit() {
   const shiftOf = i => !drag ? 0 : i === drag.from ? drag.dy
     : drag.from < drag.to ? (i > drag.from && i <= drag.to ? -drag.h : 0) : (i >= drag.to && i < drag.from ? drag.h : 0)
   // Swap opens the picker, then the config prefilled from this row; the row changes only on Save.
-  const openRow = (i, ex, cfg) => exConfigSheet(ex, cfg, c => edit(x => { x[i] = { id: ex.id, sg: x[i].sg, ...c } }), () => edit(x => { x.splice(i, 1); cleanupSg(x) }), r,
-    () => exercisePicker(n => openRow(i, n, swapConfig(cfg, ex, n)), { like: ex }))
+  // `done` closes the swap picker(s) underneath once the row changes, so they can't swap it again.
+  const openRow = (i, ex, cfg, done) => exConfigSheet(ex, cfg, c => { done?.(); edit(x => { x[i] = { id: ex.id, sg: x[i].sg, ...c } }) }, () => { done?.(); edit(x => { x.splice(i, 1); cleanupSg(x) }) }, r,
+    () => { const p = exercisePicker(n => openRow(i, n, swapConfig(cfg, ex, n), () => { p.close(); done?.() }), { like: ex }) })
   const toggleLink = i => edit(ex => {
     if (i < 1) return
     const cur = ex[i], prev = ex[i - 1]
