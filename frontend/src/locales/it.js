@@ -253,6 +253,7 @@ export default {
   'Keep screen awake': 'Mantieni lo schermo acceso',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Lo schermo resta acceso mentre un allenamento è in corso, così non devi sbloccare il telefono tra una serie e l’altra.',
   'Weight unit': 'Unità di peso',
+  'First day of week': 'Primo giorno della settimana',
   'Rest timer': 'Timer di riposo',
   'Sounds': 'Suoni',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Nota: cambiare unità cambia solo l’etichetta — i numeri registrati non vengono convertiti.',

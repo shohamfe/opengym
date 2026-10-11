@@ -108,6 +108,11 @@ export default function Settings() {
           subtitle: INSTR_LANGS.includes(k) ? null : t("Exercise instructions aren't available in this language yet — they stay in English."),
         }))}
       />
+      <Row icon="calendar" iconTint="var(--red)" title={t('First day of week')}>
+        <Segmented className="seg-inline"
+          options={[{ value: 0, label: t('Sunday') }, { value: 1, label: t('Monday') }]}
+          value={S.weekStart} onChange={v => update(s => { s.weekStart = v })} />
+      </Row>
       <Row icon="scale" iconTint="var(--teal)" title={t('Weight unit')}>
         <Segmented className="seg-inline"
           options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}

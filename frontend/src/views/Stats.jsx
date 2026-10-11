@@ -27,7 +27,7 @@ function MuscleBalance({ S }) {
   const now = Date.now()
   const inWin = S.workouts.filter(w =>
     win === 0 ? true
-      : win === 7 ? weekKey(w.d) === weekKey(todayISO())
+      : win === 7 ? weekKey(w.d, S.weekStart) === weekKey(todayISO(), S.weekStart)
         : (w.start || new Date(w.d).getTime()) > now - win * 86400000)
   // Counting only the sets taken near failure turns the map from "where did the volume go"
   // into "where did the stimulus go" — a muscle can lead on sets and still never be trained

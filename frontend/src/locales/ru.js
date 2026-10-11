@@ -253,6 +253,7 @@ export default {
   'Keep screen awake': 'Не гасить экран',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Экран не гаснет, пока идёт тренировка, — не нужно разблокировать телефон между подходами.',
   'Weight unit': 'Единица веса',
+  'First day of week': 'Первый день недели',
   'Rest timer': 'Таймер отдыха',
   'Sounds': 'Звуки',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Примечание: смена единиц меняет только подпись — записанные числа не пересчитываются.',
