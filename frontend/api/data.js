@@ -1,7 +1,7 @@
 import { authed, readState, writeState } from './_sync.js'
 
 export default async function handler(req, res) {
-  if (!authed(req)) return res.status(401).json({ error: 'not signed in' })
+  if (!(await authed(req))) return res.status(401).json({ error: 'not signed in' })
   try {
     if (req.method === 'GET') return res.json({ state: await readState() })
     if (req.method !== 'PUT') return res.status(405).json({ error: 'method not allowed' })

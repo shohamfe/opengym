@@ -3,11 +3,12 @@ import assert from 'node:assert'
 import { test } from 'vitest'
 const A = './'
 // GitHub contents API stand-in: 404 until first write, sha must match like the real one.
-process.env.SYNC_KEY = 'k123'; process.env.GITHUB_DATA_TOKEN = 't'
+process.env.GITHUB_DATA_TOKEN = 't'
 let file = null, sha = 0
 globalThis.fetch = async (url, o = {}) => {
   const acc = o.headers.Accept
   const R = (status, body) => ({ ok: status < 300, status, text: async () => body, json: async () => JSON.parse(body) })
+  if (url.endsWith('/sync-key.txt')) return R(200, 'k123\n')   // login key lives in the data repo
   if (!o.method) {
     if (file == null) return R(404, '{}')
     return acc.includes('raw') ? R(200, file) : R(200, JSON.stringify({ sha: 's' + sha }))
