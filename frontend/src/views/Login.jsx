@@ -65,7 +65,10 @@ export function EmailSignInSheet({ close }) {
     const m = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { toast(t('Enter a valid email address.')); return }
     setBusy(true)
-    try { await sendCode(m); localStorage.setItem('gym_email', m); setEmail(m); setStep('code') }
+    try {
+      await sendCode(m); localStorage.setItem('gym_email', m); setEmail(m)
+      if (step === 'code') toast(t('New code sent.')); else setStep('code')
+    }
     catch (e) { fail(e) }
     setBusy(false)
   }

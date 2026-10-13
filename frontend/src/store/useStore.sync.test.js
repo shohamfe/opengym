@@ -3,8 +3,7 @@ import { it, expect, vi, beforeAll, beforeEach } from 'vitest'
 // QA: the store's sync paths (pullState / pushState / signOut) against the real supabaseSync.js
 // and a fake Supabase that behaves like supabase/migrations/20261013_email_auth.sql (server
 // stamps _ts, gym_put answers 409 when base is not the current _ts, the refresh token can be
-// revoked). `it.fails` marks a known bug: the test states the correct behaviour and is
-// expected to fail today; when the bug is fixed vitest reports it, and `.fails` comes off.
+// revoked).
 const ls = {}
 globalThis.localStorage = { getItem: k => ls[k] ?? null, setItem: (k, v) => { ls[k] = String(v) }, removeItem: k => { delete ls[k] } }
 globalThis.document = { visibilityState: 'visible', addEventListener: () => {} }
@@ -46,7 +45,7 @@ beforeEach(() => {
 // email" while the cloud already holds data. The guest copy is NEWER than the cloud copy, so by
 // design.md it should upload. Instead: no gym_base on this device -> gym_put(base null) -> 409
 // -> pullState(true) -> the guest workouts are overwritten locally and never reach the server.
-it.fails('keeps guest workouts that are newer than the cloud copy when signing in', async () => {
+it('keeps guest workouts that are newer than the cloud copy when signing in', async () => {
   row = { workouts: [{ id: 'cloud' }], _ts: clock - 60_000 }
   useStore.getState().replaceState({ ...useStore.getState().S, workouts: [{ id: 'guest' }] })   // stamped now: newer
   signedIn()
@@ -60,7 +59,7 @@ it.fails('keeps guest workouts that are newer than the cloud copy when signing i
 // answers 401, but the store keeps `user` set: every push fails and only marks gym_dirty
 // ("Changes waiting to sync" forever), and Sign out refuses ("Couldn't sync, so you're still
 // signed in") although the device is not signed in. Only a full app reload shows the login.
-it.fails('treats a 401 from a sync call as signed out (data kept), so the user can sign in again', async () => {
+it('treats a 401 from a sync call as signed out (data kept), so the user can sign in again', async () => {
   row = { workouts: [], _ts: clock }
   signedIn()
   ls.gym_session = JSON.stringify({ ...JSON.parse(ls.gym_session), expires_at: 1 })   // needs a refresh
@@ -74,7 +73,7 @@ it.fails('treats a 401 from a sync call as signed out (data kept), so the user c
 // Every pull that takes the server copy re-stamps the local _ts (persist), so the next
 // foreground pull sees "phone newer" and PUTs the whole, unchanged state back. Each return to
 // the app alternates a full download and a full upload, and each upload bumps the server _ts.
-it.fails('does not upload an unchanged state on every other foreground pull', async () => {
+it('does not upload an unchanged state on every other foreground pull', async () => {
   row = { workouts: [{ id: 'w1' }], _ts: clock - 60_000 }   // last written a minute ago
   useStore.setState({ S: { ...useStore.getState().S, workouts: [], routines: [], bodyweight: [] } })   // fresh device
   signedIn()
@@ -94,4 +93,23 @@ it('refuses to sign out and keeps local data when the final push fails', async (
   expect(useStore.getState().S.workouts).toEqual([{ id: 'w1' }])
   expect(useStore.getState().user).not.toBeNull()
   expect(ls.gym_session).toBeDefined()
+})
+
+// F1: a workout logged offline must survive a 409 caused by Claude's edit: the server's routines
+// win, the workout is merged in and uploaded, and the pre-merge copy is kept in gym_backup_v1.
+it('merges offline workouts into the server copy on a 409 and keeps a backup', async () => {
+  row = { workouts: [{ id: 'w0', d: '2026-10-01' }], routines: [{ id: 'old' }], bodyweight: [{ d: '2026-10-01', w: 80 }], _ts: clock }
+  signedIn()
+  await useStore.getState().pullState()   // device in sync with the server
+  useStore.getState().update(s => { s.workouts.push({ id: 'w1', d: '2026-10-12' }); s.bodyweight.push({ d: '2026-10-12', w: 79 }) })
+  row = { ...row, routines: [{ id: 'claude' }], _ts: ++clock }   // Claude rewrites the plan meanwhile
+  await useStore.getState().pushState()   // 409 -> merge -> push
+  const S = useStore.getState().S
+  expect(S.routines).toEqual([{ id: 'claude' }])
+  expect(S.workouts.map(w => w.id)).toEqual(['w0', 'w1'])
+  expect(S.bodyweight.map(b => b.d)).toEqual(['2026-10-01', '2026-10-12'])
+  expect(row.workouts.map(w => w.id)).toEqual(['w0', 'w1'])   // uploaded
+  expect(row.routines).toEqual([{ id: 'claude' }])
+  expect(JSON.parse(ls.gym_backup_v1).routines).toEqual([{ id: 'old' }])
+  expect(ls.gym_dirty).toBeUndefined()
 })

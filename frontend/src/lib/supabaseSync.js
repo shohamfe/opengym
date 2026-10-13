@@ -25,17 +25,21 @@ const save = (d, prev) => {
   return s
 }
 
-// status 0 = no network: the store treats anything but 401 as "offline, keep going locally".
+// status 0 = no network or no answer within 15 s (captive/bad gym Wi-Fi): the store treats
+// anything but 401 as "offline, keep going locally".
 async function call(path, body, token) {
-  let r
+  const ctl = new AbortController()
+  const tm = setTimeout(() => ctl.abort(), 15000)
+  let r, data
   try {
     r = await fetch(`${URL_}${path}`, {
-      method: 'POST',
+      method: 'POST', signal: ctl.signal,
       headers: { apikey: ANON, 'Content-Type': 'application/json', ...(token && { Authorization: 'Bearer ' + token }) },
       body: JSON.stringify(body || {})
     })
+    data = await r.json().catch(e => { if (e.name === 'AbortError') throw e; return null })
   } catch (e) { throw err(0, 'offline', 'offline') }
-  const data = await r.json().catch(() => null)
+  finally { clearTimeout(tm) }
   if (r.ok) return data
   throw err(r.status, data?.msg || data?.message || data?.error_description || 'HTTP ' + r.status, data?.error_code || data?.code || data?.error)
 }
@@ -62,9 +66,13 @@ async function rpc(fn, args, retry = true) {
   const s = await session()
   try { return await call(`/rest/v1/rpc/${fn}`, args, s.access_token) }
   catch (e) {
-    // Token rejected before its stated expiry (clock skew, revoked): refresh once and retry.
-    if (e.status === 401 && retry) { await refresh(s); return rpc(fn, args, false) }
-    throw e
+    if (e.status !== 401 || !retry) throw e
+    // Token rejected before its stated expiry (clock skew, revoked): refresh once and retry, with
+    // the newest refresh token — another call may have rotated it meanwhile (they are single use).
+    const cur = load()
+    if (!cur) throw err(401, 'not signed in')
+    if (cur.access_token === s.access_token) await refresh(cur)
+    return rpc(fn, args, false)
   }
 }
 

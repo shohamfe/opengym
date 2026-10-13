@@ -92,3 +92,35 @@ it('signs in with an email code, syncs, refreshes, detects conflicts and signs o
   await expect(api('/api/me')).rejects.toMatchObject({ status: 401 })
   await expect(api('/api/register/options', { method: 'POST' })).rejects.toMatchObject({ status: 404 })
 })
+
+it('retries a rejected call with the newest token instead of re-using a rotated refresh token', async () => {
+  const { supabaseApi: api, verifyCode } = await import('./supabaseSync.js')
+  await verifyCode('me@x.io', '123456')                                    // session a1 / r1
+  let first = true
+  const real = fetch.getMockImplementation()
+  fetch.mockImplementation(async (url, o) => {
+    // While this call is in flight another call rotates the session to a2 / r2.
+    if (first && url.endsWith('/gym_get')) {
+      first = false
+      store.gym_session = JSON.stringify({ ...JSON.parse(store.gym_session), access_token: 'a2', refresh_token: 'r2' })
+      valid.delete('a1'); valid.add('a2')
+      return res(401, { code: 'PGRST303', message: 'JWT expired' })
+    }
+    return real(url, o)
+  })
+  const before = fetch.mock.calls.length
+  await api('/api/data')
+  expect(fetch.mock.calls.slice(before).some(c => c[0].includes('grant_type=refresh_token'))).toBe(false)
+  fetch.mockImplementation(real)
+})
+
+it('gives up after 15 s without an answer and reports offline', async () => {
+  const { sendCode } = await import('./supabaseSync.js')
+  vi.useFakeTimers()
+  fetch.mockImplementationOnce((url, o) => new Promise((_, reject) => o.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))))
+  const p = sendCode('me@x.io')
+  const check = expect(p).rejects.toMatchObject({ status: 0 })
+  await vi.advanceTimersByTimeAsync(15000)
+  await check
+  vi.useRealTimers()
+})
