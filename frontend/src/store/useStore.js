@@ -4,6 +4,7 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
+import { BASE } from '../lib/supabaseSync.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -56,7 +57,9 @@ export const useStore = create((set, get) => {
   // (e.g. setting the reminder time then immediately backgrounding to test it). On mobile the
   // same applies to the file mirror — backgrounding is often the last thing before the OS
   // kills the app.
+  // Coming back to the app: pick up edits made elsewhere (another device, or Claude on the server).
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { if (get().user && get().ready) get().pullState(); return }
     if (document.visibilityState !== 'hidden') return
     if (MOBILE && saveTm) {
       clearTimeout(saveTm)
@@ -105,14 +108,21 @@ export const useStore = create((set, get) => {
       if (!get().user) return
       clearTimeout(pushTm)
       try { await api('/api/data', { method: 'PUT', body: JSON.stringify({ state: get().S }) }); localStorage.removeItem('gym_dirty') }
-      catch (e) { localStorage.setItem('gym_dirty', '1') }
+      catch (e) {
+        // 409: the server copy changed since this device last synced (e.g. edited by Claude).
+        // The server wins; this device's unsynced changes are dropped.
+        if (e.status === 409) { localStorage.removeItem('gym_dirty'); return get().pullState(true) }
+        localStorage.setItem('gym_dirty', '1')
+      }
     },
-    async pullState() {
+    // force: take the server copy even if this device looks newer (after a 409).
+    async pullState(force = false) {
       try {
         const { state } = await api('/api/data')
         const S = get().S
         const dirty = localStorage.getItem('gym_dirty') === '1'
-        if (state && (!hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
+        if (state && (force || !hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
+          localStorage.setItem(BASE, state._ts || '')
           const active = S.active
           const next = Object.assign(clone(DEF), state)
           if (active) next.active = active
@@ -121,8 +131,11 @@ export const useStore = create((set, get) => {
       } catch (e) { /* offline — keep local */ }
     },
 
+    // Throws, and keeps everything, when the final push failed: wiping now would lose those changes.
     async signOut() {
-      try { await get().pushState(); await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
+      await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      if (localStorage.getItem('gym_dirty') === '1') throw new Error('sync failed')
+      try { await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
       clearLocalSession()
     },
 
