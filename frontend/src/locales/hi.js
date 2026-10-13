@@ -253,6 +253,7 @@ export default {
   'Keep screen awake': 'स्क्रीन चालू रखें',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'वर्कआउट चलने के दौरान स्क्रीन चालू रहती है, ताकि सेट के बीच फ़ोन अनलॉक न करना पड़े।',
   'Weight unit': 'वज़न की इकाई',
+  'First day of week': 'सप्ताह का पहला दिन',
   'Rest timer': 'आराम टाइमर',
   'Sounds': 'ध्वनियाँ',
   'Note: switching units only changes the label — logged numbers are not converted.': 'नोट: इकाई बदलने से केवल लेबल बदलता है — दर्ज संख्याएँ परिवर्तित नहीं होतीं।',

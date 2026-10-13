@@ -253,6 +253,7 @@ export default {
   'Keep screen awake': 'Ekranı açık tut',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Antrenman sürerken ekran açık kalır, böylece setler arasında telefonunu açmak zorunda kalmazsın.',
   'Weight unit': 'Ağırlık birimi',
+  'First day of week': 'Haftanın ilk günü',
   'Rest timer': 'Dinlenme sayacı',
   'Sounds': 'Sesler',
   'Note: switching units only changes the label — logged numbers are not converted.': 'Not: birim değiştirmek sadece etiketi değiştirir — kayıtlı sayılar dönüştürülmez.',

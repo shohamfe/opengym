@@ -253,6 +253,7 @@ export default {
   'Keep screen awake': '화면 켜두기',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': '운동이 진행되는 동안 화면이 켜져 있어 세트 사이에 잠금을 해제할 필요가 없습니다.',
   'Weight unit': '무게 단위',
+  'First day of week': '한 주의 시작 요일',
   'Rest timer': '휴식 타이머',
   'Sounds': '소리',
   'Note: switching units only changes the label — logged numbers are not converted.': '참고: 단위 변경은 표기만 바꿉니다 — 기록된 숫자는 환산되지 않아요.',

@@ -32,14 +32,11 @@ export const fmtVol = (v, unit) => fmtNum(v) + ' ' + unit
 // Plural forms are not automatic when the English string is the key.
 export const exCount = n => t(n === 1 ? '{0} exercise' : '{0} exercises', n)
 
-export function weekKey(d) {
-  const dt = new Date(d + 'T12:00:00')
-  const day = (dt.getDay() + 6) % 7
-  dt.setDate(dt.getDate() - day + 3)
-  const jan4 = new Date(dt.getFullYear(), 0, 4)
-  const week = 1 + Math.round(((dt - jan4) / 86400000 - 3 + ((jan4.getDay() + 6) % 7)) / 7)
-  return dt.getFullYear() + '-' + week
-}
+// ws = first day of week as getDay() (1 Monday, 0 Sunday) — S.weekStart.
+export const startOfWeek = (date, ws = 1) => { const d = new Date(date); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() - ws + 7) % 7); return d }
+export const weekOrder = (ws = 1) => [0, 1, 2, 3, 4, 5, 6].map(i => (i + ws) % 7)
+// Only compared/grouped, never shown: the ISO date of the week's first day.
+export const weekKey = (d, ws = 1) => isoOf(startOfWeek(d + 'T12:00:00', ws))
 
 export const localTZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' } }
 

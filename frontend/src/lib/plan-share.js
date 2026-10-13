@@ -10,11 +10,11 @@
 
 import { EXIDX, isBodyweightEq } from './exercises.js'
 import { modeOf, fmtSec, isBw, isPerSide, sideReps } from './history.js'
-import { uid, todayISO, DAYN, fmtNum, exCount } from './format.js'
+import { uid, todayISO, DAYN, fmtNum, exCount, weekOrder } from './format.js'
 import { t } from './i18n.js'
 
 const PLAN_FMT = 1
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]   // Mon-first, matching the Plan screen
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]   // file order only; display follows S.weekStart (weekOrder)
 
 // Keep only the meaningful config fields, so the file stays small and readable.
 function cleanEx(e) {
@@ -188,7 +188,7 @@ function routineHTML(r, unit) {
 }
 
 function weekHTML(S) {
-  const rows = WEEK_ORDER.map(d => {
+  const rows = weekOrder(S.weekStart).map(d => {
     const r = S.routines.find(x => x.id === S.week?.[d])
     const val = r ? esc(r.name) : `<span class="rest">${esc(t('Rest'))}</span>`
     return `<div class="w-row"><div class="w-day">${esc(t(DAYN[d]))}</div><div class="w-r">${val}</div></div>`

@@ -237,11 +237,11 @@ export function unitOf(units, idx) { return units.find(u => u.includes(idx)) || 
 
 export function streakWeeks(S) {
   if (!S.workouts.length) return 0
-  const weeks = new Set(S.workouts.map(w => weekKey(w.d)))
+  const weeks = new Set(S.workouts.map(w => weekKey(w.d, S.weekStart)))
   let streak = 0
   const cur = new Date()
   for (let i = 0; i < 520; i++) {
-    const wk = weekKey(isoOf(cur))
+    const wk = weekKey(isoOf(cur), S.weekStart)
     if (weeks.has(wk)) streak++
     else if (i > 0) break
     cur.setDate(cur.getDate() - 7)
