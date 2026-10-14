@@ -978,8 +978,6 @@ function doFinishWorkout() {
   })
   useUI.getState().stopRest()
   cancelStale()
-  // Only present inside the xtool iPhone shell (ios-health/); saves the workout to Apple Health.
-  window.webkit?.messageHandlers?.health?.postMessage({ start: w.start, end: w.end })
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { onDismiss: () => nav('/home') })
 }
