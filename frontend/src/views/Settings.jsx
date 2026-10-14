@@ -5,6 +5,8 @@ import { useUI } from '../store/useUI.js'
 import { ACCENTS, todayISO, localTZ } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
+import { SUPABASE } from '../lib/supabaseSync.js'
+import { EmailSignInSheet } from './Login.jsx'
 import { pushSupported, enablePush, disablePush, sendTestPush } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
@@ -84,10 +86,25 @@ export default function Settings() {
           onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
         <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
           onClick={() => window.open(REPO, '_blank', 'noopener')} />
-      </> : user ? <>
+      </> : SUPABASE ? (user ? <>
+        <Row icon="personCircle" iconTint="var(--grey)" title={user.name}
+          subtitle={localStorage.getItem('gym_dirty') === '1' ? t('Changes waiting to sync') : t('Signed in — data syncs to the cloud.')} />
+        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({
+          title: t('Sign out?'), message: t('Your data is synced first, then cleared from this device. You’ll need a new email code to sign back in.'), confirmText: t('Sign out'), danger: true,
+          onConfirm: async () => {
+            try { await signOut(); nav('/home') }
+            catch (e) { toast(t('Couldn’t sync, so you’re still signed in. Nothing was deleted.')) }
+          } })} />
+      </> : (
+        <Row icon="key" iconTint="var(--acc)" title={t('Sign in with email')} subtitle={t('Sync this phone’s workouts to the cloud.')} accessory="chevron"
+          onClick={() => useUI.getState().openSheet(close => <EmailSignInSheet close={close} />)} />
+      )) : user ? <>
         <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Signed in with passkey — data syncs to this profile.')} />
         {user.admin && <Row icon="wrench" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
+        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: async () => {
+          try { await signOut(); nav('/home') }
+          catch (e) { toast(t('Couldn’t sync, so you’re still signed in. Nothing was deleted.')) }
+        } })} />
         <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
       </> : webauthnOK() ? <>
         <Row icon="sparkles" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />

@@ -4,6 +4,7 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
+import { BASE } from '../lib/supabaseSync.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -29,6 +30,19 @@ function loadState() {
 
 const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
 
+// Adds to `server` (in place) the logged workouts (by id) and weigh-ins (by day) that only `local`
+// has; everything else — routines, plan, settings — stays as the server has it. Returns how many
+// entries were added.
+function mergeLogs(server, local) {
+  const ids = new Set((server.workouts || []).map(w => w.id))
+  const days = new Set((server.bodyweight || []).map(b => b.d))
+  const w = (local.workouts || []).filter(x => !ids.has(x.id))
+  const b = (local.bodyweight || []).filter(x => !days.has(x.d))
+  if (w.length) server.workouts = [...(server.workouts || []), ...w].sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : (x.start || 0) - (y.start || 0)))
+  if (b.length) server.bodyweight = [...(server.bodyweight || []), ...b].sort((x, y) => (x.d < y.d ? -1 : 1))
+  return w.length + b.length
+}
+
 export const useStore = create((set, get) => {
   let pushTm = null
   let saveTm = null
@@ -40,8 +54,10 @@ export const useStore = create((set, get) => {
     saveTm = setTimeout(() => { saveTm = null; nativeSave(get().S); syncReminder(get().S) }, 800)
   }
 
-  const persist = (S, push = true) => {
-    S._ts = Date.now()
+  // keepTs: a copy taken from the server keeps the server's _ts, so it does not look newer than
+  // the server and get uploaded straight back.
+  const persist = (S, push = true, keepTs = false) => {
+    if (!keepTs) S._ts = Date.now()
     registerCustom(S.customEx)
     localStorage.setItem(KEY, JSON.stringify(S))
     set({ S })
@@ -56,7 +72,9 @@ export const useStore = create((set, get) => {
   // (e.g. setting the reminder time then immediately backgrounding to test it). On mobile the
   // same applies to the file mirror — backgrounding is often the last thing before the OS
   // kills the app.
+  // Coming back to the app: pick up edits made elsewhere (another device, or Claude on the server).
   document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { if (get().user && get().ready) get().pullState(); return }
     if (document.visibilityState !== 'hidden') return
     if (MOBILE && saveTm) {
       clearTimeout(saveTm)
@@ -105,24 +123,47 @@ export const useStore = create((set, get) => {
       if (!get().user) return
       clearTimeout(pushTm)
       try { await api('/api/data', { method: 'PUT', body: JSON.stringify({ state: get().S }) }); localStorage.removeItem('gym_dirty') }
-      catch (e) { localStorage.setItem('gym_dirty', '1') }
+      catch (e) {
+        localStorage.setItem('gym_dirty', '1')
+        // Session gone (revoked, expired refresh token): show the sign-in screen, keep the data.
+        if (e.status === 401) get().setUser(null)
+        // 409: the server copy changed since this device last synced (e.g. edited by Claude).
+        // Take it, keeping this device's logged workouts and weigh-ins (see pullState).
+        if (e.status === 409) return get().pullState(true)
+      }
     },
-    async pullState() {
+    // force: take the server copy even if this device looks newer (after a 409).
+    async pullState(force = false) {
       try {
         const { state } = await api('/api/data')
         const S = get().S
         const dirty = localStorage.getItem('gym_dirty') === '1'
-        if (state && (!hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
-          const active = S.active
+        // First sync of this device (fresh sign-in, guest data): merge rather than pick a side.
+        const merge = force || !localStorage.getItem(BASE)
+        if (state && state._ts === S._ts && !dirty) return   // already have exactly this copy
+        if (state && (merge || !hasData(S) || ((state._ts || 0) >= (S._ts || 0) && !dirty))) {
+          localStorage.setItem(BASE, state._ts || '')
           const next = Object.assign(clone(DEF), state)
-          if (active) next.active = active
-          persist(next, false)
+          let added = 0
+          if (merge && hasData(S)) {
+            // One-slot safety copy of what this device had, before the server copy replaces it.
+            localStorage.setItem('gym_backup_v1', JSON.stringify(S))
+            added = mergeLogs(next, S)
+          }
+          if (S.active) next.active = S.active
+          persist(next, false, true)
+          localStorage.removeItem('gym_dirty')
+          if (added) await get().pushState()
         } else if (hasData(S)) { await get().pushState() }
-      } catch (e) { /* offline — keep local */ }
+      } catch (e) { if (e.status === 401) get().setUser(null) /* else offline — keep local */ }
     },
 
+    // Throws, and keeps everything, when the final push failed: wiping now would lose those changes.
     async signOut() {
-      try { await get().pushState(); await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
+      await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      if (!get().user) return     // the push found the session already gone: signed out, data kept
+      if (localStorage.getItem('gym_dirty') === '1') throw new Error('sync failed')
+      try { await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
       clearLocalSession()
     },
 
@@ -190,4 +231,4 @@ export const useStore = create((set, get) => {
   }
 })
 
-export { hasData }
+export { hasData, mergeLogs }

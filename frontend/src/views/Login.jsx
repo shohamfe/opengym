@@ -1,6 +1,7 @@
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { webauthnOK, passkeyLogin, passkeyRegister, api, BIO } from '../lib/api.js'
+import { SUPABASE, sendCode, verifyCode } from '../lib/supabaseSync.js'
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -42,6 +43,71 @@ function RegisterSheet({ close }) {
   </>
 }
 
+// Supabase build: email one-time code, both steps in one sheet. Errors go to a toast and the
+// sheet keeps its inputs (a wrong code clears the code field).
+export function EmailSignInSheet({ close }) {
+  const { setUser, pullState } = useStore()
+  const [step, setStep] = useState('email')
+  const [email, setEmail] = useState(() => localStorage.getItem('gym_email') || '')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [step])
+  const toast = m => useUI.getState().toast(m)
+  const fail = e => {
+    if (e.status === 0 || !navigator.onLine) toast(t('You’re offline. Connect and try again — your data is safe on this phone.'))
+    else if (e.status === 429 || e.code === 'over_email_send_rate_limit') toast(t('Too many codes requested. Wait a few minutes — your last code still works.'))
+    // The owner-only trigger on auth.users surfaces as a 500 "Database error saving new user".
+    else if (['otp_disabled', 'signup_disabled'].includes(e.code) || (e.status >= 500 && /database error/i.test(e.message))) toast(t('This email can’t sign in to this app.'))
+    else toast(t('Sign-in failed'))
+  }
+  const send = async () => {
+    const m = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { toast(t('Enter a valid email address.')); return }
+    setBusy(true)
+    try {
+      await sendCode(m); localStorage.setItem('gym_email', m); setEmail(m)
+      if (step === 'code') toast(t('New code sent.')); else setStep('code')
+    }
+    catch (e) { fail(e) }
+    setBusy(false)
+  }
+  const verify = async () => {
+    setBusy(true)
+    try {
+      const u = await verifyCode(email, code)
+      setUser(u); close()
+      toast(t('Signed in — syncing your workouts.'))
+      await pullState()
+    } catch (e) {
+      setBusy(false)
+      if (e.status >= 400 && e.status < 500 && e.status !== 429) { setCode(''); toast(t('That code is wrong or expired. Try again or resend.')) }
+      else fail(e)
+    }
+  }
+  const lbl = { marginBottom: 14 }
+  if (step === 'email') return <>
+    <h3>{t('Sign in')}</h3>
+    <div className="muted small" style={lbl}>{t('We’ll email you a one-time code.')}</div>
+    <input ref={ref} className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none"
+      placeholder={t('Email address')} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} />
+    <div style={{ height: 12 }} />
+    <Button variant="primary" onClick={send} disabled={busy}>{busy ? t('Sending…') : t('Send code')}</Button>
+  </>
+  return <>
+    <h3>{t('Enter code')}</h3>
+    <div className="muted small" style={lbl}>{t('We sent a code to {0}. It may take a minute — check spam too.', email)}</div>
+    <input ref={ref} className="input" inputMode="numeric" autoComplete="one-time-code" maxLength={10} placeholder="123456"
+      value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} onKeyDown={e => e.key === 'Enter' && code.length >= 6 && verify()}
+      style={{ letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
+    <div style={{ height: 12 }} />
+    <Button variant="primary" onClick={verify} disabled={busy || code.length < 6}>{busy ? t('Checking…') : t('Verify')}</Button>
+    <div style={{ height: 6 }} />
+    <Button variant="ghost" size="sm" onClick={send} disabled={busy}>{t('Resend code')}</Button>
+    <Button variant="ghost" size="sm" onClick={() => { setCode(''); setStep('email') }}>{t('Use a different email')}</Button>
+  </>
+}
+
 export default function Login() {
   const { setUser, pullState, setGuest } = useStore()
   const signIn = async () => {
@@ -73,14 +139,19 @@ export default function Login() {
     <div className="narrow" style={wrap}>
       {head}
       <div className="muted" style={{ marginBottom: 34 }}>{t('Your workouts. Your weights. Your profile.')}</div>
-      {webauthnOK() ? <>
+      {SUPABASE ? <>
+        <Button variant="primary" icon="person" onClick={() => useUI.getState().openSheet(close => <EmailSignInSheet close={close} />)}>{t('Sign in with email')}</Button>
+        <div style={{ height: 10 }} />
+      </> : webauthnOK() ? <>
         <Button variant="primary" icon="person" onClick={signIn}>{t('Sign in with passkey')}</Button>
         <div style={{ height: 10 }} />
         <Button icon="sparkles" onClick={() => useUI.getState().openSheet(close => <RegisterSheet close={close} />)}>{t('Create new profile')}</Button>
         <div style={{ height: 10 }} />
       </> : <div className="card small muted" style={{ textAlign: 'left' }}>{t("This browser doesn't support passkeys — you can still use openGym locally on this device.")}</div>}
       <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>
-      <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Passkeys use {0} — no passwords.', BIO)}<br />{t('Each profile keeps its own plan, workouts & body weight.')}</div>
+      {SUPABASE
+        ? <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Only the owner’s email can sign in.')}<br />{t('Without an account, data stays on this phone.')}</div>
+        : <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Passkeys use {0} — no passwords.', BIO)}<br />{t('Each profile keeps its own plan, workouts & body weight.')}</div>}
     </div>
   )
 }
