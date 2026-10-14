@@ -237,3 +237,94 @@ grant execute on function public.push_claim(), public.push_gone(text[]), public.
   public.push_vapid_put(text, text) to service_role;
 
 select cron.schedule('gym-push', '5 seconds', 'select public.push_tick()');
+
+/* ---- QA fixes (applied as push_qa_fixes, then push_qa_fixes_weigh_dates for the bodyweight date check) ---- */
+-- A known endpoint can only be re-owned once its owner turned it off (sign-out disables it).
+create or replace function public.push_subscribe(sub jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  if coalesce(sub->>'endpoint', '') !~ '^https://' or length(sub->>'endpoint') > 1000
+     or coalesce(sub->'keys'->>'p256dh', '') = '' or coalesce(sub->'keys'->>'auth', '') = '' then
+    raise exception 'invalid subscription' using errcode = '22023';
+  end if;
+  insert into public.push_sub (endpoint, user_id, keys)
+  values (sub->>'endpoint', auth.uid(), jsonb_build_object('p256dh', sub->'keys'->>'p256dh', 'auth', sub->'keys'->>'auth'))
+  on conflict (endpoint) do update set user_id = excluded.user_id, keys = excluded.keys, created = now(), disabled = false
+  where public.push_sub.user_id = auth.uid() or public.push_sub.disabled;
+end $$;
+
+-- +3 s grace (was +2): more room for an on-screen finish's cancel on a slow connection.
+create or replace function public.push_schedule(kind text, seconds int, title text, body text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'not signed in' using errcode = '28000'; end if;
+  if kind not in ('rest', 'stale') then raise exception 'bad kind' using errcode = '22023'; end if;
+  insert into public.push_job (user_id, kind, fire_at, payload, sent_at)
+  values (auth.uid(), kind, now() + make_interval(secs => greatest(1, least(21600, coalesce(seconds, 0))) + 3),
+          jsonb_build_object('title', left(coalesce(title, 'openGym'), 80), 'body', left(coalesce(body, ''), 200),
+                             'tag', case kind when 'rest' then 'rest' else 'stale-workout' end), null)
+  on conflict on constraint push_job_pkey do update set fire_at = excluded.fire_at, payload = excluded.payload, sent_at = null;
+end $$;
+
+-- Empty times ('' from the iOS picker's Clear) fall back to 08:00, bad dates in the logs are ignored,
+-- and each alert's window may run past midnight: it belongs to the local date of its own start time
+-- (00:10 after a 23:30 reminder still counts for the day before). push_in_window is no longer used.
+create or replace function public.push_compute_one(uid uuid, s jsonb, t0 timestamptz) returns void
+language plpgsql set search_path = '' as $$
+declare
+  lt timestamp; tm time; ld date; dow int; ws int; wk date; n int;
+  rem jsonb; nt jsonb; ov text; rid text; rt jsonb; weeks date[];
+begin
+  rem := coalesce(s->'reminder', '{}');
+  nt := '{"streak":false,"weigh":false,"weighDay":1,"weighTime":"08:00"}'::jsonb || coalesce(s->'notify', '{}');
+  lt := t0 at time zone coalesce(nullif(rem->>'tz', ''), 'UTC');
+
+  tm := coalesce(nullif(rem->>'time', '')::time, '08:00');
+  ld := (lt - tm::interval)::date;
+  dow := extract(dow from ld)::int;
+  if coalesce((rem->>'on')::boolean, false) and (lt - tm::interval)::time < '01:00'
+     and not exists (select 1 from public.push_mark m where m.user_id = uid and m.kind = 'day' and m.d = ld)
+     and not exists (select 1 from jsonb_array_elements(coalesce(s->'workouts', '[]')) w where w->>'d' = ld::text) then
+    ov := s->'dayPlan'->>ld::text;
+    rid := case when ov = 'rest' then null
+                when ov is not null and exists (select 1 from jsonb_array_elements(coalesce(s->'routines', '[]')) x where x->>'id' = ov) then ov
+                else s->'week'->>dow::text end;
+    if rid is not null then
+      select x into rt from jsonb_array_elements(coalesce(s->'routines', '[]')) x where x->>'id' = rid limit 1;
+      perform public.push_enqueue(uid, 'day', ld,
+        case when rt is null then 'Workout planned today'
+             else coalesce(nullif(rt->>'emoji', '') || ' ', '') || (rt->>'name') || ' today' end,
+        'It''s on your plan, let''s go 💪', 'day-reminder');
+    end if;
+  end if;
+
+  ws := coalesce((s->>'weekStart')::int, 1);
+  if (nt->>'streak')::boolean and dow = (ws + 6) % 7 and (lt - tm::interval)::time < '01:00'
+     and not exists (select 1 from public.push_mark m where m.user_id = uid and m.kind in ('day', 'streak') and m.d = ld) then
+    wk := ld - (dow - ws + 7) % 7;
+    select array_agg(distinct x.d - (extract(dow from x.d)::int - ws + 7) % 7) into weeks
+    from (select (w->>'d')::date as d from jsonb_array_elements(coalesce(s->'workouts', '[]')) w
+          where w->>'d' ~ '^\d{4}-\d{2}-\d{2}$') x;
+    if not (wk = any(coalesce(weeks, '{}'))) and (wk - 7) = any(coalesce(weeks, '{}')) then
+      n := 1;
+      while (wk - 7 * (n + 1)) = any(weeks) loop n := n + 1; end loop;
+      perform public.push_enqueue(uid, 'streak', ld, 'Keep your ' || n || '-week streak',
+        'No workout yet this week. Today is the last day.', 'streak');
+    end if;
+  end if;
+
+  tm := coalesce(nullif(nt->>'weighTime', '')::time, '08:00');
+  ld := (lt - tm::interval)::date;
+  if (nt->>'weigh')::boolean and extract(dow from ld)::int = (nt->>'weighDay')::int and (lt - tm::interval)::time < '01:00'
+     and not exists (select 1 from public.push_mark m where m.user_id = uid and m.kind = 'weigh' and m.d = ld)
+     and not exists (select 1 from jsonb_array_elements(coalesce(s->'bodyweight', '[]')) b
+                     where b->>'d' ~ '^\d{4}-\d{2}-\d{2}$' and b->>'d' >= (ld - 6)::text) then
+    perform public.push_enqueue(uid, 'weigh', ld, 'Weigh-in day ⚖️', 'Log your bodyweight to keep the trend honest.', 'weigh-in');
+  end if;
+end $$;
+revoke all on function public.push_compute_one(uuid, jsonb, timestamptz) from public, anon, authenticated;
+
+-- Fresh project: the VAPID key only exists after gym-push has run once, so run it now (harmless: it
+-- only sends jobs that are already due).
+select net.http_post(url := 'https://kxmvuvmjbgetjrjtnafv.supabase.co/functions/v1/gym-push', body := '{}'::jsonb);
