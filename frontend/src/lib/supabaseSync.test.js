@@ -5,7 +5,7 @@ import { it, expect, vi } from 'vitest'
 // and answers 409 when base is not the current _ts.
 const store = { gym_sync_key: 'old' }
 globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v) }, removeItem: k => { delete store[k] } }
-let row = null, clock = 1000, valid = new Set(), down = false, pw = 'secret-pass', codes = new Set(['SETUP1'])
+let row = null, pushCalls = [], pubKey = 'BPUB', clock = 1000, valid = new Set(), down = false, pw = 'secret-pass', codes = new Set(['SETUP1'])
 const res = (status, body) => ({ ok: status < 300, status, json: async () => body })
 const tokens = (a, exp) => ({ access_token: a, refresh_token: 'r1', expires_in: 3600, expires_at: exp, user: { id: 'u1', email: 'me@x.io' } })
 globalThis.fetch = vi.fn(async (url, o) => {
@@ -30,6 +30,8 @@ globalThis.fetch = vi.fn(async (url, o) => {
     if (row && row._ts !== b.base) return res(409, { code: 'PT409', message: 'state changed on the server' })
     row = { ...b.s, _ts: ++clock }; return res(200, clock)
   }
+  const fn = url.match(/\/rpc\/(push_\w+)$/)?.[1]
+  if (fn) { pushCalls.push([fn, b]); return fn === 'push_public_key' ? res(200, pubKey) : res(204, null) }
   return res(404, {})
 })
 
@@ -127,4 +129,34 @@ it('gives up after 15 s without an answer and reports offline', async () => {
   await vi.advanceTimersByTimeAsync(15000)
   await check
   vi.useRealTimers()
+})
+
+it('maps the push routes onto the push_* functions', async () => {
+  const { supabaseApi: api, signIn } = await import('./supabaseSync.js')
+  await signIn('me@x.io', pw)
+  const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) })
+  pushCalls = []
+  expect(await api('/api/push/public-key')).toEqual({ key: 'BPUB' })
+  const subscription = { endpoint: 'https://push.example/1', keys: { p256dh: 'p', auth: 'a' } }
+  await post('/api/push/subscribe', { subscription })
+  await post('/api/push/unsubscribe', { endpoint: subscription.endpoint })
+  await post('/api/push/test')
+  await post('/api/push/rest-timer', { seconds: 89.6, title: 'Rest over', body: 'Next set' })
+  await post('/api/push/rest-timer/cancel')
+  await post('/api/push/stale', { seconds: 5400, title: 'Still training?', body: 'Push is still open.' })
+  await post('/api/push/stale/cancel')
+  expect(pushCalls).toEqual([
+    ['push_public_key', {}],
+    ['push_subscribe', { sub: subscription }],
+    ['push_unsubscribe', { endpoint: subscription.endpoint }],
+    ['push_test', {}],
+    ['push_schedule', { kind: 'rest', seconds: 90, title: 'Rest over', body: 'Next set' }],
+    ['push_cancel', { kind: 'rest' }],
+    ['push_schedule', { kind: 'stale', seconds: 5400, title: 'Still training?', body: 'Push is still open.' }],
+    ['push_cancel', { kind: 'stale' }]
+  ])
+  // No VAPID key yet (gym-push has never run): an error, not an undefined key handed to PushManager.
+  pubKey = null
+  await expect(api('/api/push/public-key')).rejects.toMatchObject({ status: 503 })
+  await expect(post('/api/push/other')).rejects.toMatchObject({ status: 404 })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -7,7 +7,7 @@ import { effortOf } from '../lib/history.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
 import { SUPABASE } from '../lib/supabaseSync.js'
 import { EmailSignInSheet } from './Login.jsx'
-import { pushSupported, enablePush, disablePush, sendTestPush } from '../lib/push.js'
+import { pushSupported, enablePush, disablePush, sendTestPush, saveSubscription, notifyState, IOS, standalone } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -162,7 +162,7 @@ export default function Settings() {
       </Row>
     </Section>
 
-    {(user || MOBILE) && <NotificationsCard S={S} update={update} toast={toast} />}
+    {(user || MOBILE || SUPABASE) && <NotificationsCard S={S} user={user} update={update} toast={toast} />}
 
     {/* ---------- appearance ---------- */}
     <Section title={t('Appearance')} footer={DEMO || MOBILE ? undefined : t('synced with your profile')}>
@@ -210,7 +210,7 @@ export default function Settings() {
       onChange={ev => { const f = ev.target.files[0]; if (f) importFromApp(f); ev.target.value = '' }} />
 
     {/* "Add to Home screen" makes no sense inside the native app */}
-    {!MOBILE && <Section title={t('Tip')}>
+    {!MOBILE && !standalone() && !(user && needsInstall()) && <Section title={t('Tip')}>
       <Row icon="lightbulb" iconTint="var(--yellow)"
         title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
         subtitle={t('to install openGym as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
@@ -259,9 +259,9 @@ function effortHelpSheet() {
   </>)
 }
 
-function NotificationsCard({ S, update, toast }) {
+function NotificationsCard({ S, user, update, toast }) {
   if (MOBILE) return <MobileReminderCard S={S} update={update} toast={toast} />
-  return <PushCard S={S} update={update} toast={toast} />
+  return <PushCard S={S} user={user} update={update} toast={toast} />
 }
 
 // Mobile build: the reminder is a native local notification scheduled on planned weekdays —
@@ -293,59 +293,114 @@ function MobileReminderCard({ S, update, toast }) {
   )
 }
 
-function PushCard({ S, update, toast }) {
-  const [on, setOn] = useState(false)
+const needsInstall = () => !pushSupported() && IOS && !standalone()
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// Alert types under the master switch. 'day' is S.reminder; the rest live in S.notify (DEF.notify).
+const TYPES = [
+  { title: 'Workout alerts', items: [
+    { key: 'rest', icon: 'timer', tint: 'var(--orange)', title: 'Rest timer finished', subtitle: 'When your rest is over and openGym is in the background.' },
+    { key: 'stale', icon: 'play', tint: 'var(--teal)', title: 'Workout left open', subtitle: 'If a started workout has had no new sets for {0} min.' }] },
+  { title: 'Reminders', items: [
+    { key: 'day', icon: 'calendar', tint: 'var(--red)', title: 'Workout day reminder', subtitle: 'On days with a routine planned.' },
+    { key: 'streak', icon: 'flame', tint: 'var(--orange)', title: 'Streak saver', subtitle: 'On the last day of a week with no workout yet.' },
+    { key: 'weigh', icon: 'scale', tint: 'var(--teal)', title: 'Weigh-in reminder', subtitle: 'A weekly reminder to log your body weight.' }] }
+]
+
+function PushCard({ S, user, update, toast }) {
+  const [subscribed, setSubscribed] = useState(false)
+  const [perm, setPerm] = useState(() => (pushSupported() ? Notification.permission : null))
   const [busy, setBusy] = useState(false)
   const supported = pushSupported()
+  const state = notifyState({ user, supported, ios: IOS, installed: standalone(), perm, subscribed })
+  const N = { ...DEF.notify, ...S.notify }
+  const R = S.reminder || DEF.reminder
 
   useEffect(() => {
     if (!supported) return
-    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => setOn(!!sub)).catch(() => {})
-  }, [supported])
+    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+      setSubscribed(!!sub)
+      if (sub && user) saveSubscription(sub).catch(() => {})
+    }).catch(() => {})
+  }, [supported, user])
+
+  const setN = patch => update(s => { s.notify = { ...DEF.notify, ...s.notify, ...patch }; s.reminder = { ...(s.reminder || DEF.reminder), tz: localTZ() } })
+  const setR = patch => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), ...patch, tz: localTZ() } })
+  const isOn = k => (k === 'day' ? !!R.on : !!N[k])
+  const flip = (k, v) => (k === 'day' ? setR({ on: v }) : setN({ [k]: v }))
 
   const toggle = async v => {
     setBusy(true)
     try {
-      if (!v) { await disablePush(); setOn(false); toast(t('Notifications off')) }
-      else { await enablePush(); setOn(true); toast(t('Notifications on')) }
-    } catch (e) { toast(e.message || t('Could not change notification settings')) }
+      if (!v) { await disablePush(); setSubscribed(false); toast(t('Notifications off')) }
+      else { await enablePush(); setSubscribed(true); toast(t('Notifications on')) }
+    } catch (e) {
+      setPerm(Notification.permission)
+      toast(Notification.permission === 'denied' ? t('Notifications are blocked — see the steps below.') : t('Could not change notification settings'))
+    }
     setBusy(false)
+  }
+  const recheck = () => {
+    setPerm(Notification.permission)
+    if (Notification.permission === 'denied') toast(t('Still blocked — check iPhone Settings'))
   }
   const test = async () => {
     try { await sendTestPush(); toast(t('Test sent — should arrive any second')) }
-    catch (e) { toast(e.message || t('Test failed')) }
+    catch (e) { toast(t('Test failed')) }
   }
-
-  if (!supported) return (
-    <Section title={t('Notifications')}>
-      <Row icon="bellSlash" iconTint="var(--grey)" title={t('Not supported in this browser.')} />
-    </Section>
+  const timeRow = (title, value, onChange) => (
+    <Row icon="clock" iconTint="var(--purple)" title={title}>
+      <input type="time" className="timef" value={value} onChange={e => { if (e.target.value) onChange(e.target.value) }} />
+    </Row>
   )
 
+  const FOOTER = { install: t('Notifications on iPhone need iOS 16.4 or later.'), off: t('Choose which alerts you want after turning this on.') }
   return <>
-    <Section
-      title={t('Notifications')}
-      footer={on && S.reminder?.on
-        ? t("Only sent on days you have a routine planned and haven't logged a workout yet.") +
-          (S.reminder?.tz ? ' ' + t('Timezone: {0} (auto-detected, updates if you travel).', S.reminder.tz) : '')
-        : null}
-    >
-      <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')} subtitle={t('Rest-timer alerts, even if openGym is closed.')}>
-        <Switch checked={on} disabled={busy} onChange={toggle} />
-      </Row>
-      {on && (
-        <Row icon="calendar" iconTint="var(--orange)" title={t('Workout day reminder')}>
-          <Switch checked={!!S.reminder?.on} onChange={() => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), on: !s.reminder?.on, tz: localTZ() } })} />
-        </Row>
-      )}
-      {on && S.reminder?.on && (
-        <Row icon="clock" iconTint="var(--purple)" title={t('Reminder time')}>
-          <input type="time" className="timef" value={S.reminder?.time || DEF.reminder.time}
-            onChange={e => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), time: e.target.value, tz: localTZ() } })} />
-        </Row>
-      )}
+    <Section title={t('Notifications')} footer={FOOTER[state]}>
+      {state === 'guest' && <Row icon="key" iconTint="var(--acc)" title={t('Sign in to get notifications')}
+        subtitle={t('Alerts are sent from your profile, so they work even when openGym is closed.')} />}
+      {state === 'install' && <>
+        <Row icon="bell" iconTint="var(--red)" title={t('Add openGym to your Home Screen')}
+          subtitle={t('iPhone only sends notifications to apps opened from the Home Screen.')} />
+        <Row icon="upload" iconTint="var(--blue)" title={t('1. Tap Share in Safari')} />
+        <Row icon="plus" iconTint="var(--green)" title={t('2. Choose Add to Home Screen')} />
+        <Row icon="house" iconTint="var(--acc)" title={t('3. Open openGym from the new icon')}
+          subtitle={t('Then come back here and turn notifications on.')} />
+      </>}
+      {state === 'oldIos' && <Row icon="bellSlash" iconTint="var(--grey)" title={t('Needs iOS 16.4 or later')}
+        subtitle={t('Update your iPhone in Settings → General → Software Update.')} />}
+      {state === 'unsupported' && <Row icon="bellSlash" iconTint="var(--grey)" title={t('Not supported in this browser.')} />}
+      {state === 'denied' && <>
+        <Row icon="bellSlash" iconTint="var(--red)" title={t('Notifications are blocked')}
+          subtitle={t('You said no when iPhone asked. Only iPhone Settings can undo that.')} />
+        <Row icon="gear" iconTint="var(--grey)" title={t('1. Open the Settings app → Notifications')} />
+        <Row icon="check" iconTint="var(--green)" title={t('2. Tap openGym and turn on Allow Notifications')} />
+        <Row icon="reset" iconTint="var(--blue)" title={t('3. Tap here to check again')} accessory="chevron" onClick={recheck} />
+      </>}
+      {(state === 'off' || state === 'on') && <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')}
+        subtitle={t('Get alerts even when openGym is closed.')}>
+        <Switch checked={state === 'on'} disabled={busy} onChange={toggle} />
+      </Row>}
     </Section>
-    {on && <div style={{ marginTop: -12, marginBottom: 22 }}><Button size="sm" icon="bell" onClick={test}>{t('Send test notification')}</Button></div>}
+
+    {state === 'on' && TYPES.map(g => (
+      <Section key={g.title} title={t(g.title)}
+        footer={g.title === 'Reminders' ? t('Timezone: {0} (auto-detected, updates if you travel).', R.tz || localTZ()) : null}>
+        {g.items.map(it => <Fragment key={it.key}>
+          <Row icon={it.icon} iconTint={it.tint} title={t(it.title)} subtitle={t(it.subtitle, N.staleMin)}>
+            <Switch checked={isOn(it.key)} onChange={v => flip(it.key, v)} />
+          </Row>
+          {/* the streak saver goes out at the reminder time, so that row shows for either */}
+          {it.key === 'day' && (R.on || N.streak) && timeRow(t('Reminder time'), R.time || DEF.reminder.time, v => setR({ time: v }))}
+          {it.key === 'weigh' && N.weigh && <>
+            <SelectRow icon="calendar" iconTint="var(--blue)" title={t('Day')} value={N.weighDay}
+              options={WEEKDAYS.map((d, i) => ({ value: i, label: t(d) }))} onChange={v => setN({ weighDay: v })} />
+            {timeRow(t('Time'), N.weighTime, v => setN({ weighTime: v }))}
+          </>}
+        </Fragment>)}
+      </Section>
+    ))}
+    {state === 'on' && <div style={{ marginTop: -12, marginBottom: 22 }}><Button size="sm" icon="bell" onClick={test}>{t('Send test notification')}</Button></div>}
   </>
 }
 

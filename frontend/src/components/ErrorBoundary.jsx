@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { useStore } from '../store/useStore.js'
+import { cancelPushes } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 import { Button } from './ui.jsx'
@@ -32,7 +33,7 @@ export default class ErrorBoundary extends Component {
           <div style={{ height: 8 }} />
           <Button variant="danger" icon="trash" onClick={() => {
             useStore.getState().update(s => { s.active = null })
-            location.reload()
+            cancelPushes().finally(() => location.reload())
           }}>{t('Discard the running workout')}</Button>
         </>}
       </div>

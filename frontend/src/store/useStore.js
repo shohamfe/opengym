@@ -5,6 +5,7 @@ import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { BASE } from '../lib/supabaseSync.js'
+import { disablePush } from '../lib/push.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -16,7 +17,10 @@ export const DEF = {
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
   // keeps the column it had. See effortOf.
-  reminder: { on: false, time: '08:00', tz: null }, effort: null
+  reminder: { on: false, time: '08:00', tz: null }, effort: null,
+  // Push alert types besides the day reminder (S.reminder); the server reads these too, and
+  // reminder.tz is the timezone for all of them.
+  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' }
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -163,6 +167,7 @@ export const useStore = create((set, get) => {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
       if (!get().user) return     // the push found the session already gone: signed out, data kept
       if (localStorage.getItem('gym_dirty') === '1') throw new Error('sync failed')
+      await disablePush().catch(() => {})   // or the next profile on this device gets this one's alerts
       try { await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
       clearLocalSession()
     },
@@ -174,6 +179,7 @@ export const useStore = create((set, get) => {
     // would sign the user out of the one place the bump didn't reach. Caller reports the error.
     async signOutAll() {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      await disablePush().catch(() => {})
       await api('/api/logout/all', { method: 'POST', body: '{}' })
       clearLocalSession()
     },
@@ -220,8 +226,9 @@ export const useStore = create((set, get) => {
         // Re-stamp the reminder's timezone on every load — keeps it correct if you're travelling,
         // without needing to revisit Settings.
         const tz = localTZ()
-        if (get().S.reminder?.on && get().S.reminder.tz !== tz) {
-          get().update(s => { s.reminder = { ...s.reminder, tz } })
+        const N = get().S.notify || {}
+        if ((get().S.reminder?.on || N.streak || N.weigh) && get().S.reminder?.tz !== tz) {
+          get().update(s => { s.reminder = { ...(s.reminder || DEF.reminder), tz } })
         }
       } catch (e) {
         if (e.status === 401) get().setUser(null)

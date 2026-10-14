@@ -96,6 +96,22 @@ export async function supabaseApi(path, opts = {}) {
     localStorage.setItem(BASE, ts)
     return { ok: true }
   }
+  if (path === '/api/push/public-key') {
+    const key = await rpc('push_public_key')
+    if (!key) throw err(503, 'push not ready')
+    return { key }
+  }
+  const body = () => JSON.parse(opts.body || '{}')
+  if (path === '/api/push/subscribe') { await rpc('push_subscribe', { sub: body().subscription }); return { ok: true } }
+  if (path === '/api/push/unsubscribe') { await rpc('push_unsubscribe', { endpoint: body().endpoint }); return { ok: true } }
+  if (path === '/api/push/test') { await rpc('push_test'); return { ok: true } }
+  const job = path.match(/^\/api\/push\/(rest-timer|stale)(\/cancel)?$/)
+  if (job) {
+    const kind = job[1] === 'stale' ? 'stale' : 'rest'
+    if (job[2]) await rpc('push_cancel', { kind })
+    else { const b = body(); await rpc('push_schedule', { kind, seconds: Math.round(+b.seconds || 0), title: b.title || null, body: b.body || null }) }
+    return { ok: true }
+  }
   if (path.startsWith('/api/logout')) {
     const s = load()
     localStorage.removeItem(SESSION)
