@@ -126,7 +126,8 @@ function BwSheet({ required, onDone, close }) {
   </>
 }
 export function bwSheet(opts = {}) {
-  const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
+  // swiping the pre-workout check-in away is the same as "Choose a different workout"
+  const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { onDismiss: opts.required ? () => nav('/workout') : undefined })
   return h
 }
 
@@ -916,7 +917,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
   const exName = id => <span className="capitalize">{(EXIDX[id] || {}).n || id}</span>
   const topW = id => Math.max(0, ...((w.entries.find(e => e.id === id) || {}).sets || []).filter(s => s.done).map(s => s.w || 0))
   return <>
-    <div style={{ textAlign: 'center', margin: '12px 0 16px' }}>
+    <div style={{ textAlign: 'center', marginBottom: 16 }}>
       <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
       <h3 style={{ margin: '8px 0 2px' }}>{t('Workout complete!')}</h3>
       {w.name && <div className="muted small">{w.name}</div>}
@@ -978,5 +979,5 @@ function doFinishWorkout() {
   useUI.getState().stopRest()
   cancelStale()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { locked: true })
+  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { onDismiss: () => nav('/home') })
 }

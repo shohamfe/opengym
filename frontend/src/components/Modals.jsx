@@ -31,7 +31,7 @@ function Sheet({ sheet }) {
     const el = ref.current, d = drag.current
     if (d.startY === null) return
     el.style.transition = 'transform .2s'
-    if (d.delta > 90 && !sheet.locked) { el.style.transform = 'translateY(110%)'; setTimeout(() => closeSheet(sheet.id), 180) }
+    if (d.delta > 90) { el.style.transform = 'translateY(110%)'; setTimeout(dismiss, 180) }
     else el.style.transform = ''
     d.startY = null
   }
@@ -45,19 +45,20 @@ function Sheet({ sheet }) {
   }, [])
 
   const close = () => closeSheet(sheet.id)
+  const dismiss = () => { close(); sheet.onDismiss && sheet.onDismiss() }
   if (sheet.kind === 'center') {
     return (
       <div>
-        <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
+        <div className="mback" onClick={dismiss} />
         <div className="center">{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
-      <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
+      <div className="mback" onClick={dismiss} />
       <div className="sheet" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {!sheet.locked && <div className="grab" />}{/* a handle that can't drag promises a gesture that doesn't work */}
+        <div className="grab" />
         {sheet.render(close)}
       </div>
     </div>
