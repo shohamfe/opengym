@@ -502,7 +502,7 @@ export default {
   'Estimate': 'अनुमान',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'वज़न और 1–{0} रेप्स डालें — इससे ज़्यादा पर अनुमान महज़ अटकल है।',
   'Epley formula — a calculation from one set, not a tested max.': 'एप्ली सूत्र — एक सेट से की गई गणना, परखा गया अधिकतम नहीं।',
-  'Best estimated 1RM:': 'सर्वश्रेष्ठ अनुमानित 1RM:',
+  'Best estimated 1RM': 'सर्वश्रेष्ठ अनुमानित 1RM',
   'Time': 'समय',
   'Seconds': 'सेकंड',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'सेट के दौरान टाइमर चलता है। बॉडीवेट होल्ड के लिए वज़न 0 रहने दें।',

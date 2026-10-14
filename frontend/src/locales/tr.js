@@ -502,7 +502,7 @@ export default {
   'Estimate': 'Tahmin',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'Bir ağırlık ve 1–{0} tekrar gir — bunun ötesinde tahmin yalnızca kestirimdir.',
   'Epley formula — a calculation from one set, not a tested max.': 'Epley formülü — tek bir setten hesaplama, test edilmiş bir maksimum değil.',
-  'Best estimated 1RM:': 'En iyi tahmini 1RM:',
+  'Best estimated 1RM': 'En iyi tahmini 1RM',
   'Time': 'Süre',
   'Seconds': 'Saniye',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'Seti tutarken bir sayaç işler. Vücut ağırlığıyla yapılan tutuşlarda ağırlığı 0 bırak.',

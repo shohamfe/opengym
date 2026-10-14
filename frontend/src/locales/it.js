@@ -502,7 +502,7 @@ export default {
   'Estimate': 'Stima',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'Inserisci un peso e 1–{0} ripetizioni: oltre, la stima è solo un’ipotesi.',
   'Epley formula — a calculation from one set, not a tested max.': 'Formula di Epley — un calcolo da una serie, non un massimale testato.',
-  'Best estimated 1RM:': 'Miglior 1RM stimato:',
+  'Best estimated 1RM': 'Miglior 1RM stimato',
   'Time': 'Tempo',
   'Seconds': 'Secondi',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'Un timer scorre mentre tieni la serie. Lascia il peso a 0 per le tenute a corpo libero.',
