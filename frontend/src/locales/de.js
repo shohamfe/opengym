@@ -172,7 +172,9 @@ export default {
   'Finish workout early · {0} exercises': 'Training vorzeitig beenden · {0} Übungen',
   'Rest over — next set!': 'Pause vorbei — nächster Satz!',
   // --- home ---
-  'Hi {0}': 'Hi {0}',
+  'Good morning': 'Guten Morgen',
+  'Good afternoon': 'Guten Tag',
+  'Good evening': 'Guten Abend',
   'This week': 'Diese Woche',
   '{0} — in progress': '{0} — läuft',
   'Resume ▶': 'Weiter ▶',

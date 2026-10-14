@@ -11,6 +11,12 @@ import { Button } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
+// Email sign-in uses the address as the name; never print it as one.
+const greeting = (d, name) => {
+  const h = d.getHours(), g = t(h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening')
+  return name && !name.includes('@') ? `${g}, ${name}` : g
+}
+
 export default function Home() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
@@ -47,7 +53,7 @@ export default function Home() {
 
   return <div className="narrow">
     <div className="hdr">
-      <div><h1>{user ? t('Hi {0}', user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
+      <div><h1>{user ? greeting(today, user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>
 
