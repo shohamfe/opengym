@@ -867,6 +867,15 @@ h4.sec{
 }
 .ss-label .icn{font-size:13px}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
+
+/* --- routine reorder (drag the grip; .sr-move is the keyboard fallback) --- */
+.grip{width:32px;height:32px;border-radius:8px;font-size:16px;color:var(--label-2);touch-action:none;cursor:grab}
+.list.reordering>div{transition:transform .15s}
+.list.reordering>.dragging{transition:none;position:relative;z-index:2}
+.list.reordering>.dragging .item{box-shadow:0 10px 30px -6px rgba(0,0,0,.5)}
+.list.reordering .ss-label{visibility:hidden}
+.sr-move{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.sr-move:focus-within{position:static;width:auto;height:auto;clip-path:none;display:flex}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);

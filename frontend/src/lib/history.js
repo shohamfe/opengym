@@ -137,6 +137,22 @@ export function cleanupSg(ex) {
     if (e.sg && !(ex[i - 1]?.sg === e.sg || ex[i + 1]?.sg === e.sg)) delete e.sg
   })
 }
+// Move one routine entry to another slot (clamped) — the move buttons and drag share it.
+export function reorder(ex, from, to) {
+  to = Math.max(0, Math.min(ex.length - 1, to))
+  if (from === to) return
+  ex.splice(to, 0, ...ex.splice(from, 1))
+  cleanupSg(ex)
+}
+// A swapped-in exercise keeps the plan's shape; a load only means something on the same kit.
+export function swapConfig(cfg, from, to) {
+  if (isCardio(from) !== isCardio(to)) return defaultConfig(to.id)
+  if (isCardio(to)) return { sets: cfg.sets, min: cfg.min, speed: cfg.speed }
+  const out = {}
+  for (const k of ['sets', 'mode', 'reps', 'sec', 'side', 'repsMin', 'repsMax', 'prog']) if (cfg[k] !== undefined) out[k] = cfg[k]
+  out.weight = from.eq === to.eq ? cfg.weight || 0 : 0
+  return out
+}
 
 export function lastEntryFor(S, exId) {
   for (let i = S.workouts.length - 1; i >= 0; i--) {

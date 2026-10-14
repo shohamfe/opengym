@@ -1,10 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { exOr } from '../lib/exercises.js'
 import { uid } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { supersetUnits, cleanupSg, exLine } from '../lib/history.js'
+import { supersetUnits, cleanupSg, exLine, reorder, swapConfig } from '../lib/history.js'
 import { Thumb } from '../components/Media.jsx'
 import { glyphPicker, exercisePicker, exConfigSheet, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -20,11 +20,37 @@ export default function RoutineEdit() {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const r = S.routines.find(x => x.id === id)
+  const listRef = useRef(null)
+  const [drag, setDrag] = useState(null)   // { from, to, y0, dy, h, mids } while a grip is held
   useEffect(() => { if (!r) nav('/plan') }, [!!r])
   if (!r) return null
 
   const edit = fn => update(s => { fn(s.routines.find(x => x.id === id).ex) })
-  const move = (i, dir) => edit(ex => { const j = i + dir; if (j < 0 || j >= ex.length) return;[ex[i], ex[j]] = [ex[j], ex[i]]; cleanupSg(ex) })
+  // Rows are keyed by index, so send focus after the moved exercise or a second press undoes the first.
+  const move = (i, dir) => {
+    edit(ex => reorder(ex, i, i + dir))
+    const j = Math.max(0, Math.min(r.ex.length - 1, i + dir))
+    requestAnimationFrame(() => listRef.current?.children[j]?.querySelectorAll('.sr-move button')[dir < 0 ? 0 : 1]?.focus())
+  }
+  // Target = how many other rows' midpoints the dragged row's centre has passed.
+  const dragAt = (d, y) => { const dy = y - d.y0, c = d.mids[d.from] + dy; return { ...d, dy, to: d.mids.filter((m, k) => k !== d.from && m < c).length } }
+  const grip = i => ({
+    onClick: ev => ev.stopPropagation(),
+    onPointerDown: ev => {
+      ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId)
+      const rows = [...listRef.current.children].map(n => n.getBoundingClientRect())
+      setDrag({ from: i, to: i, y0: ev.clientY, dy: 0, h: rows[i].height + 8, mids: rows.map(b => b.top + b.height / 2) })
+    },
+    onPointerMove: ev => { if (!drag) return; ev.preventDefault(); const y = ev.clientY; setDrag(d => d && dragAt(d, y)) },
+    onPointerUp: ev => { if (!drag) return; const { from, to } = dragAt(drag, ev.clientY); setDrag(null); if (from !== to) edit(x => reorder(x, from, to)) },
+    onPointerCancel: () => setDrag(null),
+  })
+  const shiftOf = i => !drag ? 0 : i === drag.from ? drag.dy
+    : drag.from < drag.to ? (i > drag.from && i <= drag.to ? -drag.h : 0) : (i >= drag.to && i < drag.from ? drag.h : 0)
+  // Swap opens the picker, then the config prefilled from this row; the row changes only on Save.
+  // `done` closes the swap picker(s) underneath once the row changes, so they can't swap it again.
+  const openRow = (i, ex, cfg, done) => exConfigSheet(ex, cfg, c => { done?.(); edit(x => { x[i] = { id: ex.id, sg: x[i].sg, ...c } }) }, () => { done?.(); edit(x => { x.splice(i, 1); cleanupSg(x) }) }, r,
+    () => { const p = exercisePicker(n => openRow(i, n, swapConfig(cfg, ex, n), () => { p.close(); done?.() }), { like: ex }) })
   const toggleLink = i => edit(ex => {
     if (i < 1) return
     const cur = ex[i], prev = ex[i - 1]
@@ -56,24 +82,24 @@ export default function RoutineEdit() {
       {t('Applies to every exercise in this routine that does not set its own rule.')}
     </div>
 
-    {r.ex.length ? <div className="list">{r.ex.map((e, i) => {
+    {r.ex.length ? <div className={'list' + (drag ? ' reordering' : '')} ref={listRef}>{r.ex.map((e, i) => {
       // An unresolvable id is shown rather than skipped — hiding it left an entry you
       // could neither see nor delete, but that still turned up in the workout.
       const ex = exOr(e.id)
       const linkedPrev = i > 0 && e.sg && r.ex[i - 1].sg === e.sg
-      return <div key={i}>
+      return <div key={i} className={drag?.from === i ? 'dragging' : undefined} style={drag ? { transform: `translateY(${shiftOf(i)}px)` } : undefined}>
         {unitFirst.has(i) && <div className="ss-label"><Icon name="link" />{t('Superset')}</div>}
-        <div className={'item' + (inSS.has(i) ? ' in-ss' : '')} onClick={() => {
-          exConfigSheet(ex, e, cfg => edit(x => { x[i] = { id: x[i].id, sg: x[i].sg, ...cfg } }), () => edit(x => { x.splice(i, 1); cleanupSg(x) }), r)
-        }}>
+        <div className={'item' + (inSS.has(i) ? ' in-ss' : '')} onClick={() => openRow(i, ex, e)}>
           <Thumb ex={ex} />
           <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{exLine(e, S.unit)}</div></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none', alignItems: 'center' }}>
-            {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Superset with exercise above')} style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }} onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
-            <div style={{ display: 'flex', gap: 2 }}>
-              <button className="iconbtn" aria-label="Move up" style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
-              <button className="iconbtn" aria-label="Move down" style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
-            </div>
+            {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Superset with exercise above')} aria-label={t('Superset with exercise above')} aria-pressed={!!linkedPrev} style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }} onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
+            {r.ex.length > 1 && <div className="iconbtn grip" aria-hidden="true" {...grip(i)}><Icon name="grip" /></div>}
+            {/* Visually hidden until tabbed to: the keyboard / screen-reader way to reorder. */}
+            {r.ex.length > 1 && <div className="sr-move" style={{ gap: 2 }}>
+              <button className="iconbtn" aria-label={t('Move {0} up', ex.n)} style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
+              <button className="iconbtn" aria-label={t('Move {0} down', ex.n)} style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
+            </div>}
           </div>
         </div>
       </div>
@@ -93,7 +119,7 @@ export default function RoutineEdit() {
       </div>
     })()}
 
-    <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Tap the link button on an exercise to superset it with the one above — you’ll do them back-to-back.')}</div>
+    <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Drag the handle to reorder. Tap the link button on an exercise to superset it with the one above — you’ll do them back-to-back.')}</div>
     <Button variant="primary" onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => edit(x => { x.push({ id: ex.id, ...cfg }) }), null, r))} icon="plus">{t('Add exercise')}</Button>
     <div style={{ height: 10 }} />
     <Button variant="danger" onClick={() => confirmSheet({
