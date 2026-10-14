@@ -67,16 +67,13 @@ function Sheet({ sheet }) {
 export default function Modals() {
   const sheets = useUI(s => s.sheets)
 
-  // lock the page behind any open sheet (iOS-safe)
+  // lock the page behind any open sheet. Not by pinning <body> with position:fixed: in the
+  // iOS Home Screen app that shrank the viewport and left a strip under every sheet.
   useEffect(() => {
     if (!sheets.length) return
-    const y = window.scrollY || 0
-    const b = document.body.style
-    b.position = 'fixed'; b.top = -y + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'
-    return () => {
-      b.position = b.top = b.left = b.right = b.width = ''
-      window.scrollTo(0, y)
-    }
+    const h = document.documentElement.style
+    h.overflow = 'hidden'
+    return () => { h.overflow = '' }
   }, [sheets.length > 0])
 
   if (!sheets.length) return null
