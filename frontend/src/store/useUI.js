@@ -8,9 +8,11 @@ import { useStore, DEF } from './useStore.js'
 // Fire-and-forget: lets the server push a "rest over" alert if this tab gets suspended
 // before the local timer completes. No-ops for guests / offline / that alert switched off.
 const notifyOn = k => { const st = useStore.getState(); return st.user && { ...DEF.notify, ...st.S.notify }[k] }
-const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) }).catch(() => {})
+// One chain for all push calls: parallel requests can land out of order (a cancel after the new schedule).
+let pushQ = Promise.resolve()
+const post = (path, body) => (pushQ = pushQ.then(() => api(path, { method: 'POST', body: JSON.stringify(body || {}) }).catch(() => {})))
 const pushRestTimer = sec => { if (notifyOn('rest')) post('/api/push/rest-timer', { seconds: sec, title: t('Rest over') + ' 💪', body: t('Time for your next set.') }) }
-const cancelPushRestTimer = () => { if (useStore.getState().user) post('/api/push/rest-timer/cancel') }
+const cancelPushRestTimer = () => { if (useStore.getState().user) return post('/api/push/rest-timer/cancel') }
 
 // "Still training?" if the open workout gets no new set for staleMin. Re-armed on start and on every
 // ticked set; the server cannot do this itself because S.active is never synced.
@@ -19,7 +21,9 @@ export function armStale() {
   if (!notifyOn('stale') || !S.active) return
   post('/api/push/stale', { seconds: { ...DEF.notify, ...S.notify }.staleMin * 60, title: t('Still training?'), body: t("{0} is still open. Tap Finish so it's saved.", S.active.name) })
 }
-export const cancelStale = () => { if (useStore.getState().user) post('/api/push/stale/cancel') }
+export const cancelStale = () => { if (useStore.getState().user) return post('/api/push/stale/cancel') }
+// Both server alerts, e.g. when the error screen throws the running workout away.
+export const cancelPushes = () => Promise.all([cancelPushRestTimer(), cancelStale()])
 
 let toastTm = null
 let timerInt = null
@@ -50,7 +54,7 @@ export const useUI = create((set, get) => ({
   },
 
   startRest(sec) {
-    get().stopRest()
+    get().stopRest(true)   // the schedule below replaces the server job; no cancel needed
     const endsAt = Date.now() + sec * 1000
     set({ timer: { left: sec, total: sec, endsAt } })
     pushRestTimer(sec)
@@ -80,10 +84,10 @@ export const useUI = create((set, get) => ({
     set({ timer: { ...tm, left, total: tm.total + sec, endsAt: tm.endsAt + sec * 1000 } })
     pushRestTimer(left)
   },
-  stopRest() {
+  stopRest(keepPush) {
     if (timerInt) clearInterval(timerInt); timerInt = null
     if (timerTick) document.removeEventListener('visibilitychange', timerTick); timerTick = null
-    if (get().timer) cancelPushRestTimer()
+    if (get().timer && keepPush !== true) cancelPushRestTimer()   // === true: Skip passes the click event here
     set({ timer: null })
   },
 
