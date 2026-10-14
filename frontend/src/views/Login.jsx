@@ -1,7 +1,7 @@
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { webauthnOK, passkeyLogin, passkeyRegister, api, BIO } from '../lib/api.js'
-import { SUPABASE, sendCode, verifyCode, linkToken } from '../lib/supabaseSync.js'
+import { SUPABASE, signIn as pwSignIn, setupPassword } from '../lib/supabaseSync.js'
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -43,69 +43,58 @@ function RegisterSheet({ close }) {
   </>
 }
 
-// Supabase build: email one-time code, both steps in one sheet. Errors go to a toast and the
-// sheet keeps its inputs (a wrong code clears the code field).
+// Supabase build: email + password. The first time, a one-time setup code from Claude sets the
+// password. Errors go to a toast and the sheet keeps its inputs.
 export function EmailSignInSheet({ close }) {
   const { setUser, pullState } = useStore()
-  const [step, setStep] = useState('email')
   const [email, setEmail] = useState(() => localStorage.getItem('gym_email') || '')
-  const [code, setCode] = useState('')
+  const [pw, setPw] = useState('')
+  const [code, setCode] = useState(null)   // null = normal sign-in, string = setting the password
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
-  useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [step])
+  useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [])
   const toast = m => useUI.getState().toast(m)
-  const fail = e => {
-    if (e.status === 0 || !navigator.onLine) toast(t('You’re offline. Connect and try again — your data is safe on this phone.'))
-    else if (e.status === 429 || e.code === 'over_email_send_rate_limit') toast(t('Too many emails requested. Wait a bit — your last email still works.'))
-    // The owner-only trigger on auth.users surfaces as a 500 "Database error saving new user".
-    else if (['otp_disabled', 'signup_disabled'].includes(e.code) || (e.status >= 500 && /database error/i.test(e.message))) toast(t('This email can’t sign in to this app.'))
-    else toast(t('Sign-in failed'))
-  }
-  const send = async () => {
+  const go = async () => {
     const m = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { toast(t('Enter a valid email address.')); return }
+    if (code !== null && !code.trim()) { toast(t('Enter the setup code.')); return }
+    if (pw.length < (code !== null ? 10 : 1)) { toast(code !== null ? t('Use at least 10 characters.') : t('Enter your password.')); return }
     setBusy(true)
     try {
-      await sendCode(m); localStorage.setItem('gym_email', m); setEmail(m)
-      if (step === 'code') toast(t('New email sent.')); else setStep('code')
-    }
-    catch (e) { fail(e) }
-    setBusy(false)
-  }
-  const verify = async () => {
-    setBusy(true)
-    try {
-      const u = await verifyCode(email, code)
+      const u = code !== null ? await setupPassword(m, code, pw) : await pwSignIn(m, pw)
+      localStorage.setItem('gym_email', m)
       setUser(u); close()
       toast(t('Signed in — syncing your workouts.'))
       await pullState()
     } catch (e) {
       setBusy(false)
-      if (e.status >= 400 && e.status < 500 && e.status !== 429) { setCode(''); toast(t('That link or code is wrong, expired or already used. Resend and try again.')) }
-      else fail(e)
+      if (e.status === 0 || !navigator.onLine) toast(t('You’re offline. Connect and try again — your data is safe on this phone.'))
+      else if (e.status === 429) toast(t('Too many tries. Wait a few minutes and try again.'))
+      else if (code !== null && e.status >= 400 && e.status < 500) toast(t('That setup code is wrong, expired or already used.'))
+      else if (e.status >= 400 && e.status < 500) toast(t('Wrong email or password.'))
+      else toast(t('Sign-in failed'))
     }
   }
-  const lbl = { marginBottom: 14 }
-  const ok = /^\d{6,10}$/.test(code) || !!linkToken(code)
-  if (step === 'email') return <>
-    <h3>{t('Sign in')}</h3>
-    <div className="muted small" style={lbl}>{t('We’ll email you a sign-in link.')}</div>
-    <input ref={ref} className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none"
-      placeholder={t('Email address')} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} />
-    <div style={{ height: 12 }} />
-    <Button variant="primary" onClick={send} disabled={busy}>{busy ? t('Sending…') : t('Send code')}</Button>
-  </>
+  const enter = e => e.key === 'Enter' && go()
   return <>
-    <h3>{t('Check your email')}</h3>
-    <div className="muted small" style={lbl}>{t('We sent an email to {0}. Don’t tap its link: press and hold it, copy it, and paste it here. If the email shows a code, type that instead.', email)}</div>
-    <input ref={ref} className="input" autoComplete="one-time-code" autoCapitalize="none" placeholder={t('Paste the link or type the code')}
-      value={code} onChange={e => setCode(e.target.value.trim())} onKeyDown={e => e.key === 'Enter' && ok && verify()} />
+    <h3>{code !== null ? t('Set your password') : t('Sign in')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>
+      {code !== null ? t('Enter the setup code Claude gave you, then choose a password.') : t('Only the owner’s email can sign in.')}
+    </div>
+    <input ref={ref} className="input" type="email" inputMode="email" autoComplete="username" autoCapitalize="none"
+      placeholder={t('Email address')} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={enter} />
+    {code !== null && <><div style={{ height: 10 }} />
+      <input className="input" autoComplete="one-time-code" autoCapitalize="characters" placeholder={t('Setup code')}
+        value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={enter} /></>}
+    <div style={{ height: 10 }} />
+    <input className="input" type="password" autoComplete={code !== null ? 'new-password' : 'current-password'}
+      placeholder={code !== null ? t('New password') : t('Password')} value={pw} onChange={e => setPw(e.target.value)} onKeyDown={enter} />
     <div style={{ height: 12 }} />
-    {navigator.clipboard?.readText && <><Button onClick={async () => { try { setCode((await navigator.clipboard.readText()).trim()) } catch { /* denied: paste by hand */ } }} disabled={busy}>{t('Paste link')}</Button><div style={{ height: 8 }} /></>}
-    <Button variant="primary" onClick={verify} disabled={busy || !ok}>{busy ? t('Checking…') : t('Sign in')}</Button>
+    <Button variant="primary" onClick={go} disabled={busy}>{busy ? t('Checking…') : code !== null ? t('Set password and sign in') : t('Sign in')}</Button>
     <div style={{ height: 6 }} />
-    <Button variant="ghost" size="sm" onClick={send} disabled={busy}>{t('Resend email')}</Button>
-    <Button variant="ghost" size="sm" onClick={() => { setCode(''); setStep('email') }}>{t('Use a different email')}</Button>
+    <Button variant="ghost" size="sm" onClick={() => setCode(code !== null ? null : '')} disabled={busy}>
+      {code !== null ? t('I already have a password') : t('First time? I have a setup code')}
+    </Button>
   </>
 }
 

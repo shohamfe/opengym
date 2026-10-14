@@ -1,6 +1,6 @@
 // Single-user cloud sync against Supabase, for a static deploy with no Node backend.
 // Answers the few backend routes the store calls (/api/me, /api/data, /api/logout) with Supabase
-// Auth (an emailed one-time code, plain fetch against its REST API) and two database functions
+// Auth (email + password, plain fetch against its REST API) and two database functions
 // (gym_get / gym_put, see supabase/migrations). The session is kept in localStorage; the access
 // token is refreshed on demand, so a phone that was closed for weeks just refreshes on open.
 const URL_ = import.meta.env.VITE_SUPABASE_URL
@@ -76,27 +76,20 @@ async function rpc(fn, args, retry = true) {
   }
 }
 
-export const sendCode = email => call('/auth/v1/otp', { email, create_user: true })
+const me = ({ user }) => ({ id: user.id, name: user.email, admin: false })
 
-// Accepts the typed code, or the sign-in link from the email pasted whole. The free plan can't edit
-// the email templates, so the default email carries only a link; its `token` is the token hash.
-// Mail apps may wrap the link (Gmail: google.com/url?q=...), so decode until the params show.
-export function linkToken(text) {
-  let u = text.trim()
-  for (let i = 0; i < 3 && !/[?&]token=/.test(u); i++) { try { u = decodeURIComponent(u) } catch { break } }
-  const tok = u.match(/[?&]token=([^&#\s]+)/), type = u.match(/[?&]type=([a-z_]+)/)
-  return tok ? { token_hash: tok[1], type: type ? type[1] : 'email' } : null
-}
+export const signIn = async (email, password) => me(save(await call('/auth/v1/token?grant_type=password', { email, password })))
 
-export async function verifyCode(email, input) {
-  const link = linkToken(input)
-  const { user } = save(await call('/auth/v1/verify', link || { type: 'email', email, token: input.trim() }))
-  return { id: user.id, name: user.email, admin: false }
+// First sign-in on the free plan: its email can only carry a link (iOS previews use it up), so the
+// password is set with a single-use setup code that Claude creates in SQL (see supabase/migrations).
+export async function setupPassword(email, code, password) {
+  await call('/rest/v1/rpc/gym_set_password', { code, pw: password })
+  return signIn(email, password)
 }
 
 export async function supabaseApi(path, opts = {}) {
   const method = opts.method || 'GET'
-  if (path === '/api/me') { const { user } = await session(); return { user: { id: user.id, name: user.email, admin: false } } }
+  if (path === '/api/me') return { user: me(await session()) }
   if (path === '/api/data' && method === 'GET') return { state: await rpc('gym_get') }
   if (path === '/api/data' && method === 'PUT') {
     const ts = await rpc('gym_put', { s: JSON.parse(opts.body).state, base: Number(localStorage.getItem(BASE)) || null })
