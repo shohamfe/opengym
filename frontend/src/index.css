@@ -647,6 +647,10 @@ h4.sec{
   backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
   touch-action:none;overscroll-behavior:none;
 }
+/* iOS Home Screen apps can stop fixed layers short of the screen's bottom edge while the
+   page is scroll-locked; the backdrop and the sheet's color (a shadow copy) run past it */
+.mback{bottom:-120px}
+.sheet{box-shadow:0 120px 0 var(--bg-el)}
 .sheet{
   position:absolute;left:0;right:0;bottom:0;background:var(--bg-el);
   border-radius:var(--r-xl) var(--r-xl) 0 0;
@@ -655,7 +659,7 @@ h4.sec{
   animation:sheetup .34s var(--ease);
   overscroll-behavior:contain;touch-action:pan-y;will-change:transform;
 }
-:root[data-theme="light"] .sheet{background:var(--bg)}
+:root[data-theme="light"] .sheet{background:var(--bg);box-shadow:0 120px 0 var(--bg)}
 /* primary action pinned to the sheet's bottom edge; negative margins cancel .sheet's padding */
 .sheet-foot{position:sticky;bottom:calc(-20px - var(--sab));margin:12px -18px calc(-20px - var(--sab));padding:12px 18px calc(20px + var(--sab));background:var(--bg-el);border-top:var(--hair) solid var(--sep)}
 :root[data-theme="light"] .sheet-foot{background:var(--bg)}
