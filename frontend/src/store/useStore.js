@@ -16,7 +16,10 @@ export const DEF = {
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
   // keeps the column it had. See effortOf.
-  reminder: { on: false, time: '08:00', tz: null }, effort: null
+  reminder: { on: false, time: '08:00', tz: null }, effort: null,
+  // Push alert types besides the day reminder (S.reminder); the server reads these too, and
+  // reminder.tz is the timezone for all of them.
+  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' }
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -220,8 +223,9 @@ export const useStore = create((set, get) => {
         // Re-stamp the reminder's timezone on every load — keeps it correct if you're travelling,
         // without needing to revisit Settings.
         const tz = localTZ()
-        if (get().S.reminder?.on && get().S.reminder.tz !== tz) {
-          get().update(s => { s.reminder = { ...s.reminder, tz } })
+        const N = get().S.notify || {}
+        if ((get().S.reminder?.on || N.streak || N.weigh) && get().S.reminder?.tz !== tz) {
+          get().update(s => { s.reminder = { ...(s.reminder || DEF.reminder), tz } })
         }
       } catch (e) {
         if (e.status === 401) get().setUser(null)

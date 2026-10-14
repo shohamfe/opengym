@@ -3,12 +3,23 @@ import { uid } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
 import { api } from '../lib/api.js'
 import { t } from '../lib/i18n.js'
-import { useStore } from './useStore.js'
+import { useStore, DEF } from './useStore.js'
 
 // Fire-and-forget: lets the server push a "rest over" alert if this tab gets suspended
-// before the local timer completes. No-ops for guests / offline.
-const pushRestTimer = sec => { if (useStore.getState().user) api('/api/push/rest-timer', { method: 'POST', body: JSON.stringify({ seconds: sec }) }).catch(() => {}) }
-const cancelPushRestTimer = () => { if (useStore.getState().user) api('/api/push/rest-timer/cancel', { method: 'POST', body: '{}' }).catch(() => {}) }
+// before the local timer completes. No-ops for guests / offline / that alert switched off.
+const notifyOn = k => { const st = useStore.getState(); return st.user && { ...DEF.notify, ...st.S.notify }[k] }
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) }).catch(() => {})
+const pushRestTimer = sec => { if (notifyOn('rest')) post('/api/push/rest-timer', { seconds: sec, title: t('Rest over') + ' 💪', body: t('Time for your next set.') }) }
+const cancelPushRestTimer = () => { if (useStore.getState().user) post('/api/push/rest-timer/cancel') }
+
+// "Still training?" if the open workout gets no new set for staleMin. Re-armed on start and on every
+// ticked set; the server cannot do this itself because S.active is never synced.
+export function armStale() {
+  const { S } = useStore.getState()
+  if (!notifyOn('stale') || !S.active) return
+  post('/api/push/stale', { seconds: { ...DEF.notify, ...S.notify }.staleMin * 60, title: t('Still training?'), body: t("{0} is still open. Tap Finish so it's saved.", S.active.name) })
+}
+export const cancelStale = () => { if (useStore.getState().user) post('/api/push/stale/cancel') }
 
 let toastTm = null
 let timerInt = null
