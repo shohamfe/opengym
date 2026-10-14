@@ -1,21 +1,23 @@
 import { it, expect, vi } from 'vitest'
 
-// Fake browser + fake Supabase (Auth + PostgREST). Tokens: 'a1' is issued by /verify, 'a2' by a
+// Fake browser + fake Supabase (Auth + PostgREST). Tokens: 'a1' is issued by a password sign-in, 'a2' by a
 // refresh; 'r1' is the only valid refresh token. gym_put behaves like the SQL: server stamps _ts
 // and answers 409 when base is not the current _ts.
 const store = { gym_sync_key: 'old' }
 globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v) }, removeItem: k => { delete store[k] } }
-let row = null, clock = 1000, valid = new Set(), down = false
+let row = null, clock = 1000, valid = new Set(), down = false, pw = 'secret-pass', codes = new Set(['SETUP1'])
 const res = (status, body) => ({ ok: status < 300, status, json: async () => body })
 const tokens = (a, exp) => ({ access_token: a, refresh_token: 'r1', expires_in: 3600, expires_at: exp, user: { id: 'u1', email: 'me@x.io' } })
 globalThis.fetch = vi.fn(async (url, o) => {
   if (down) throw new TypeError('Failed to fetch')
   const b = JSON.parse(o.body), bearer = o.headers.Authorization?.slice(7)
-  if (url.endsWith('/auth/v1/otp')) return b.email === 'me@x.io' ? res(200, {}) : res(500, { msg: 'Database error saving new user' })
-  if (url.endsWith('/auth/v1/verify')) {
-    if (b.token_hash && !(b.token_hash === 'h4sh' && b.type === 'signup')) return res(403, { error_code: 'otp_expired' })
-    if (!b.token_hash && b.token !== '123456') return res(403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' })
+  if (url.includes('grant_type=password')) {
+    if (b.email !== 'me@x.io' || b.password !== pw) return res(400, { error_code: 'invalid_credentials' })
     valid.add('a1'); return res(200, tokens('a1', Math.floor(Date.now() / 1000) + 3600))
+  }
+  if (url.endsWith('/gym_set_password')) {
+    if (bearer || !codes.delete(b.code.trim().toUpperCase())) return res(403, { code: '28000' })
+    pw = b.pw; return res(204, null)
   }
   if (url.includes('grant_type=refresh_token')) {
     if (b.refresh_token !== 'r1') return res(400, { error_code: 'refresh_token_not_found' })
@@ -31,10 +33,10 @@ globalThis.fetch = vi.fn(async (url, o) => {
   return res(404, {})
 })
 
-it('signs in with an email code, syncs, refreshes, detects conflicts and signs out', async () => {
+it('signs in with a password, syncs, refreshes, detects conflicts and signs out', async () => {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://x.supabase.co')
   vi.stubEnv('VITE_SUPABASE_KEY', 'pub')
-  const { SUPABASE, supabaseApi: api, sendCode, verifyCode, BASE } = await import('./supabaseSync.js')
+  const { SUPABASE, supabaseApi: api, signIn, setupPassword, BASE } = await import('./supabaseSync.js')
   expect(SUPABASE).toBe(true)
   expect(store.gym_sync_key).toBeUndefined()   // old link key cleaned up
 
@@ -42,11 +44,12 @@ it('signs in with an email code, syncs, refreshes, detects conflicts and signs o
   await expect(api('/api/me')).rejects.toMatchObject({ status: 401 })
   await expect(api('/api/data')).rejects.toMatchObject({ status: 401 })
 
-  // Strangers are refused by the owner-only trigger (a 500 from Auth); wrong code is a 403.
-  await expect(sendCode('evil@x.io')).rejects.toMatchObject({ status: 500, message: 'Database error saving new user' })
-  await sendCode('me@x.io')
-  await expect(verifyCode('me@x.io', '000000')).rejects.toMatchObject({ status: 403, code: 'otp_expired' })
-  expect(await verifyCode('me@x.io', '123456')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
+  // First time: the setup code sets the password once (anon call), then it's a normal sign-in.
+  await expect(signIn('me@x.io', 'new-password-1')).rejects.toMatchObject({ status: 400, code: 'invalid_credentials' })
+  await expect(setupPassword('me@x.io', 'WRONG', 'new-password-1')).rejects.toMatchObject({ status: 403 })
+  expect(await setupPassword('me@x.io', ' setup1 ', 'new-password-1')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
+  await expect(setupPassword('me@x.io', 'SETUP1', 'other-password')).rejects.toMatchObject({ status: 403 })
+  expect(await signIn('me@x.io', 'new-password-1')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
   expect((await api('/api/me')).user).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
 
   // First push inserts (no row, no base); the next push builds on the returned _ts.
@@ -85,7 +88,7 @@ it('signs in with an email code, syncs, refreshes, detects conflicts and signs o
   expect(store.gym_session).toBeUndefined()
 
   // Logout clears the session and base, revoking the token locally.
-  await verifyCode('me@x.io', '123456')
+  await signIn('me@x.io', pw)
   expect(await api('/api/logout', { method: 'POST', body: '{}' })).toEqual({ ok: true })
   expect(fetch.mock.calls.at(-1)[0]).toBe('https://x.supabase.co/auth/v1/logout?scope=local')
   expect(store.gym_session).toBeUndefined()
@@ -95,8 +98,8 @@ it('signs in with an email code, syncs, refreshes, detects conflicts and signs o
 })
 
 it('retries a rejected call with the newest token instead of re-using a rotated refresh token', async () => {
-  const { supabaseApi: api, verifyCode } = await import('./supabaseSync.js')
-  await verifyCode('me@x.io', '123456')                                    // session a1 / r1
+  const { supabaseApi: api, signIn } = await import('./supabaseSync.js')
+  await signIn('me@x.io', pw)                                    // session a1 / r1
   let first = true
   const real = fetch.getMockImplementation()
   fetch.mockImplementation(async (url, o) => {
@@ -116,22 +119,12 @@ it('retries a rejected call with the newest token instead of re-using a rotated 
 })
 
 it('gives up after 15 s without an answer and reports offline', async () => {
-  const { sendCode } = await import('./supabaseSync.js')
+  const { signIn } = await import('./supabaseSync.js')
   vi.useFakeTimers()
   fetch.mockImplementationOnce((url, o) => new Promise((_, reject) => o.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))))
-  const p = sendCode('me@x.io')
+  const p = signIn('me@x.io', pw)
   const check = expect(p).rejects.toMatchObject({ status: 0 })
   await vi.advanceTimersByTimeAsync(15000)
   await check
   vi.useRealTimers()
-})
-
-it('signs in with the link from the default email, pasted plain or wrapped by Gmail', async () => {
-  const { linkToken, verifyCode } = await import('./supabaseSync.js')
-  const link = 'https://p.supabase.co/auth/v1/verify?token=h4sh&type=signup&redirect_to=http://localhost:3000'
-  expect(linkToken(link)).toEqual({ token_hash: 'h4sh', type: 'signup' })
-  expect(linkToken('https://www.google.com/url?q=' + encodeURIComponent(link) + '&sa=D')).toEqual({ token_hash: 'h4sh', type: 'signup' })
-  expect(linkToken('123456')).toBeNull()
-  expect((await verifyCode('me@x.io', ' ' + link + ' ')).id).toBe('u1')
-  await expect(verifyCode('me@x.io', link.replace('h4sh', 'used'))).rejects.toMatchObject({ status: 403 })
 })

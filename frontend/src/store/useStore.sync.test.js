@@ -49,7 +49,7 @@ it('keeps guest workouts that are newer than the cloud copy when signing in', as
   row = { workouts: [{ id: 'cloud' }], _ts: clock - 60_000 }
   useStore.getState().replaceState({ ...useStore.getState().S, workouts: [{ id: 'guest' }] })   // stamped now: newer
   signedIn()
-  await useStore.getState().pullState()   // what EmailSignInSheet's verify() does after setUser
+  await useStore.getState().pullState()   // what EmailSignInSheet's go() does after setUser
   const ids = [...useStore.getState().S.workouts, ...row.workouts].map(w => w.id)
   expect(ids).toContain('guest')
 })
