@@ -4,6 +4,16 @@ import { api } from './api.js'
 
 export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 export const pushPermission = () => (pushSupported() ? Notification.permission : 'unsupported')
+export const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+export const standalone = () => navigator.standalone === true || !!window.matchMedia?.('(display-mode: standalone)').matches
+
+// Which Notifications screen to show; first match wins. iPhone only offers web push to Home Screen apps on 16.4+.
+export function notifyState({ user, supported, ios, installed, perm, subscribed }) {
+  if (!user) return 'guest'
+  if (!supported) return !ios ? 'unsupported' : installed ? 'oldIos' : 'install'
+  if (perm === 'denied') return 'denied'
+  return subscribed ? 'on' : 'off'
+}
 
 const urlBase64ToUint8Array = b64 => {
   const padded = (b64 + '='.repeat((4 - b64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')
