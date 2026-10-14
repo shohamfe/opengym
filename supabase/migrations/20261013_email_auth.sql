@@ -8,14 +8,20 @@
 -- newer and a phone with an older copy cannot silently overwrite it (gym_put answers 409). E.g.
 --   update public.gym_state set state = jsonb_set(state, '{restSec}', '120')
 --   where user_id = (select id from auth.users where email = 'shoham.fe@gmail.com');
--- Every update keeps the previous row in gym_state_history (last 20 per user). Undo the last write:
---   update public.gym_state a set state = h.state from (select state from public.gym_state_history
---   where user_id = <uid> order by id desc limit 1) h where a.user_id = <uid>;
+-- Every update keeps the previous row in gym_history (last 20 per user). Undo the last write:
+--   update public.gym_state a set state = h.state from (select state from public.gym_history
+--   where user_id = <uid> order by seq desc limit 1) h where a.user_id = <uid>;
 
--- Old key-based sync: closed off rather than dropped (the connector won't run destructive
--- statements unattended). Its tables (app_state, sync_key) are empty and can be dropped any time.
-revoke all on function public.gym_get(text) from public, anon, authenticated;
-revoke all on function public.gym_put(text, jsonb) from public, anon, authenticated;
+-- Old key-based sync: retired by renaming rather than dropping (the connector won't run
+-- destructive statements unattended). Its tables (app_state, sync_key) are empty and can be
+-- dropped any time, together with these functions.
+do $$ begin
+  if to_regprocedure('public.gym_get(text)') is not null then
+    alter function public.gym_get(text) rename to retired_key_gym_get;
+    alter function public.gym_put(text, jsonb) rename to retired_key_gym_put;
+    alter function public.gym_key_ok(text) rename to retired_key_ok;
+  end if;
+end $$;
 
 -- Only the owner can get an account. Rejecting the insert makes Supabase Auth refuse the sign-up
 -- before any email is sent (auth hooks would need the dashboard; a trigger is plain SQL).
@@ -53,15 +59,17 @@ alter table public.gym_state add constraint gym_state_shape check (
   and coalesce(jsonb_typeof(state->'dayPlan'), 'object') = 'object'
 );
 
--- Previous versions of each row, for undoing a bad write. Closed to the API like gym_state.
-create table if not exists public.gym_state_history (
-  id bigint generated always as identity primary key,
+-- Previous versions of each row, for undoing a bad write: a ring of 20 slots per user (upserts,
+-- so it never needs a DELETE). Closed to the API like gym_state.
+create table if not exists public.gym_history (
   user_id uuid not null references auth.users (id) on delete cascade,
+  slot int not null,
+  seq bigint not null,
   state jsonb not null,
-  saved_at timestamptz not null default now()
+  saved_at timestamptz not null default now(),
+  primary key (user_id, slot)
 );
-create index if not exists gym_state_history_user on public.gym_state_history (user_id, id);
-alter table public.gym_state_history enable row level security;
+alter table public.gym_history enable row level security;
 
 -- Every write, from the app or from plain SQL, gets a server _ts (ms) and loses the device-only
 -- in-progress workout.
@@ -83,11 +91,11 @@ create trigger gym_stamp before insert or update on public.gym_state
 
 create or replace function public.gym_keep_history() returns trigger
 language plpgsql set search_path = '' as $$
+declare n bigint;
 begin
-  insert into public.gym_state_history (user_id, state) values (old.user_id, old.state);
-  delete from public.gym_state_history
-  where user_id = old.user_id
-    and id not in (select id from public.gym_state_history where user_id = old.user_id order by id desc limit 20);
+  select coalesce(max(seq), 0) + 1 into n from public.gym_history where user_id = old.user_id;
+  insert into public.gym_history (user_id, slot, seq, state) values (old.user_id, n % 20, n, old.state)
+  on conflict (user_id, slot) do update set seq = excluded.seq, state = excluded.state, saved_at = now();
   return null;
 end $$;
 revoke all on function public.gym_keep_history() from public, anon, authenticated;
