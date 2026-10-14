@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>OpenGym</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>OpenGym saves each finished workout to Apple Health so it shows in Fitness.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>OpenGym does not read your health data.</string>
+</dict>
+</plist>
