@@ -520,7 +520,7 @@ export default {
   'Estimate': 'Schätzung',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'Gewicht und 1–{0} Wiederholungen eingeben — darüber hinaus ist eine Schätzung Raterei.',
   'Epley formula — a calculation from one set, not a tested max.': 'Epley-Formel — berechnet aus einem Satz, kein getesteter Max-Wert.',
-  'Best estimated 1RM:': 'Bestes geschätztes 1RM:',
+  'Best estimated 1RM': 'Bestes geschätztes 1RM',
   'Time': 'Zeit',
   'Seconds': 'Sekunden',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'Während des Satzes läuft ein Timer. Für Halteübungen ohne Zusatzgewicht das Gewicht auf 0 lassen.',

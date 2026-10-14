@@ -502,7 +502,7 @@ export default {
   'Estimate': 'Оценка',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'Введи вес и 1–{0} повторений — выше этого оценка превращается в гадание.',
   'Epley formula — a calculation from one set, not a tested max.': 'Формула Эпли — расчёт по одному подходу, а не проверенный максимум.',
-  'Best estimated 1RM:': 'Лучший расчётный 1ПМ:',
+  'Best estimated 1RM': 'Лучший расчётный 1ПМ',
   'Time': 'Время',
   'Seconds': 'Секунды',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'Во время подхода идёт таймер. Для удержаний с собственным весом оставь вес на 0.',

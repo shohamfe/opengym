@@ -502,7 +502,7 @@ export default {
   'Estimate': '추정치',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': '무게와 1–{0}회를 입력하세요 — 그 이상은 추정이 아니라 짐작입니다.',
   'Epley formula — a calculation from one set, not a tested max.': 'Epley 공식 — 한 세트에서 계산한 값이며 실측 최대치가 아닙니다.',
-  'Best estimated 1RM:': '최고 추정 1RM:',
+  'Best estimated 1RM': '최고 추정 1RM',
   'Time': '시간',
   'Seconds': '초',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': '세트를 버티는 동안 타이머가 작동합니다. 맨몸 버티기는 무게를 0으로 두세요.',

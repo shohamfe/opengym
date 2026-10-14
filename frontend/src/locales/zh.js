@@ -502,7 +502,7 @@ export default {
   'Estimate': '预估',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': '请输入重量和 1–{0} 次——超过这个次数，预估就只是猜测了。',
   'Epley formula — a calculation from one set, not a tested max.': 'Epley 公式——由一组推算得出，不是实测极限。',
-  'Best estimated 1RM:': '最佳预估 1RM：',
+  'Best estimated 1RM': '最佳预估 1RM',
   'Time': '时间',
   'Seconds': '秒数',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': '保持这一组时会有计时器运行。徒手静力动作把重量留在 0。',

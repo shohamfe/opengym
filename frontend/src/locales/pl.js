@@ -502,7 +502,7 @@ export default {
   'Estimate': 'Szacunek',
   'Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.': 'Podaj ciężar i 1–{0} powtórzeń — powyżej tego oszacowanie to już zgadywanie.',
   'Epley formula — a calculation from one set, not a tested max.': 'Wzór Epleya — wyliczenie z jednej serii, a nie zmierzony maks.',
-  'Best estimated 1RM:': 'Najlepszy szacowany 1RM:',
+  'Best estimated 1RM': 'Najlepszy szacowany 1RM',
   'Time': 'Czas',
   'Seconds': 'Sekundy',
   'A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.': 'Podczas serii działa stoper. Zostaw ciężar na 0 przy izometrii z masą własną.',
