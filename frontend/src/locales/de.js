@@ -340,7 +340,8 @@ export default {
   "You said no when iPhone asked. Only iPhone Settings can undo that.": "Du hast abgelehnt, als das iPhone gefragt hat. Nur die iPhone-Einstellungen können das ändern.",
   "1. Open the Settings app → Notifications": "1. Öffne die Einstellungen-App → Mitteilungen",
   "2. Tap openGym and turn on Allow Notifications": "2. Tippe auf openGym und aktiviere „Mitteilungen erlauben“",
-  "3. Come back here": "3. Komm hierher zurück",
+  "3. Tap here to check again": "3. Hier tippen, um erneut zu prüfen",
+  "Workout alerts": "Trainings-Hinweise",
   "Get alerts even when openGym is closed.": "Hinweise auch, wenn openGym geschlossen ist.",
   // --- media ---
   'tap to pause': 'Tippen zum Pausieren',

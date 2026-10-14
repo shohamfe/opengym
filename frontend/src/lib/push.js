@@ -28,13 +28,16 @@ export async function enablePush() {
   const reg = await navigator.serviceWorker.ready
   const { key } = await api('/api/push/public-key')
   const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) })
-  await api('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: subscription.toJSON() }) })
+  await saveSubscription(subscription)
 }
+
+// Idempotent upsert: also heals a browser subscription the server lost (failed save, disabled row).
+export const saveSubscription = sub => api('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: sub.toJSON() }) })
 
 export async function disablePush() {
   if (!pushSupported()) return
-  const reg = await navigator.serviceWorker.ready
-  const sub = await reg.pushManager.getSubscription()
+  const reg = await navigator.serviceWorker.getRegistration()
+  const sub = await reg?.pushManager.getSubscription()
   if (!sub) return
   await sub.unsubscribe()
   await api('/api/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {})

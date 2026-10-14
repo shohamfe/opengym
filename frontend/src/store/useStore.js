@@ -5,6 +5,7 @@ import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { BASE } from '../lib/supabaseSync.js'
+import { disablePush } from '../lib/push.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -166,6 +167,7 @@ export const useStore = create((set, get) => {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
       if (!get().user) return     // the push found the session already gone: signed out, data kept
       if (localStorage.getItem('gym_dirty') === '1') throw new Error('sync failed')
+      await disablePush().catch(() => {})   // or the next profile on this device gets this one's alerts
       try { await api('/api/logout', { method: 'POST', body: '{}' }) } catch (e) { /* */ }
       clearLocalSession()
     },
@@ -177,6 +179,7 @@ export const useStore = create((set, get) => {
     // would sign the user out of the one place the bump didn't reach. Caller reports the error.
     async signOutAll() {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
+      await disablePush().catch(() => {})
       await api('/api/logout/all', { method: 'POST', body: '{}' })
       clearLocalSession()
     },

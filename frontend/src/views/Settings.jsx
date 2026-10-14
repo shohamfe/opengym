@@ -7,7 +7,7 @@ import { effortOf } from '../lib/history.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
 import { SUPABASE } from '../lib/supabaseSync.js'
 import { EmailSignInSheet } from './Login.jsx'
-import { pushSupported, enablePush, disablePush, sendTestPush, notifyState, IOS, standalone } from '../lib/push.js'
+import { pushSupported, enablePush, disablePush, sendTestPush, saveSubscription, notifyState, IOS, standalone } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -210,7 +210,7 @@ export default function Settings() {
       onChange={ev => { const f = ev.target.files[0]; if (f) importFromApp(f); ev.target.value = '' }} />
 
     {/* "Add to Home screen" makes no sense inside the native app */}
-    {!MOBILE && !(user && needsInstall()) && <Section title={t('Tip')}>
+    {!MOBILE && !standalone() && !(user && needsInstall()) && <Section title={t('Tip')}>
       <Row icon="lightbulb" iconTint="var(--yellow)"
         title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
         subtitle={t('to install openGym as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
@@ -298,7 +298,7 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 
 // Alert types under the master switch. 'day' is S.reminder; the rest live in S.notify (DEF.notify).
 const TYPES = [
-  { title: 'During a workout', items: [
+  { title: 'Workout alerts', items: [
     { key: 'rest', icon: 'timer', tint: 'var(--orange)', title: 'Rest timer finished', subtitle: 'When your rest is over and openGym is in the background.' },
     { key: 'stale', icon: 'play', tint: 'var(--teal)', title: 'Workout left open', subtitle: 'If a started workout has had no new sets for {0} min.' }] },
   { title: 'Reminders', items: [
@@ -318,8 +318,11 @@ function PushCard({ S, user, update, toast }) {
 
   useEffect(() => {
     if (!supported) return
-    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => setSubscribed(!!sub)).catch(() => {})
-  }, [supported])
+    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+      setSubscribed(!!sub)
+      if (sub && user) saveSubscription(sub).catch(() => {})
+    }).catch(() => {})
+  }, [supported, user])
 
   const setN = patch => update(s => { s.notify = { ...DEF.notify, ...s.notify, ...patch }; s.reminder = { ...(s.reminder || DEF.reminder), tz: localTZ() } })
   const setR = patch => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), ...patch, tz: localTZ() } })
@@ -347,7 +350,7 @@ function PushCard({ S, user, update, toast }) {
   }
   const timeRow = (title, value, onChange) => (
     <Row icon="clock" iconTint="var(--purple)" title={title}>
-      <input type="time" className="timef" value={value} onChange={e => onChange(e.target.value)} />
+      <input type="time" className="timef" value={value} onChange={e => { if (e.target.value) onChange(e.target.value) }} />
     </Row>
   )
 
@@ -372,7 +375,7 @@ function PushCard({ S, user, update, toast }) {
           subtitle={t('You said no when iPhone asked. Only iPhone Settings can undo that.')} />
         <Row icon="gear" iconTint="var(--grey)" title={t('1. Open the Settings app → Notifications')} />
         <Row icon="check" iconTint="var(--green)" title={t('2. Tap openGym and turn on Allow Notifications')} />
-        <Row icon="reset" iconTint="var(--blue)" title={t('3. Come back here')} accessory="chevron" onClick={recheck} />
+        <Row icon="reset" iconTint="var(--blue)" title={t('3. Tap here to check again')} accessory="chevron" onClick={recheck} />
       </>}
       {(state === 'off' || state === 'on') && <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')}
         subtitle={t('Get alerts even when openGym is closed.')}>
