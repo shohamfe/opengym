@@ -1,0 +1,5 @@
+version: 1
+bundleID: com.shohamfe.OpenGym
+infoPath: Info.plist
+entitlementsPath: App.entitlements
+iconPath: Resources/AppIcon.png
