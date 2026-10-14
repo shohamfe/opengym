@@ -13,7 +13,8 @@ globalThis.fetch = vi.fn(async (url, o) => {
   const b = JSON.parse(o.body), bearer = o.headers.Authorization?.slice(7)
   if (url.endsWith('/auth/v1/otp')) return b.email === 'me@x.io' ? res(200, {}) : res(500, { msg: 'Database error saving new user' })
   if (url.endsWith('/auth/v1/verify')) {
-    if (b.token !== '123456') return res(403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' })
+    if (b.token_hash && !(b.token_hash === 'h4sh' && b.type === 'signup')) return res(403, { error_code: 'otp_expired' })
+    if (!b.token_hash && b.token !== '123456') return res(403, { error_code: 'otp_expired', msg: 'Token has expired or is invalid' })
     valid.add('a1'); return res(200, tokens('a1', Math.floor(Date.now() / 1000) + 3600))
   }
   if (url.includes('grant_type=refresh_token')) {
@@ -123,4 +124,14 @@ it('gives up after 15 s without an answer and reports offline', async () => {
   await vi.advanceTimersByTimeAsync(15000)
   await check
   vi.useRealTimers()
+})
+
+it('signs in with the link from the default email, pasted plain or wrapped by Gmail', async () => {
+  const { linkToken, verifyCode } = await import('./supabaseSync.js')
+  const link = 'https://p.supabase.co/auth/v1/verify?token=h4sh&type=signup&redirect_to=http://localhost:3000'
+  expect(linkToken(link)).toEqual({ token_hash: 'h4sh', type: 'signup' })
+  expect(linkToken('https://www.google.com/url?q=' + encodeURIComponent(link) + '&sa=D')).toEqual({ token_hash: 'h4sh', type: 'signup' })
+  expect(linkToken('123456')).toBeNull()
+  expect((await verifyCode('me@x.io', ' ' + link + ' ')).id).toBe('u1')
+  await expect(verifyCode('me@x.io', link.replace('h4sh', 'used'))).rejects.toMatchObject({ status: 403 })
 })

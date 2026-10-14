@@ -78,8 +78,19 @@ async function rpc(fn, args, retry = true) {
 
 export const sendCode = email => call('/auth/v1/otp', { email, create_user: true })
 
-export async function verifyCode(email, token) {
-  const { user } = save(await call('/auth/v1/verify', { type: 'email', email, token }))
+// Accepts the typed code, or the sign-in link from the email pasted whole. The free plan can't edit
+// the email templates, so the default email carries only a link; its `token` is the token hash.
+// Mail apps may wrap the link (Gmail: google.com/url?q=...), so decode until the params show.
+export function linkToken(text) {
+  let u = text.trim()
+  for (let i = 0; i < 3 && !/[?&]token=/.test(u); i++) { try { u = decodeURIComponent(u) } catch { break } }
+  const tok = u.match(/[?&]token=([^&#\s]+)/), type = u.match(/[?&]type=([a-z_]+)/)
+  return tok ? { token_hash: tok[1], type: type ? type[1] : 'email' } : null
+}
+
+export async function verifyCode(email, input) {
+  const link = linkToken(input)
+  const { user } = save(await call('/auth/v1/verify', link || { type: 'email', email, token: input.trim() }))
   return { id: user.id, name: user.email, admin: false }
 }
 
