@@ -29,3 +29,16 @@ it('re-schedules the rest alert without a cancel, one request at a time; Skip ca
   expect(calls.length).toBe(3)    // switched off: nothing scheduled
   ui.stopRest()
 })
+
+it('keeps the rest alert when the timer ends while the app is hidden', async () => {
+  const { useStore } = await import('./useStore.js')
+  const { useUI } = await import('./useUI.js')
+  useStore.setState(s => ({ S: { ...s.S, notify: { ...s.S.notify, rest: true } } }))
+  globalThis.document.visibilityState = 'hidden'
+  useUI.getState().startRest(1)
+  await new Promise(r => setTimeout(r, 1200))
+  await drain()
+  expect(useUI.getState().timer).toBe(null)
+  expect(calls.at(-1)).toBe('/api/push/rest-timer')   // ended on its own, no cancel sent
+  globalThis.document.visibilityState = 'visible'
+})
