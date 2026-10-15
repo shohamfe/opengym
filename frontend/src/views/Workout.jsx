@@ -219,7 +219,6 @@ function ActiveWorkout() {
   const toggle = (idx, i) => {
     const m = modeAt(idx)
     const cardioEntry = m === 'cardio'
-    const isLastUnit = unitIdx >= units.length - 1
     let askTop = false, exJustDone = false, workoutDone = false
     mutEntry(idx, e => {
       e.sets[i].done = !e.sets[i].done
@@ -230,7 +229,8 @@ function ActiveWorkout() {
         const unitDone = unit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
         if (isLastExInUnit && !unitDone) startRest(S.restSec)
         else if (unitDone) stopRest()
-        if (unitDone && isLastUnit) workoutDone = true      // last exercise's last set → done
+        // done means every set of every exercise, not just reaching the last one (QA: fired at 1/6)
+        if (unitDone && A.entries.every((en, k) => (k === idx ? e : en).sets.every(x => x.done))) workoutDone = true
         // Only loaded reps training has a "working weight" worth confirming — a bodyweight
         // plank has nothing to put in that slider, and neither does a set of push-ups
         // (issue #32: the fewest taps that still record what happened).
