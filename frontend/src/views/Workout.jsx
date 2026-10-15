@@ -306,7 +306,7 @@ function ActiveWorkout() {
       <Button variant={unitDone ? 'primary' : 'tinted'} trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => update(s => { s.active.cur = units[unitIdx + 1][0] })}>{t('Next')}</Button>
     </div>
     <div style={{ height: 10 }} />
-    <Button size="sm" onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => update(s => {
+    <Button onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => update(s => {
       const full = { ...cfg, id: ex.id }
       const plan = nextPrescription(s, full, s.routines.find(r => r.id === s.active.routineId))
       s.active.entries.push({ id: ex.id, target: { ...cfg }, plan, sets: applyPrescription(buildSets(s, full), plan) })
@@ -321,7 +321,7 @@ function ActiveWorkout() {
       </button>
     })()}
     <div style={{ height: 6 }} />
-    <Button size="sm" variant="ghost" className="red" icon="trash" onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })}>{t('Discard workout')}</Button>
+    <Button variant="ghost" className="red" icon="trash" onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })}>{t('Discard workout')}</Button>
     <div style={{ height: 24 }} />
   </div>
 }

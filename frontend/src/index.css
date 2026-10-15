@@ -644,9 +644,9 @@ h4.sec{
    it only ever has two buttons. */
 /* one row: the two-row card covered the next set's row. The bar becomes a hairline along the
    bottom edge so clock, −15, +15 and Skip fit side by side at 360px. */
-#timer.rest{gap:8px;padding-bottom:16px}
+#timer.rest{gap:8px;padding-bottom:22px}
 #timer.rest .head{flex:1;min-width:0}
-#timer.rest .head .bar{position:absolute;left:14px;right:14px;bottom:7px;height:3px}
+#timer.rest .head .bar{position:absolute;left:14px;right:14px;bottom:12px;height:3px}
 #timer.rest .acts{display:flex;align-items:center;gap:6px;flex:none}
 #timer.rest .acts .btn{padding:11px 9px}   /* sweaty hands, mid-set */
 #timer.rest .acts .btn.sm .icn{font-size:14px}
