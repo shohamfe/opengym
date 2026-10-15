@@ -11,7 +11,7 @@ import { starterRoutines } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
-import { Button, Slider, Switch, Segmented, SelectRow, Row, Section } from './components/ui.jsx'
+import { Button, NumberField, Slider, Switch, Segmented, SelectRow, Row, Section } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
@@ -70,7 +70,8 @@ function WeightInput({ value, setValue, unit }) {
   return <>
     <div className="bwstep">
       <button className="bw-pm" onClick={() => onSlide(value - 0.1)} aria-label="minus 0.1"><Icon name="minus" /></button>
-      <div className="bw-read">{fmtNum(value)}<span className="u"> {unit}</span></div>
+      {/* tap the number to type it: stepping from a stale value to 78.4 took a dozen taps */}
+      <div className="bw-read"><NumberField className="bw-num" aria-label={t('Weight ({0})', unit)} value={value} onChange={v => setValue(v)} /><span className="u"> {unit}</span></div>
       <button className="bw-pm" onClick={() => onSlide(value + 0.1)} aria-label="plus 0.1"><Icon name="plus" /></button>
     </div>
     <div className="chips" style={{ justifyContent: 'center', margin: '8px 0' }}>
@@ -102,7 +103,9 @@ function BwSheet({ required, onDone, close }) {
     if (onDone) onDone(n); else toast(t('Weight saved'))
   }
   const recent = [...st.bodyweight].reverse().slice(0, 3)
-  const delEntry = d => update(s => { s.bodyweight = s.bodyweight.filter(b => b.d !== d) })
+  // first tap arms, second deletes: the trash sits right under a thumb scrolling the list
+  const [armed, setArmed] = useState(null)
+  const delEntry = d => armed === d ? (update(s => { s.bodyweight = s.bodyweight.filter(b => b.d !== d) }), setArmed(null)) : setArmed(d)
   return <>
     <h3>{required ? t('Quick check-in') : t('Log body weight')}</h3>
     <div className="muted small">{required ? t('Slide or tap to set your weight — tracked before every workout so your curve stays honest.') : t('Today') + ', ' + fmtDate(todayISO(), true)}</div>
@@ -119,7 +122,9 @@ function BwSheet({ required, onDone, close }) {
         {recent.map(b => <div key={b.d} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
           <span className="small muted">{fmtDate(b.d, true)}</span>
           <span className="row" style={{ gap: 12 }}><b>{fmtNum(b.w)} {unit}</b>
-            <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => delEntry(b.d)} aria-label="delete"><Icon name="trash" /></button></span>
+            {armed === b.d
+              ? <button className="btn danger xs" onClick={() => delEntry(b.d)}>{t('Delete')}</button>
+              : <button className="iconbtn" style={{ width: 36, height: 36, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => delEntry(b.d)} aria-label={t('Delete')}><Icon name="trash" /></button>}</span>
         </div>)}
       </div>
     </>}

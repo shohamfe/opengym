@@ -24,7 +24,7 @@ function StartChooser() {
   const others = S.routines.filter(r => r !== todayR)
   return <div className="narrow">
     <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} — {todayR ? t('today is {0}', todayR.name) : t('rest day, but no one’s stopping you')}</div></div></div>
-    {todayR && <div className="card" style={{ borderColor: 'var(--acc)' }}>
+    {todayR && <div className="card" style={{ boxShadow: 'inset 0 0 0 1.5px var(--acc)' }}>
       <h2 className="accent">{t("Today's plan")}{todayOvr ? ' · ' + t('rescheduled') : ''}</h2>
       <div className="row between" style={{ marginBottom: 12 }}>
         <div><div className="big">{todayR.name}</div><div className="muted small">{exCount(todayR.ex.length)}</div></div>
@@ -69,6 +69,7 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
   // What the progression policy decided for this session, and why (issue #17). Computed when
   // the session was built so the reason matches the numbers already in the rows.
   const plan = entry.plan
+  const nextIdx = entry.sets.findIndex(s => !s.done)   // the set you're about to do gets the outline
   // A bodyweight set has no weight to type, so the column is not there (issue #32) — one
   // stepper instead of two, which is the whole point of the flag. Adding a belt weight in the
   // config brings it back, now labelled as the addition it is.
@@ -101,11 +102,11 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
   // as every other +/- field in the app.
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls}>
-      <button aria-label="Decrease" onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>
+      <button aria-label={t('Decrease {0}', col.hd)} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>
       {/* a typed effort is capped — there is no RPE 12, and 12 reps in reserve is a warm-up */}
       <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={s[col.f] ?? ''}
         onChange={v => onField(i, col.f, col.eff ? capEffort(col.eff, v) : v)} /></span>
-      <button aria-label="Increase" onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>
+      <button aria-label={t('Increase {0}', col.hd)} onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>
     </div>
   )
   return <>
@@ -131,10 +132,10 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span>{t(...plan.why)}</span>
     </div>}
-    <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
+    <div className="card settable" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3 sizing as the rows, or the labels drift off their columns */}
       <div className={'sethead' + (col3 ? ' eff3' : '')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
-      {entry.sets.map((s, i) => <div key={i} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '')}>
+      {entry.sets.map((s, i) => <div key={i} className={'setrow' + (s.done ? ' done' : i === nextIdx ? ' next' : '') + (col3 ? ' eff3' : '')}>
         <div className="n">{i + 1}</div>
         {cell(s, i, col1, 'w')}
         {col2 && cell(s, i, col2, 'r')}
@@ -159,7 +160,7 @@ function ActiveWorkout() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
-  const { startRest, stopRest } = useUI()
+  const { startRest, stopRest } = useUI.getState()   // actions only: subscribing re-rendered the whole workout every timer tick
   const A = S.active
   const units = supersetUnits(A.entries)
   const cur = Math.min(A.cur, Math.max(0, A.entries.length - 1))
@@ -167,6 +168,7 @@ function ActiveWorkout() {
   const unitIdx = units.findIndex(u => u === unit)
   const isSuperset = unit.length > 1
 
+  const unitDone = unit.length > 0 && unit.every(ui => A.entries[ui].sets.every(x => x.done))
   const total = A.entries.reduce((n, e) => n + e.sets.length, 0)
   const done = setsDoneActive(A)
 
@@ -238,6 +240,8 @@ function ActiveWorkout() {
     })
     // reps: topWeight first (it chains into the finish/continue prompt on the last unit).
     // cardio/timed or already-confirmed: go straight to the prompt.
+    // bring the next set up from under the rest timer (small phones especially)
+    requestAnimationFrame(() => document.querySelector('.setrow.next')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
     if (askTop) topWeightSheet(idx)
     else if (workoutDone) workoutCompleteSheet()
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
@@ -273,7 +277,8 @@ function ActiveWorkout() {
 
   return <div className="narrow">
     <div className="hdr">
-      <button className="iconbtn" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })}><Icon name="xmark" /></button>
+      {/* leaving is not discarding: the workout keeps running and the Start tab turns into Resume */}
+      <button className="iconbtn" aria-label={t('Back')} onClick={() => nav('/home')}><Icon name="chevronLeft" /></button>
       <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 600 }}>{A.name}</div><div className="sub"><Elapsed start={A.start} /> · {t('{0} sets', done + '/' + total)}</div></div>
       <button className="iconbtn" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
     </div>
@@ -298,10 +303,10 @@ function ActiveWorkout() {
     <div style={{ height: 12 }} />
     <div className="row">
       <Button icon="chevronLeft" disabled={unitIdx <= 0} onClick={() => update(s => { s.active.cur = units[unitIdx - 1][0] })}>{t('Prev')}</Button>
-      <Button trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => update(s => { s.active.cur = units[unitIdx + 1][0] })}>{t('Next')}</Button>
+      <Button variant={unitDone ? 'primary' : 'tinted'} trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => update(s => { s.active.cur = units[unitIdx + 1][0] })}>{t('Next')}</Button>
     </div>
     <div style={{ height: 10 }} />
-    <Button onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => update(s => {
+    <Button size="sm" onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => update(s => {
       const full = { ...cfg, id: ex.id }
       const plan = nextPrescription(s, full, s.routines.find(r => r.id === s.active.routineId))
       s.active.entries.push({ id: ex.id, target: { ...cfg }, plan, sets: applyPrescription(buildSets(s, full), plan) })
@@ -315,7 +320,9 @@ function ActiveWorkout() {
         {allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
       </button>
     })()}
-    <div style={{ height: 40 }} />
+    <div style={{ height: 6 }} />
+    <Button size="sm" variant="ghost" className="red" icon="trash" onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })}>{t('Discard workout')}</Button>
+    <div style={{ height: 24 }} />
   </div>
 }
 

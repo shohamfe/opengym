@@ -3,7 +3,7 @@ import { useUI } from '../store/useUI.js'
 
 // One bottom sheet (or centered dialog) with swipe-to-dismiss.
 function Sheet({ sheet }) {
-  const { closeSheet } = useUI()
+  const { closeSheet } = useUI.getState()
   const ref = useRef(null)
   const drag = useRef({ startY: null, delta: 0 })
 

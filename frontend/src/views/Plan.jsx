@@ -25,7 +25,7 @@ export default function Plan() {
     </div>
     <div className="cols"><div>
       <h4 className="sec">{t('Week schedule')}</h4>
-      <div className="list" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="list tight">
         {weekOrder(S.weekStart).map(d => {
           const r = S.routines.find(x => x.id === S.week[d])
           return <div key={d} className="item" onClick={() => dayAssignSheet(d)}>

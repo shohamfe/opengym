@@ -28,7 +28,7 @@
   /* text */
   --label:     #ffffff;
   --label-2:   rgba(235,235,245,.60);
-  --label-3:   rgba(235,235,245,.32);
+  --label-3:   rgba(235,235,245,.45);   /* .32 measured ~2.3:1 as text; .45 clears 3:1 */
   --label-4:   rgba(235,235,245,.18);
 
   /* lines */
@@ -69,8 +69,8 @@
   --surface-3: #e3e3e8;
 
   --label:     #000000;
-  --label-2:   rgba(60,60,67,.60);
-  --label-3:   rgba(60,60,67,.30);
+  --label-2:   rgba(60,60,67,.72);
+  --label-3:   rgba(60,60,67,.48);
   --label-4:   rgba(60,60,67,.16);
 
   --sep:       rgba(60,60,67,.29);
@@ -167,7 +167,14 @@ button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp butto
 }
 /* while the rest timer floats above the tab bar, keep its height scrollable-past
    (the rest variant is two rows tall — ~44px more than the single-row work timer) */
-body.resting #app{padding-bottom:calc(250px + var(--sab))}
+body.resting #app{padding-bottom:calc(190px + var(--sab))}
+/* no tab bar (active workout): everything that floated above it drops to the bottom edge */
+body.notabs #app{padding-bottom:calc(24px + var(--sab))}
+body.notabs.resting #app{padding-bottom:calc(110px + var(--sab))}
+body.notabs #timer{bottom:calc(12px + var(--sab))}
+body.notabs #toast{bottom:calc(24px + var(--sab))}
+body.resting #toast{bottom:calc(170px + var(--sab))}
+body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
@@ -265,6 +272,7 @@ h4.sec{
 .btn.tinted{background:var(--acc-soft);color:var(--acc)}
 .btn.danger{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
 .btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
+.btn.ghost.red{color:var(--red)}
 .btn.ghost:active,.btn.plain:active{background:var(--surface-2)}
 .btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
 .btn.sm .icn{font-size:16px}
@@ -283,7 +291,7 @@ h4.sec{
 :root[data-theme="light"] #tabbar{background:rgba(249,249,251,.78)}
 #tabbar button{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  color:var(--label-3);font-size:10px;font-weight:500;letter-spacing:.005em;padding-top:3px;
+  color:var(--label-3);font-size:11px;font-weight:500;letter-spacing:.005em;padding-top:3px;
   transition:color var(--fast);
 }
 /* The inactive tint is semi-transparent, so wherever two strokes cross inside an
@@ -338,6 +346,11 @@ h4.sec{
 
 /* ----------------------------------------------------------------- list -- */
 .list{display:flex;flex-direction:column;gap:8px}
+/* one grouped card instead of seven floating 60px tiles: the week fits above Routines */
+.list.tight{gap:0;background:var(--surface);border-radius:var(--r-card);overflow:hidden}
+.list.tight .item{min-height:48px;border-radius:0;background:none}
+.list.tight .item:active{background:var(--surface-2)}
+.list.tight .item+.item{border-top:var(--hair) solid var(--sep)}
 .item{
   display:flex;align-items:center;gap:12px;background:var(--surface);
   border-radius:var(--r-card);padding:10px 12px;min-height:60px;
@@ -512,7 +525,7 @@ h4.sec{
 
 /* --- checkbox --- */
 .chk,.ck{
-  width:30px;height:30px;border-radius:50%;flex:none;
+  width:34px;height:34px;border-radius:50%;flex:none;position:relative;
   display:flex;align-items:center;justify-content:center;
   background:none;box-shadow:inset 0 0 0 1.8px var(--label-4);color:transparent;
   transition:background var(--fast),box-shadow var(--fast),color var(--fast),transform var(--fast);
@@ -520,6 +533,7 @@ h4.sec{
 .chk .icn{font-size:16px;--icon-stroke:2.6}
 .chk.on{background:var(--acc);box-shadow:none;color:var(--on-acc)}
 .chk:active,.ck:active{transform:scale(.9)}
+.chk::after,.ck::after{content:'';position:absolute;inset:-6px}   /* 46px hit area */
 .ck svg{
   width:16px;height:16px;stroke:transparent;fill:none;stroke-width:2.6;
   stroke-linecap:round;stroke-linejoin:round;transition:stroke var(--fast);
@@ -531,7 +545,7 @@ h4.sec{
 .wprog{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:16px}
 .wprog i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width var(--med) var(--ease)}
 .exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
-.exmedia img{width:100%;height:320px;object-fit:contain;display:block}
+.exmedia img{width:100%;height:clamp(130px,21svh,220px);object-fit:contain;display:block}   /* first set row stays above the fold */
 .exmedia .gifhint,.exmedia .giftoggle{
   position:absolute;bottom:9px;display:inline-flex;align-items:center;gap:4px;
   background:rgba(0,0,0,.45);color:#fff;border-radius:99px;padding:5px 11px;
@@ -554,7 +568,7 @@ h4.sec{
 .sethead .w-sp{flex:1.4;text-align:center}
 .sethead .r-sp{flex:1;text-align:center}
 .sethead .eff-sp{text-align:center}
-.sethead .ck-sp{width:30px;flex:none}
+.sethead .ck-sp{width:34px;flex:none}
 .setrow{display:flex;align-items:center;gap:8px;padding:7px 0;position:relative}
 .setrow+.setrow::before{
   content:'';position:absolute;left:32px;right:0;top:0;height:var(--hair);background:var(--sep);
@@ -567,21 +581,25 @@ h4.sec{
 .setrow .stp.w{flex:1.4;min-width:0}
 .setrow .stp.r{flex:1;min-width:0}
 .setrow .stp.eff{flex:1.1;min-width:0}
-.setrow .stp button{width:32px;height:40px}
+.setrow .stp button{width:34px;height:44px}
 /* a 3rd stepper (RIR) needs narrower buttons and a tighter row gap to fit next to weight+reps
    on narrow phones, same technique as the exercise-config sheet's three-steppers-in-a-row
    (.cfgrow below) — RIR's own value is short ("1.5") so its buttons shrink the most, weight/reps
    just enough to make room since their values ("82.5", "12") need more of what's left.
    The header shares the numbers so its labels stay centred over the steppers they name. */
-.setrow.eff3,.sethead.eff3{gap:6px}
+.setrow.eff3,.sethead.eff3{gap:4px}
 .setrow.eff3 .stp.w,.sethead.eff3 .w-sp{flex:1.2}
 .setrow.eff3 .stp.r,.sethead.eff3 .r-sp{flex:1}
 .setrow.eff3 .stp.eff,.sethead.eff3 .eff-sp{flex:.85}
-.setrow.eff3 .stp button{width:23px}
-.setrow.eff3 .stp.eff button{width:20px}
-.setrow.eff3 .stp .num{font-size:14px}
+.setrow.eff3 .stp button{width:21px}
+.setrow.eff3 .stp.eff button{width:17px}
+/* the set table gets the card's side padding back for its three steppers */
+.card.settable{padding-left:10px;padding-right:10px}
+.setrow.eff3 .stp .num{font-size:16px}   /* <16px zooms the page on focus in iOS */
 .setrow.done .n{background:var(--acc);color:var(--on-acc)}
-.setrow.done{opacity:.45}
+.setrow.done .stp{background:var(--acc-soft)}
+.setrow.done .stp button{opacity:.4}
+.setrow.next .n{box-shadow:inset 0 0 0 1.5px var(--acc);color:var(--acc)}
 /* why the next target is what it is (issue #17) */
 .progline{
   display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;
@@ -592,7 +610,7 @@ h4.sec{
 
 /* start a timed set (issue #16) — sits where you'd otherwise reach for the checkbox */
 .setrow .setgo{
-  width:30px;height:30px;border-radius:50%;flex:none;
+  width:34px;height:34px;border-radius:50%;flex:none;
   display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);color:var(--acc);font-size:14px;
   transition:background var(--fast),opacity var(--fast);
@@ -624,11 +642,15 @@ h4.sec{
 /* rest variant: −15/+15/Skip and the clock won't share one line on a phone, so the clock and
    bar take the top row and the controls take their own. The work timer keeps a single row —
    it only ever has two buttons. */
-#timer.rest{flex-direction:column;align-items:stretch;gap:10px}
-#timer.rest .head{display:flex;align-items:center;gap:12px}
-#timer.rest .acts{display:flex;align-items:center;gap:8px}
-#timer.rest .acts .btn{padding-top:11px;padding-bottom:11px}   /* sweaty hands, mid-set */
-#timer.rest .acts .skip{margin-left:auto;min-width:84px}
+/* one row: the two-row card covered the next set's row. The bar becomes a hairline along the
+   bottom edge so clock, −15, +15 and Skip fit side by side at 360px. */
+#timer.rest{gap:8px;padding-bottom:16px}
+#timer.rest .head{flex:1;min-width:0}
+#timer.rest .head .bar{position:absolute;left:14px;right:14px;bottom:7px;height:3px}
+#timer.rest .acts{display:flex;align-items:center;gap:6px;flex:none}
+#timer.rest .acts .btn{padding:11px 9px}   /* sweaty hands, mid-set */
+#timer.rest .acts .btn.sm .icn{font-size:14px}
+#timer.rest .acts .skip{min-width:72px;padding-left:14px;padding-right:14px}
 /* work timer (issue #16): the same bar doing the opposite job — outlined and tinted so a
    glance tells "you are holding this" apart from "you are recovering". */
 #timer.working{border:var(--hair) solid var(--acc)}
@@ -720,6 +742,8 @@ h4.sec{
   font-size:52px;font-weight:600;letter-spacing:-.035em;min-width:158px;text-align:center;
   font-variant-numeric:tabular-nums;line-height:1;
 }
+.bw-read{display:flex;align-items:baseline;justify-content:center}
+.bw-read .bw-num{width:4.2ch;background:none;border:none;outline:none;padding:0;color:var(--label);font:inherit;letter-spacing:inherit;text-align:center}
 .bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em}
 .bwin{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:16px 0}
 .bwin input{
@@ -930,3 +954,10 @@ h4.sec{
   .exmedia img{height:380px}
   .hm-wrap{display:flex;flex-direction:column;align-items:center}
 }
+
+/* ------------------------------------------- light theme: readable accent text --- */
+/* the bright accent is fine as a fill but measures ~2:1 as text on white; its darker
+   partner is the same hue at a readable contrast. Fills (primary buttons, dots) stay bright. */
+:root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp){color:var(--acc-2)}
+:root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
+:root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
