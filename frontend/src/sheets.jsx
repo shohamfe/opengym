@@ -917,8 +917,7 @@ function FinishSheet({ close, phase, auto }) {
 export function finishWorkout(auto = false) {
   if (!S().active || ui().sheets.some(x => x.finish)) return
   const phase = { done: false }
-  ui().openSheet(close => <FinishSheet close={close} phase={phase} auto={auto} />, { onDismiss: () => { if (phase.done) nav('/home') } })
-  ui().sheets[ui().sheets.length - 1].finish = true
+  ui().openSheet(close => <FinishSheet close={close} phase={phase} auto={auto} />, { finish: true, onDismiss: () => { if (phase.done) nav('/home') } })
 }
 function doFinishWorkout() {
   const st = S()

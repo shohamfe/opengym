@@ -316,5 +316,7 @@ function ActiveWorkout() {
 
 export default function Workout() {
   const active = useStore(s => s.S.active)
-  return active ? <ActiveWorkout /> : <StartChooser />
+  // the finish summary sits over this view; don't flash the start chooser behind it
+  const finishing = useUI(s => s.sheets.some(x => x.finish))
+  return active ? <ActiveWorkout /> : finishing ? null : <StartChooser />
 }

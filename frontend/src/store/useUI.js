@@ -39,9 +39,9 @@ export const useUI = create((set, get) => ({
   work: null,          // work countdown DURING a timed set (issue #16) — { left, total, endsAt, label }
 
   // onDismiss runs only when the user swipes the sheet away or taps the backdrop
-  openSheet(render, { kind = 'sheet', onDismiss } = {}) {
+  openSheet(render, { kind = 'sheet', onDismiss, finish } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, onDismiss }] }))
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, onDismiss, finish }] }))
     const close = () => get().closeSheet(id)
     return { id, close }
   },
