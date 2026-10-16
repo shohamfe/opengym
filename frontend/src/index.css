@@ -333,7 +333,16 @@ h4.sec{
 }
 .wday .lbl{font-size:11px;color:var(--label-3);font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .wday .num{font-size:17px;font-weight:400;margin:4px 0;letter-spacing:-.012em}
-.wday .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin:0 auto}
+.wday .dot{width:6px;height:6px;border-radius:50%;background:transparent;margin:0 auto}
+.wk-key{display:flex;justify-content:center;gap:14px;font-size:12px;color:var(--label-2);margin:8px 0 0}
+.wk-key span{display:inline-flex;align-items:center;gap:5px}
+.wk-key .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.wk-key .dot.plan{background:var(--label-3)} .wk-key .dot.ovr{background:var(--orange)} .wk-key .dot.done{background:var(--acc)}
+.streak-row{display:flex;align-items:center;gap:7px;width:100%;margin-top:10px;padding:8px 2px 0;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
+.streak-row .muted{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bw-row{display:flex;align-items:center;gap:12px;cursor:pointer}
+.goal-t{color:var(--yellow);margin-top:2px}
+:root[data-theme="light"] .goal-t{color:#8a5a00}
 .wday .dot.plan{background:var(--label-3)}
 .wday .dot.ovr{background:var(--orange)}
 .wday .dot.done{background:var(--acc)}
@@ -558,7 +567,11 @@ h4.sec{
 /* superset: both exercises are on screen together, so the animations have to give way —
    at 180px you had to scroll a full screen between two exercises done back-to-back */
 .exmedia.compact img{height:120px}
-.exmedia.mini img{height:84px}
+.exmedia.mini{float:left;width:76px;height:76px;margin:0 12px 6px 0;border-radius:var(--r)}
+.exmedia.mini img{height:76px}
+.exmedia.mini::after{content:'';position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M14 4h6v6M10 20H4v-6M20 4l-6 6M4 20l6-6'/%3E%3C/svg%3E") center/10px no-repeat}
+.settable{clear:both}
+.lasttime{margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .sethead{
   display:flex;align-items:center;gap:8px;padding:0 0 6px;
@@ -567,7 +580,6 @@ h4.sec{
 .sethead .n-sp{width:24px;flex:none}
 .sethead .w-sp{flex:1.4;text-align:center}
 .sethead .r-sp{flex:1;text-align:center}
-.sethead .eff-sp{text-align:center}
 .sethead .ck-sp{width:34px;flex:none}
 .setrow{display:flex;align-items:center;gap:8px;padding:7px 0;position:relative}
 .setrow+.setrow::before{
@@ -580,22 +592,21 @@ h4.sec{
 }
 .setrow .stp.w{flex:1.4;min-width:0}
 .setrow .stp.r{flex:1;min-width:0}
-.setrow .stp.eff{flex:1.1;min-width:0}
 .setrow .stp button{width:34px;height:44px}
 /* a 3rd stepper (RIR) needs narrower buttons and a tighter row gap to fit next to weight+reps
    on narrow phones, same technique as the exercise-config sheet's three-steppers-in-a-row
    (.cfgrow below) — RIR's own value is short ("1.5") so its buttons shrink the most, weight/reps
    just enough to make room since their values ("82.5", "12") need more of what's left.
    The header shares the numbers so its labels stay centred over the steppers they name. */
-.setrow.eff3,.sethead.eff3{gap:4px}
-.setrow.eff3 .stp.w,.sethead.eff3 .w-sp{flex:1.2}
-.setrow.eff3 .stp.r,.sethead.eff3 .r-sp{flex:1}
-.setrow.eff3 .stp.eff,.sethead.eff3 .eff-sp{flex:.85}
-.setrow.eff3 .stp button{width:21px}
-.setrow.eff3 .stp.eff button{width:17px}
-/* the set table gets the card's side padding back for its three steppers */
-.card.settable{padding-left:10px;padding-right:10px}
-.setrow.eff3 .stp .num{font-size:16px}   /* <16px zooms the page on focus in iOS */
+.card.settable{padding-left:12px;padding-right:12px}
+/* effort chips: asked under the set you just finished (RIR 0..4+, RPE ≤6..10) */
+.effrow{display:flex;align-items:center;gap:6px;padding:2px 0 10px 32px}
+.effq{font-size:12px;color:var(--label-2);width:58px;flex:none;line-height:1.2}
+.effchip{flex:1;min-width:0;height:40px;border-radius:10px;background:var(--surface-2);color:var(--label);font-size:16px;font-weight:600}
+.effchip.on{background:var(--acc);color:var(--on-acc)}
+.effchip:active{background:var(--surface-3)}
+.effpill{display:block;margin:-2px 0 8px 32px;font-size:12px;color:var(--acc);background:var(--acc-soft);border-radius:99px;padding:3px 10px}
+@media (max-width:340px){.effq{display:none}}
 .setrow.done .n{background:var(--acc);color:var(--on-acc)}
 .setrow.done .stp{background:var(--acc-soft)}
 .setrow.done .stp button{opacity:.4}
@@ -743,7 +754,7 @@ h4.sec{
   font-variant-numeric:tabular-nums;line-height:1;
 }
 .bw-read{display:flex;align-items:baseline;justify-content:center}
-.bw-read .bw-num{width:4.2ch;background:none;border:none;outline:none;padding:0;color:var(--label);font:inherit;letter-spacing:inherit;text-align:center}
+.bw-read .bw-num{width:5.4ch;background:none;border:none;outline:none;padding:0;color:var(--label);font:inherit;letter-spacing:inherit;text-align:center}
 .bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em}
 .bwin{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:16px 0}
 .bwin input{
@@ -897,7 +908,11 @@ h4.sec{
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
 
 /* --- routine reorder (drag the grip; .sr-move is the keyboard fallback) --- */
-.grip{width:32px;height:32px;border-radius:8px;font-size:16px;color:var(--label-2);touch-action:none;cursor:grab}
+.grip{width:30px;height:44px;margin-left:-6px;border-radius:8px;font-size:16px;color:var(--label-2);touch-action:none;cursor:grab;background:none}
+.sslink{display:flex;align-items:center;gap:6px;height:30px;margin:0 auto 8px;padding:0 12px;border-radius:99px;font-size:13px;color:var(--label-2);background:none}
+.sslink .icn{font-size:13px}
+.sslink.on{color:var(--acc);background:var(--acc-soft)}
+.list.reordering .sslink{visibility:hidden}
 .list.reordering>div{transition:transform .15s}
 .list.reordering>.dragging{transition:none;position:relative;z-index:2}
 .list.reordering>.dragging .item{box-shadow:0 10px 30px -6px rgba(0,0,0,.5)}
@@ -961,3 +976,4 @@ h4.sec{
 :root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp){color:var(--acc-2)}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
 :root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
+.sheet:focus,.center:focus{outline:none}

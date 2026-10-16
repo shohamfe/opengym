@@ -71,7 +71,7 @@ function WeightInput({ value, setValue, unit }) {
     <div className="bwstep">
       <button className="bw-pm" onClick={() => onSlide(value - 0.1)} aria-label="minus 0.1"><Icon name="minus" /></button>
       {/* tap the number to type it: stepping from a stale value to 78.4 took a dozen taps */}
-      <div className="bw-read"><NumberField className="bw-num" aria-label={t('Weight ({0})', unit)} value={value} onChange={v => setValue(v)} /><span className="u"> {unit}</span></div>
+      <div className="bw-read"><NumberField className="bw-num" aria-label={t('Weight ({0})', unit)} value={value} onChange={v => setValue(v == null ? v : Math.min(W_HI, v))} /><span className="u"> {unit}</span></div>
       <button className="bw-pm" onClick={() => onSlide(value + 0.1)} aria-label="plus 0.1"><Icon name="plus" /></button>
     </div>
     <div className="chips" style={{ justifyContent: 'center', margin: '8px 0' }}>
@@ -105,6 +105,7 @@ function BwSheet({ required, onDone, close }) {
   const recent = [...st.bodyweight].reverse().slice(0, 3)
   // first tap arms, second deletes: the trash sits right under a thumb scrolling the list
   const [armed, setArmed] = useState(null)
+  useEffect(() => { if (!armed) return; const tm = setTimeout(() => setArmed(null), 3000); return () => clearTimeout(tm) }, [armed])
   const delEntry = d => armed === d ? (update(s => { s.bodyweight = s.bodyweight.filter(b => b.d !== d) }), setArmed(null)) : setArmed(d)
   return <>
     <h3>{required ? t('Quick check-in') : t('Log body weight')}</h3>
@@ -854,69 +855,6 @@ export function beginWorkout(routineId, bw) {
   armStale()
   nav('/workout')
 }
-function TopWeight({ entryIdx, close }) {
-  const st = useStore(s => s.S)
-  const A = st.active
-  // The workout can end underneath this sheet: finishing from the last exercise clears
-  // `active`, and this re-renders before the sheet is torn down. Everything below is
-  // read defensively and the sheet dismisses itself — reading A.entries straight took
-  // the whole app down with it. Hooks still run unconditionally, so the bail-out has
-  // to sit after every one of them.
-  const entry = A ? A.entries[entryIdx] : null
-  const ex = entry && EXIDX[entry.id]
-  const maxSet = entry ? Math.max(0, ...entry.sets.filter(s => s.done).map(s => s.w || 0)) : 0
-  const prevBest = entry ? Math.max((st.exWeights[entry.id] || {}).w || 0, bestWeightFor(st, entry.id)) : 0
-  const [v, setV] = useState(entry ? (Math.max(maxSet, prevBest) || entry.target.weight || 0) : 0)
-  useEffect(() => { if (!entry) close() }, [!entry])
-
-  const units = supersetUnits(A ? A.entries : [])
-  const unit = entry ? unitOf(units, entryIdx) : []
-  const unitDone = !!entry && unit.every(i => A.entries[i].sets.every(s => s.done))
-  const unitIdx = units.findIndex(u => u === unit)
-  const isLastUnit = unitIdx === units.length - 1
-  if (!entry || !ex) return null
-
-  const commit = advance => {
-    const n = Math.round((v || 0) * 10) / 10
-    if (!isFinite(n) || n < 0) { toast(t('Enter a valid weight')); return }
-    update(s => {
-      s.active.entries[entryIdx].topW = n
-      const cur = s.exWeights[entry.id]
-      s.exWeights[entry.id] = { w: Math.max(n, cur ? cur.w : 0), d: todayISO() }
-    })
-    close()
-    if (advance && unitDone) {
-      if (isLastUnit) workoutCompleteSheet()               // whole workout done → finish/continue prompt
-      else update(s => { s.active.cur = units[unitIdx + 1][0] })
-    } else toast(t('Tracked — next time starts at {0}', fmtNum(S().exWeights[entry.id].w) + ' ' + st.unit))
-  }
-  return <>
-    <h3 className="capitalize row" style={{ gap: 8 }}><Icon name="checkCircle" style={{ color: 'var(--acc)' }} />{t('{0} done', ex.n)}</h3>
-    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the superset partner.') : ''}</div>
-    <WeightInput value={v} setValue={setV} unit={st.unit} />
-    <div style={{ height: 10 }} />
-    {prevBest > 0 ? <div className="small dim" style={{ textAlign: 'center', marginBottom: 12 }}>{t('Previous best:')} {fmtNum(prevBest)} {st.unit}{maxSet > prevBest && <span style={{ color: 'var(--yellow)' }}> — {t('new record!')}</span>}</div> : <div style={{ height: 4 }} />}
-    {unitDone ? <>
-      <Button variant="primary" trailingIcon={isLastUnit ? null : 'chevronRight'} onClick={() => commit(true)}>{isLastUnit ? t('Save') : t('Save & next exercise')}</Button>
-      <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => commit(false)}>{t('Just close')}</Button>
-    </> : <Button variant="primary" onClick={() => commit(false)}>{t('Save weight')}</Button>}
-  </>
-}
-export const topWeightSheet = entryIdx => ui().openSheet(close => <TopWeight entryIdx={entryIdx} close={close} />)
-
-// Shown when the last exercise's last set is checked — finish, or keep going.
-function WorkoutComplete({ close }) {
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('Every exercise done — great work. Finish up, or keep going and add another exercise.')}</div>
-    <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going — tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
-  </div>
-}
-export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
-
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
   const exName = id => <span className="capitalize">{(EXIDX[id] || {}).n || id}</span>
@@ -941,14 +879,46 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     <div className="sheet-foot"><Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button></div>
   </>
 }
-export function finishWorkout() {
-  const A = S().active
-  if (!A) return
+// One sheet ends a workout (round 2): it replaces the per-exercise "working weight" sheet,
+// the "that's the whole workout" prompt and the finish-early confirms, then turns into the summary.
+function FinishSheet({ close, phase, auto }) {
+  const st = useStore(s => s.S)
+  const [res, setRes] = useState(null)
+  const [tops, setTops] = useState({})
+  const A = st.active
+  useEffect(() => { if (!A && !res) close() }, [!A, !res])
+  if (res) return <FinishSummary {...res} close={close} />
+  if (!A) return null
   const done = setsDoneActive(A)
   const total = A.entries.reduce((n, e) => n + e.sets.length, 0)
-  if (!done) { confirmSheet({ title: t('Nothing logged yet'), message: t('You haven’t checked off any sets. Finish the workout anyway?'), confirmText: t('Finish anyway'), onConfirm: doFinishWorkout }); return }
-  if (done < total) { confirmSheet({ title: t('Finish early?'), message: t(total - done === 1 ? '{0} set still unchecked. Finish the workout now?' : '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), onConfirm: doFinishWorkout }); return }
-  doFinishWorkout()
+  const maxW = e => Math.max(0, ...e.sets.filter(x => x.done).map(x => x.w || 0))
+  const loaded = A.entries.map((e, i) => ({ e, i })).filter(({ e }) => modeOf({ ...(e.target || {}), id: e.id }) === 'reps' && maxW(e) > 0)
+  const finish = () => {
+    update(s => { Object.entries(tops).forEach(([i, v]) => { s.active.entries[i].topW = v }) })
+    phase.done = true
+    setRes(doFinishWorkout())
+  }
+  return <>
+    <h3>{auto ? t("That's the whole workout!") : t('Finish workout?')}</h3>
+    <div className="small" style={{ color: done < total ? 'var(--orange)' : 'var(--label-2)', marginBottom: 12 }}>
+      {done === 0 ? t('Nothing logged yet') : done < total ? t(total - done === 1 ? '{0} set still unchecked' : '{0} sets still unchecked', total - done) : t('All {0} sets done', total)}
+    </div>
+    {loaded.length > 0 && <Section title={t('Working weights')} footer={t('Next time starts from these.')}>
+      {loaded.map(({ e, i }) => <div key={i} className="row between" style={{ padding: '8px 14px', gap: 10 }}>
+        <span className="capitalize" style={{ minWidth: 0, flex: 1 }}>{(EXIDX[e.id] || {}).n || e.id}</span>
+        <Stepper className="fin-stp" value={tops[i] ?? maxW(e)} step={2.5} unit={st.unit} onChange={v => setTops(o => ({ ...o, [i]: v }))} />
+      </div>)}
+    </Section>}
+    <Button variant="primary" icon="flag" onClick={finish}>{t('Finish workout')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" onClick={close}>{t('Keep going')}</Button>
+  </>
+}
+export function finishWorkout(auto = false) {
+  if (!S().active || ui().sheets.some(x => x.finish)) return
+  const phase = { done: false }
+  ui().openSheet(close => <FinishSheet close={close} phase={phase} auto={auto} />, { onDismiss: () => { if (phase.done) nav('/home') } })
+  ui().sheets[ui().sheets.length - 1].finish = true
 }
 function doFinishWorkout() {
   const st = S()
@@ -984,5 +954,5 @@ function doFinishWorkout() {
   useUI.getState().stopRest()
   cancelStale()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { onDismiss: () => nav('/home') })
+  return { w, prs, e1prs }
 }

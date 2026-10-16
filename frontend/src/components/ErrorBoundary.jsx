@@ -29,6 +29,9 @@ export default class ErrorBoundary extends Component {
           {t('This screen could not be drawn. Your data is safe on this device.')}
         </div>
         <Button variant="primary" icon="reset" onClick={() => location.reload()}>{t('Reload openGym')}</Button>
+        {/* the workout screen has no tab bar, so this is the way out that keeps the workout */}
+        <div style={{ height: 8 }} />
+        <Button icon="house" onClick={() => { location.hash = '#/home'; location.reload() }}>{t('Home')}</Button>
         {active && <>
           <div style={{ height: 8 }} />
           <Button variant="danger" icon="trash" onClick={() => {

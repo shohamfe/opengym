@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
@@ -7,9 +7,8 @@ import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, setsDoneActiv
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
 import { t } from '../lib/i18n.js'
-import { api } from '../lib/api.js'
 import Media from '../components/Media.jsx'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, topWeightSheet, finishWorkout, workoutCompleteSheet, confirmSheet } from '../sheets.jsx'
+import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription } from '../lib/progression.js'
@@ -92,6 +91,13 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
   const kind = effortOf(S)
   const eff = EFFORT[kind]
   const col3 = mode === 'reps' && eff ? { ...eff, eff: kind, dec: true, opt: true, hd: t(eff.hd) } : null
+  // Effort is judged after the set, so it is asked for there: a chip row under the set you just
+  // finished, instead of a third stepper squeezing weight and reps on every row (round 2).
+  const [pick, setPick] = useState(null)
+  const lastDone = entry.sets.reduce((k, x, i) => (x.done ? i : k), -1)
+  const effOpen = !col3 ? -1 : pick ?? (lastDone >= 0 && entry.sets[lastDone][col3.f] == null ? lastDone : -1)
+  const chips = kind === 'rpe' ? [6, 7, 8, 9, 10] : [0, 1, 2, 3, 4]
+  const chipLabel = v => kind === 'rpe' ? (v === 6 ? '≤6' : String(v)) : (v === 4 ? '4+' : String(v))
   // The effort column walks its own scale — see stepEffort. Weight and reps step up from 0
   // with no ceiling, as they always did.
   const bump = (s, i, col, dir) => {
@@ -127,25 +133,29 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
     </div>
-    {last && <div className="small dim" style={{ marginBottom: 4 }}>{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
+    {last && <div className="small dim lasttime">{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
     {plan && plan.why && plan.kind !== 'off' && <div className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span>{t(...plan.why)}</span>
     </div>}
-    <div className="card settable" style={{ marginTop: 10, marginBottom: 0 }}>
-      {/* the header carries the same eff3 sizing as the rows, or the labels drift off their columns */}
-      <div className={'sethead' + (col3 ? ' eff3' : '')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
-      {entry.sets.map((s, i) => <div key={i} className={'setrow' + (s.done ? ' done' : i === nextIdx ? ' next' : '') + (col3 ? ' eff3' : '')}>
+    <div className="card settable" id={'ex-' + entryIdx} style={{ marginTop: 10, marginBottom: 0 }}>
+      <div className="sethead"><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
+      {entry.sets.map((s, i) => <Fragment key={i}><div className={'setrow' + (s.done ? ' done' : i === nextIdx ? ' next' : '')}>
         <div className="n">{i + 1}</div>
         {cell(s, i, col1, 'w')}
         {col2 && cell(s, i, col2, 'r')}
-        {col3 && cell(s, i, col3, 'eff')}
         {/* A timed set is started, not typed: the timer counts the hold down and checks the
             set off itself. The checkbox stays for anyone who timed it on their own watch. */}
         {timed && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
           onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
         <Check checked={s.done} onChange={() => onToggle(i)} />
-      </div>)}
+      </div>
+        {effOpen === i ? <div className="effrow" role="radiogroup" aria-label={col3.hd}>
+          <span className="effq">{kind === 'rir' ? t('Reps left?') : t('How hard?')}</span>
+          {chips.map(v => <button key={v} role="radio" aria-checked={s[col3.f] === v} className={'effchip' + (s[col3.f] === v ? ' on' : '')}
+            onClick={() => { onField(i, col3.f, s[col3.f] === v ? null : v); setPick(null) }}>{chipLabel(v)}</button>)}
+        </div> : col3 && s.done && s[col3.f] != null && <button className="effpill" onClick={() => setPick(i)}>{col3.hd} {fmtNum(s[col3.f])}</button>}
+      </Fragment>)}
       <div style={{ height: 8 }} />
       <div className="row">
         <Button size="sm" icon="minus" disabled={entry.sets.length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>
@@ -200,7 +210,7 @@ function ActiveWorkout() {
         })
       }, null, S.routines.find(r => r.id === A.routineId)), { like: old })
     }
-    if (e.sets.some(x => x.done)) confirmSheet({ title: t('Swap {0}?', old.n), message: t('The sets you logged for it in this session will be dropped.'), confirmText: t('Swap'), onConfirm: go })
+    if (e.sets.some(x => x.done)) confirmSheet({ title: t('Swap {0}?', old.n.replace(/^./, c => c.toUpperCase())), message: t('The sets you logged for it in this session will be dropped.'), confirmText: t('Swap'), onConfirm: go })
     else go()
   }
 
@@ -219,10 +229,11 @@ function ActiveWorkout() {
   const toggle = (idx, i) => {
     const m = modeAt(idx)
     const cardioEntry = m === 'cardio'
-    let askTop = false, exJustDone = false, workoutDone = false
+    let exJustDone = false, workoutDone = false, checked = false
     mutEntry(idx, e => {
       e.sets[i].done = !e.sets[i].done
       if (e.sets[i].done) {
+        checked = true
         beep(S.sound, 1040, 0.12); vibrate(30)
         armStale()
         const isLastExInUnit = idx === unit[unit.length - 1]
@@ -231,56 +242,41 @@ function ActiveWorkout() {
         else if (unitDone) stopRest()
         // done means every set of every exercise, not just reaching the last one (QA: fired at 1/6)
         if (unitDone && A.entries.every((en, k) => (k === idx ? e : en).sets.every(x => x.done))) workoutDone = true
-        // Only loaded reps training has a "working weight" worth confirming — a bodyweight
-        // plank has nothing to put in that slider, and neither does a set of push-ups
-        // (issue #32: the fewest taps that still record what happened).
-        const loaded = m === 'reps' && !(isBw({ ...(e.target || {}), id: e.id }) && !e.sets.some(x => x.w > 0))
-        if (e.sets.every(x => x.done)) { exJustDone = true; if (loaded && !e.asked) { e.asked = true; askTop = true } }
+        // no sheet mid-workout any more: working weights are reviewed once, in the finish sheet
+        if (e.sets.every(x => x.done)) exJustDone = true
       }
     })
-    // reps: topWeight first (it chains into the finish/continue prompt on the last unit).
-    // cardio/timed or already-confirmed: go straight to the prompt.
-    // bring the next set up from under the rest timer (small phones especially)
-    requestAnimationFrame(() => document.querySelector('.setrow.next')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-    if (askTop) topWeightSheet(idx)
-    else if (workoutDone) workoutCompleteSheet()
-    else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
-    else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))
+    if (!checked) return
+    // bring this exercise's next set up from under the rest timer (small phones especially)
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
+    requestAnimationFrame(() => document.querySelector(`#ex-${idx} .setrow.next`)?.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' }))
+    if (workoutDone) finishWorkout(true)
+    else if (exJustDone) useUI.getState().toast(cardioEntry ? t('Cardio logged') : m === 'time' ? t('Hold logged') : t('{0} done', exOr(A.entries[idx].id).n))
   }
 
-  // Live-presence heartbeat so the admin dashboard can show who's training now. Signed-in only —
-  // guests have no server session. Reads fresh state each tick so progress stays current.
-  useEffect(() => {
-    if (!useStore.getState().user) return
-    let stopped = false
-    const ping = active => {
-      const A2 = useStore.getState().S.active
-      if (!A2) return
-      const u = supersetUnits(A2.entries)
-      const c = Math.min(A2.cur, Math.max(0, A2.entries.length - 1))
-      const ui = u.findIndex(x => x.includes(c))
-      const tot = A2.entries.reduce((n, e) => n + e.sets.length, 0)
-      api('/api/activity', { method: 'POST', body: JSON.stringify({
-        active, name: A2.name, exIdx: ui + 1, exTotal: u.length,
-        setsDone: setsDoneActive(A2), setsTotal: tot, startedAt: A2.start
-      }) }).catch(() => {})
-    }
-    ping(true)
-    const iv = setInterval(() => { if (!stopped) ping(true) }, 20000)
-    return () => {
-      stopped = true; clearInterval(iv)
-      // best-effort "left" signal: sendBeacon survives a tab close, fetch covers in-app nav
-      try { navigator.sendBeacon?.('/api/activity', new Blob([JSON.stringify({ active: false })], { type: 'application/json' })) } catch { /* */ }
-      api('/api/activity', { method: 'POST', body: JSON.stringify({ active: false }) }).catch(() => {})
-    }
-  }, [])
+
+  const addExercise = () => { const p = exercisePicker(ex => exConfigSheet(ex, null, cfg => { p.close(); update(s => {
+    const full = { ...cfg, id: ex.id }
+    const plan = nextPrescription(s, full, s.routines.find(r => r.id === s.active.routineId))
+    s.active.entries.push({ id: ex.id, target: { ...cfg }, plan, sets: applyPrescription(buildSets(s, full), plan) })
+    s.active.cur = s.active.entries.length - 1
+  }) }, null, S.routines.find(r => r.id === A.routineId))) }
+  const discard = () => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })
+  // the rare actions live behind ⋯ so the bottom of the page has one job: move on, or finish
+  const menu = () => useUI.getState().openSheet(close => <>
+    <h3>{A.name}</h3>
+    <Button icon="plus" onClick={() => { close(); addExercise() }}>{t('Add exercise')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="danger" icon="trash" onClick={() => { close(); discard() }}>{t('Discard workout')}</Button>
+  </>)
 
   return <div className="narrow">
     <div className="hdr">
       {/* leaving is not discarding: the workout keeps running and the Start tab turns into Resume */}
       <button className="iconbtn" aria-label={t('Back')} onClick={() => nav('/home')}><Icon name="chevronLeft" /></button>
       <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 600 }}>{A.name}</div><div className="sub"><Elapsed start={A.start} /> · {t('{0} sets', done + '/' + total)}</div></div>
-      <button className="iconbtn" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
+      {/* was an unlabelled ✓ that finished the workout on a stray tap; Finish now lives only at the bottom */}
+      <button className="iconbtn" aria-label={t('More')} onClick={menu}><Icon name="more" /></button>
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
 
@@ -306,22 +302,14 @@ function ActiveWorkout() {
       <Button variant={unitDone ? 'primary' : 'tinted'} trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => update(s => { s.active.cur = units[unitIdx + 1][0] })}>{t('Next')}</Button>
     </div>
     <div style={{ height: 10 }} />
-    <Button onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => update(s => {
-      const full = { ...cfg, id: ex.id }
-      const plan = nextPrescription(s, full, s.routines.find(r => r.id === s.active.routineId))
-      s.active.entries.push({ id: ex.id, target: { ...cfg }, plan, sets: applyPrescription(buildSets(s, full), plan) })
-      s.active.cur = s.active.entries.length - 1
-    }), null, S.routines.find(r => r.id === A.routineId)))} icon="plus">{t('Add exercise')}</Button>
-    <div style={{ height: 10 }} />
+    {!A.entries.length && <><Button variant="tinted" icon="plus" onClick={addExercise}>{t('Add exercise')}</Button><div style={{ height: 10 }} /></>}
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
-      return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={finishWorkout}>
-        {allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
-      </button>
+      return <Button variant={allDone ? 'primary' : 'tinted'} icon="flag" onClick={() => finishWorkout()}>
+        {allDone || !done ? t('Finish workout') : t('Finish workout · {0} exercises', exDone + '/' + A.entries.length)}
+      </Button>
     })()}
-    <div style={{ height: 6 }} />
-    <Button variant="ghost" className="red" icon="trash" onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); cancelStale(); nav('/home') } })}>{t('Discard workout')}</Button>
     <div style={{ height: 24 }} />
   </div>
 }

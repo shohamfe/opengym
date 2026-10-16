@@ -4,6 +4,7 @@ import { useStore, DEF, hasData } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, todayISO, localTZ } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
+import { convertState } from '../lib/units.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
 import { SUPABASE } from '../lib/supabaseSync.js'
 import { EmailSignInSheet } from './Login.jsx'
@@ -116,7 +117,7 @@ export default function Settings() {
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
 
     {/* ---------- general ---------- */}
-    <Section title={t('General')} footer={t('Note: switching units only changes the label — logged numbers are not converted.')}>
+    <Section title={t('General')}>
       <SelectRow
         icon="globe" iconTint="var(--blue)" title={t('Language')}
         value={S.lang || 'en'} onChange={v => update(s => { s.lang = v })}
@@ -133,7 +134,16 @@ export default function Settings() {
       <Row icon="scale" iconTint="var(--teal)" title={t('Weight unit')}>
         <Segmented className="seg-inline"
           options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
-          value={S.unit} onChange={v => update(s => { s.unit = v })} />
+          value={S.unit} onChange={v => v !== S.unit && confirmSheet({
+            title: t('Switch to {0}?', v),
+            message: t('Every logged weight, plan, goal and weigh-in is converted (100 kg becomes 220.5 lb). Reps and times stay the same.'),
+            confirmText: t('Convert to {0}', v),
+            onConfirm: () => {
+              try { localStorage.setItem('gym_unit_backup', JSON.stringify(useStore.getState().S)) } catch { /* backup is best-effort */ }
+              update(s => { convertState(s, v) })
+              useUI.getState().toast(t('Converted to {0}', v))
+            }
+          })} />
       </Row>
     </Section>
 

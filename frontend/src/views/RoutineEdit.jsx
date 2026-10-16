@@ -60,7 +60,6 @@ export default function RoutineEdit() {
   })
 
   const units = supersetUnits(r.ex)
-  const unitFirst = new Set(units.filter(u => u.length > 1).map(u => u[0]))
   const inSS = new Set(units.filter(u => u.length > 1).flat())
 
   return <div className="narrow">
@@ -88,13 +87,15 @@ export default function RoutineEdit() {
       const ex = exOr(e.id)
       const linkedPrev = i > 0 && e.sg && r.ex[i - 1].sg === e.sg
       return <div key={i} className={drag?.from === i ? 'dragging' : undefined} style={drag ? { transform: `translateY(${shiftOf(i)}px)` } : undefined}>
-        {unitFirst.has(i) && <div className="ss-label"><Icon name="link" />{t('Superset')}</div>}
+        {/* the link between two rows lives between them, labelled, instead of a bare icon on the row */}
+        {i > 0 && <button className={'sslink' + (linkedPrev ? ' on' : '')} aria-pressed={!!linkedPrev} onClick={() => toggleLink(i)}>
+          <Icon name="link" />{linkedPrev ? t('Superset · tap to unlink') : t('Link as superset')}</button>}
         <div className={'item' + (inSS.has(i) ? ' in-ss' : '')} onClick={() => openRow(i, ex, e)}>
+          {r.ex.length > 1 && <div className="iconbtn grip" aria-hidden="true" {...grip(i)}><Icon name="grip" /></div>}
           <Thumb ex={ex} />
           <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{exLine(e, S.unit)}</div></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none', alignItems: 'center' }}>
-            {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Superset with exercise above')} aria-label={t('Superset with exercise above')} aria-pressed={!!linkedPrev} style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }} onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
-            {r.ex.length > 1 && <div className="iconbtn grip" aria-hidden="true" {...grip(i)}><Icon name="grip" /></div>}
+          <Icon name="chevronRight" className="chev" />
+          <div style={{ display: 'contents' }}>
             {/* Visually hidden until tabbed to: the keyboard / screen-reader way to reorder. */}
             {r.ex.length > 1 && <div className="sr-move" style={{ gap: 2 }}>
               <button className="iconbtn" aria-label={t('Move {0} up', ex.n)} style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
@@ -119,8 +120,8 @@ export default function RoutineEdit() {
       </div>
     })()}
 
-    <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Drag the handle to reorder. Tap the link button on an exercise to superset it with the one above — you’ll do them back-to-back.')}</div>
-    <Button variant="primary" onClick={() => exercisePicker(ex => exConfigSheet(ex, null, cfg => edit(x => { x.push({ id: ex.id, ...cfg }) }), null, r))} icon="plus">{t('Add exercise')}</Button>
+    <div style={{ height: 12 }} />
+    <Button variant="primary" onClick={() => { const p = exercisePicker(ex => exConfigSheet(ex, null, cfg => { p.close(); edit(x => { x.push({ id: ex.id, ...cfg }) }) }, null, r)) }} icon="plus">{t('Add exercise')}</Button>
     <div style={{ height: 10 }} />
     <Button variant="danger" onClick={() => confirmSheet({
       title: t('Delete routine?'), message: t('“{0}” and its exercises will be removed.', r.name), confirmText: t('Delete'), danger: true,

@@ -11,15 +11,18 @@ import Icon from './Icon.jsx'
 // future workouts (issue #12).
 export default function Media({ ex, id, compact, minimizable }) {
   const [playing, setPlaying] = useState(true)
-  const gifSize = useStore(s => s.S.gifSize)
+  // round 2: a thumbnail beside the name by default (new key, so the old 'full' default doesn't carry over);
+  // tapping the thumbnail opens the big animation, which keeps its Minimize button
+  const media = useStore(s => s.S.media) || 'thumb'
   const update = useStore(s => s.update)
   if (!ex.gif) return null
-  const mini = minimizable && gifSize === 'mini'
-  const toggleSize = e => { e.stopPropagation(); update(s => { s.gifSize = mini ? 'full' : 'mini' }) }
+  const mini = minimizable && media === 'thumb'
+  const toggleSize = e => { e.stopPropagation(); update(s => { s.media = mini ? 'full' : 'thumb' }) }
   return (
-    <div className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '')} id={id} onClick={() => setPlaying(p => !p)}>
+    <div className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '')} id={id} onClick={mini ? toggleSize : () => setPlaying(p => !p)}
+      role={mini ? 'button' : undefined} aria-label={mini ? t('Expand') : undefined}>
       <img decoding="async" src={playing ? gifSrc(ex) : imgSrc(ex)} alt={ex.n} />
-      {minimizable && (
+      {minimizable && !mini && (
         <button className="giftoggle" onClick={toggleSize}>
           <Icon name={mini ? 'expand' : 'minimize'} />{mini ? t('Expand') : t('Minimize')}
         </button>

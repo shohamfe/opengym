@@ -44,20 +44,28 @@ function Sheet({ sheet }) {
     return () => el.removeEventListener('touchmove', onTouchMove)
   }, [])
 
+  // VoiceOver/keyboard: focus moves into the sheet and returns to whatever opened it
+  const box = useRef(null)
+  useEffect(() => {
+    const prev = document.activeElement
+    box.current?.focus({ preventScroll: true })
+    return () => prev?.focus?.({ preventScroll: true })
+  }, [])
+
   const close = () => closeSheet(sheet.id)
   const dismiss = () => { close(); sheet.onDismiss && sheet.onDismiss() }
   if (sheet.kind === 'center') {
     return (
       <div>
         <div className="mback" onClick={dismiss} />
-        <div className="center">{sheet.render(close)}</div>
+        <div className="center" role="dialog" aria-modal="true" tabIndex={-1} ref={box}>{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={dismiss} />
-      <div className="sheet" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sheet" role="dialog" aria-modal="true" tabIndex={-1} ref={el => { ref.current = el; box.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="grab" />
         {sheet.render(close)}
       </div>
@@ -76,6 +84,18 @@ export default function Modals() {
     h.overflow = 'hidden'
     return () => { h.overflow = '' }
   }, [sheets.length > 0])
+
+  // Escape closes the top sheet the same way a backdrop tap does
+  useEffect(() => {
+    if (!sheets.length) return
+    const onKey = e => {
+      if (e.key !== 'Escape') return
+      const top = sheets[sheets.length - 1]
+      useUI.getState().closeSheet(top.id); top.onDismiss && top.onDismiss()
+    }
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
+  }, [sheets])
 
   if (!sheets.length) return null
   return (
