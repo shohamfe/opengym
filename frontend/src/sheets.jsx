@@ -900,7 +900,7 @@ function FinishSheet({ close, phase, auto }) {
   }
   return <>
     <h3>{auto ? t("That's the whole workout!") : t('Finish workout?')}</h3>
-    <div className="small" style={{ color: done < total ? 'var(--orange)' : 'var(--label-2)', marginBottom: 12 }}>
+    <div className={'small ' + (done < total ? 'fin-warn' : 'muted')} style={{ marginBottom: 12 }}>
       {done === 0 ? t('Nothing logged yet') : done < total ? t(total - done === 1 ? '{0} set still unchecked' : '{0} sets still unchecked', total - done) : t('All {0} sets done', total)}
     </div>
     {loaded.length > 0 && <Section title={t('Working weights')} footer={t('Next time starts from these.')}>

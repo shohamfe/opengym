@@ -341,6 +341,7 @@ h4.sec{
 .streak-row{display:flex;align-items:center;gap:7px;width:100%;margin-top:10px;padding:8px 2px 0;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
 .streak-row .muted{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bw-row{display:flex;align-items:center;gap:12px;cursor:pointer}
+.bw-row .grow{flex:1;min-width:0}
 .goal-t{color:var(--yellow);margin-top:2px}
 :root[data-theme="light"] .goal-t{color:#8a5a00}
 .wday .dot.plan{background:var(--label-3)}
@@ -593,11 +594,6 @@ h4.sec{
 .setrow .stp.w{flex:1.4;min-width:0}
 .setrow .stp.r{flex:1;min-width:0}
 .setrow .stp button{width:34px;height:44px}
-/* a 3rd stepper (RIR) needs narrower buttons and a tighter row gap to fit next to weight+reps
-   on narrow phones, same technique as the exercise-config sheet's three-steppers-in-a-row
-   (.cfgrow below) — RIR's own value is short ("1.5") so its buttons shrink the most, weight/reps
-   just enough to make room since their values ("82.5", "12") need more of what's left.
-   The header shares the numbers so its labels stay centred over the steppers they name. */
 .card.settable{padding-left:12px;padding-right:12px}
 /* effort chips: asked under the set you just finished (RIR 0..4+, RPE ≤6..10) */
 .effrow{display:flex;align-items:center;gap:6px;padding:2px 0 10px 32px}
@@ -606,7 +602,15 @@ h4.sec{
 .effchip.on{background:var(--acc);color:var(--on-acc)}
 .effchip:active{background:var(--surface-3)}
 .effpill{display:block;margin:-2px 0 8px 32px;font-size:12px;color:var(--acc);background:var(--acc-soft);border-radius:99px;padding:3px 10px}
-@media (max-width:340px){.effq{display:none}}
+@media (max-width:340px){
+  .effq{display:none}
+  /* 320px: slimmer +/- so "102.5" and "12" stay readable */
+  .setrow{gap:6px}
+  .setrow .stp button{width:28px}
+  .setrow .stp .num{font-size:16px}
+}
+.fin-stp{flex:none;width:156px}
+.fin-warn{color:var(--orange)}
 .setrow.done .n{background:var(--acc);color:var(--on-acc)}
 .setrow.done .stp{background:var(--acc-soft)}
 .setrow.done .stp button{opacity:.4}
@@ -973,7 +977,8 @@ h4.sec{
 /* ------------------------------------------- light theme: readable accent text --- */
 /* the bright accent is fine as a fill but measures ~2:1 as text on white; its darker
    partner is the same hue at a readable contrast. Fills (primary buttons, dots) stay bright. */
-:root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp){color:var(--acc-2)}
+:root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp,.effpill,.sslink.on){color:var(--acc-2)}
+:root[data-theme="light"] .fin-warn{color:#b35c00}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
 :root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
 .sheet:focus,.center:focus{outline:none}

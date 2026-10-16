@@ -133,7 +133,7 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
     </div>
-    {last && <div className="small dim lasttime">{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
+    {last && <div className="small muted lasttime">{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
     {plan && plan.why && plan.kind !== 'off' && <div className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span>{t(...plan.why)}</span>
@@ -307,7 +307,7 @@ function ActiveWorkout() {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
       return <Button variant={allDone ? 'primary' : 'tinted'} icon="flag" onClick={() => finishWorkout()}>
-        {allDone || !done ? t('Finish workout') : t('Finish workout · {0} exercises', exDone + '/' + A.entries.length)}
+        {allDone || !done ? t('Finish workout') : t('Finish · {0} exercises', exDone + '/' + A.entries.length)}
       </Button>
     })()}
     <div style={{ height: 24 }} />
