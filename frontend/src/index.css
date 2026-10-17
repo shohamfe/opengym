@@ -245,6 +245,9 @@ h4.sec{
    Letting the value shrink and ellipsise instead keeps the two out of each other's way. */
 .lrow-v{color:var(--label-2);font-size:17px;letter-spacing:-.012em;flex:0 1 auto;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+/* ...but the title still needs its own width: with basis 0 it shrank to nothing and "Rule"
+   painted under the value. Natural width, capped so a long title wraps instead. */
+.lrow:has(.lrow-v) .lrow-m{flex:1 0 auto;max-width:55%}
 .lrow-c{color:var(--label);font-size:15px;flex:none;--icon-stroke:2.4}
 .lrow-k{color:var(--acc);font-size:17px;flex:none;--icon-stroke:2.4}
 .lrow.danger,.lrow.danger .lrow-t{color:var(--red)}
