@@ -44,28 +44,20 @@ function Sheet({ sheet }) {
     return () => el.removeEventListener('touchmove', onTouchMove)
   }, [])
 
-  // VoiceOver/keyboard: focus moves into the sheet and returns to whatever opened it
-  const box = useRef(null)
-  useEffect(() => {
-    const prev = document.activeElement
-    box.current?.focus({ preventScroll: true })
-    return () => prev?.focus?.({ preventScroll: true })
-  }, [])
-
   const close = () => closeSheet(sheet.id)
   const dismiss = () => { close(); sheet.onDismiss && sheet.onDismiss() }
   if (sheet.kind === 'center') {
     return (
       <div>
         <div className="mback" onClick={dismiss} />
-        <div className="center" role="dialog" aria-modal="true" tabIndex={-1} ref={box}>{sheet.render(close)}</div>
+        <div className="center" role="dialog" aria-modal="true">{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={dismiss} />
-      <div className="sheet" role="dialog" aria-modal="true" tabIndex={-1} ref={el => { ref.current = el; box.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sheet" role="dialog" aria-modal="true" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="grab" />
         {sheet.render(close)}
       </div>

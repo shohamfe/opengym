@@ -180,6 +180,7 @@ body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
 
 /* large title, the way a nav bar does it */
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
+.hdr:has(>.iconbtn:first-child){align-items:center}   /* back button sits beside the title block, not at its baseline */
 .hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
 
@@ -985,4 +986,3 @@ h4.sec{
 :root[data-theme="light"] .fin-warn{color:#b35c00}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
 :root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
-.sheet:focus,.center:focus{outline:none}
