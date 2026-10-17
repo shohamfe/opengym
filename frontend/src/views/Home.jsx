@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
+import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW, setsDoneActive, workoutVolume } from '../lib/history.js'
 import { fmtNum, todayISO, isoOf, weekKey, startOfWeek, DAYS } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor, workoutDetailSheet, WorkoutRow } from '../sheets.jsx'
+import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 
 const KEY = { done: 'Done', plan: 'Planned', ovr: 'Moved' }
+const MINOR = ['serratus', 'obliques', 'adductors', 'hip-flexors', 'tibialis', 'forearm']
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 // Email sign-in uses the address as the name; never print it as one.
@@ -49,6 +51,25 @@ export default function Home() {
   const wThisWeek = S.workouts.filter(w => weekKey(w.d, S.weekStart) === weekKey(todayISO(), S.weekStart)).length
   const plannedPerWeek = Object.keys(S.week).filter(k => S.week[k]).length
 
+  // glance cards: last session, this week vs last, what hasn't been trained
+  const lastW = S.workouts[S.workouts.length - 1]
+  const thisWk = weekKey(todayISO(), S.weekStart)
+  const prevStart = startOfWeek(today, S.weekStart); prevStart.setDate(prevStart.getDate() - 7)
+  const prevWk = weekKey(isoOf(prevStart), S.weekStart)
+  const wkWorkouts = S.workouts.filter(w => weekKey(w.d, S.weekStart) === thisWk)
+  const volOf = ws => ws.reduce((v, w) => v + (w.vol ?? workoutVolume(w)), 0)
+  const vol = volOf(wkWorkouts), prevVol = volOf(S.workouts.filter(w => weekKey(w.d, S.weekStart) === prevWk))
+  const volPct = prevVol ? Math.round((vol - prevVol) / prevVol * 100) : null
+  // small helper muscles (serratus, shins…) rarely get direct work; naming them first is noise
+  const missed = rankOf(loadOfWorkouts(wkWorkouts)).missed.filter(m => !MINOR.includes(m))
+  // on a rest day, say when the next session is instead of leaving "Rest day" on its own
+  let next = null
+  if (!routine && !S.active) for (let i = 1; i <= 7 && !next; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i)
+    const r = effectiveRoutine(S, isoOf(d))
+    if (r) next = { r, d }
+  }
+
   // today's session shown right under the week strip
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
 
@@ -76,6 +97,7 @@ export default function Home() {
           <div style={{ minWidth: 0 }}>
             <div className="lbl2">{t('Today')}{todayOvr && routine ? ' · ' + t('rescheduled') : ''}</div>
             <div className="ttl">{S.active ? t('{0} — in progress', S.active.name) : routine ? routine.name : t('Rest day')}</div>
+            {next && <div className="small muted">{t('Next: {0}', next.r.name)} · {t(DAYS[next.d.getDay()])}</div>}
           </div>
         </div>
         {S.active ? <span className="tag" style={{ color: 'var(--orange)', background: 'color-mix(in srgb,var(--orange) 16%,transparent)' }}>{t('Resume')}</span>
@@ -101,6 +123,28 @@ export default function Home() {
         <div style={{ height: 8 }} /><Button onClick={() => nav('/plan')}>{t('Build my own plan')}</Button>
       </div>
     )}
+
+    {lastW && <>
+      <div className="row between" style={{ margin: '4px 4px 6px' }}>
+        <h4 className="sec" style={{ margin: 0 }}>{t('Last workout')}</h4>
+        <Button size="sm" variant="ghost" trailingIcon="chevronRight" style={{ width: 'auto' }} onClick={() => nav('/history')}>{t('All')}</Button>
+      </div>
+      <div className="list" style={{ marginBottom: 12 }}><WorkoutRow w={lastW} onClick={() => workoutDetailSheet(lastW)} /></div>
+      <div className="tiles">
+        <div className="tile tappable" onClick={() => nav('/stats')}>
+          <div className="l"><Icon name="dumbbell" />{t('Volume')}</div>
+          <div className="v">{vol ? (vol >= 10000 ? fmtNum(Math.round(vol / 100) / 10) + 'k' : fmtNum(vol)) : '—'} <span className="muted" style={{ fontSize: 14 }}>{S.unit}</span></div>
+          {/* down weeks are normal (deloads), so they're grey, never red */}
+          <div className="small" style={{ color: volPct > 0 ? 'var(--acc)' : 'var(--label-2)' }}>
+            {!vol ? t('none yet this week') : volPct == null ? t('first week logged') : t('{0} vs last week', (volPct > 0 ? '+' : '') + volPct + '%')}</div>
+        </div>
+        <div className="tile tappable" onClick={() => nav('/stats')}>
+          <div className="l"><Icon name="target" />{t('Missed')}</div>
+          <div className="v" style={{ fontSize: 22 }}>{!wkWorkouts.length ? '—' : missed.length ? t(MUSCLE_NAME[missed[0]]) : t('All covered')}</div>
+          <div className="small muted">{!wkWorkouts.length ? t('this week') : missed.length > 1 ? t('+{0} more this week', missed.length - 1) : missed.length ? t('this week') : t('every muscle hit')}</div>
+        </div>
+      </div>
+    </>}
 
     {/* the chart lives on Stats; Home keeps the number and the one action you take here */}
     <div className="card bw-row tappable" onClick={() => nav('/stats')}>
