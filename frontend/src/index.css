@@ -338,7 +338,7 @@ h4.sec{
 .wk-key span{display:inline-flex;align-items:center;gap:5px}
 .wk-key .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 .wk-key .dot.plan{background:var(--label-3)} .wk-key .dot.ovr{background:var(--orange)} .wk-key .dot.done{background:var(--acc)}
-.streak-row{display:flex;align-items:center;gap:7px;width:100%;margin-top:10px;padding:8px 2px 0;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
+.streak-row{display:flex;align-items:center;gap:7px;width:100%;margin:10px 0 -6px;padding:12px 2px 2px;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
 .streak-row .muted{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bw-row{display:flex;align-items:center;gap:12px;cursor:pointer}
 .bw-row .grow{flex:1;min-width:0}

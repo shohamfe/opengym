@@ -65,8 +65,8 @@ export default function Home() {
         <button className="iconbtn" style={{ fontSize: 15 }} onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week"><Icon name="chevronRight" /></button>
       </div>
       <div className="week">{strip}</div>
-      {/* the three dot colours used to be unexplained; only the kinds this week has are listed */}
-      {kinds.size > 0 && <div className="wk-key">{['done', 'plan', 'ovr'].filter(k => kinds.has(k)).map(k =>
+      {/* a key only earns its space when the week mixes dot colours; a lone green dot explains itself */}
+      {kinds.size > 1 && <div className="wk-key">{['done', 'plan', 'ovr'].filter(k => kinds.has(k)).map(k =>
         <span key={k}><i className={'dot ' + k} />{t(KEY[k])}</span>)}</div>}
       <div className="today-row" onClick={onToday}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
