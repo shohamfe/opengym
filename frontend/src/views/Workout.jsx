@@ -95,7 +95,8 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
   // finished, instead of a third stepper squeezing weight and reps on every row (round 2).
   const [pick, setPick] = useState(null)
   const lastDone = entry.sets.reduce((k, x, i) => (x.done ? i : k), -1)
-  const effOpen = !col3 ? -1 : pick ?? (lastDone >= 0 && entry.sets[lastDone][col3.f] == null ? lastDone : -1)
+  // unticking a set closes its chips: effort only belongs to a done set
+  const effOpen = !col3 ? -1 : pick != null && entry.sets[pick]?.done ? pick : (lastDone >= 0 && entry.sets[lastDone][col3.f] == null ? lastDone : -1)
   const chips = kind === 'rpe' ? [6, 7, 8, 9, 10] : [0, 1, 2, 3, 4]
   const chipLabel = v => kind === 'rpe' ? (v === 6 ? '≤6' : String(v)) : (v === 4 ? '4+' : String(v))
   // The effort column walks its own scale — see stepEffort. Weight and reps step up from 0
@@ -154,7 +155,8 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
           <span className="effq">{kind === 'rir' ? t('Reps left?') : t('How hard?')}</span>
           {chips.map(v => <button key={v} role="radio" aria-checked={s[col3.f] === v} className={'effchip' + (s[col3.f] === v ? ' on' : '')}
             onClick={() => { onField(i, col3.f, s[col3.f] === v ? null : v); setPick(null) }}>{chipLabel(v)}</button>)}
-        </div> : col3 && s.done && s[col3.f] != null && <button className="effpill" onClick={() => setPick(i)}>{col3.hd} {fmtNum(s[col3.f])}</button>}
+        </div> : col3 && s.done && s[col3.f] != null && <button className="effedit" onClick={() => setPick(i)}>
+          <span className="effpill">{col3.hd} {fmtNum(s[col3.f])}</span>{t('Edit')}</button>}
       </Fragment>)}
       <div style={{ height: 8 }} />
       <div className="row">
@@ -306,7 +308,7 @@ function ActiveWorkout() {
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
-      return <Button variant={allDone ? 'primary' : 'tinted'} icon="flag" onClick={() => finishWorkout()}>
+      return <Button variant={allDone ? 'primary' : 'plain'} icon="flag" onClick={() => finishWorkout()}>
         {allDone || !done ? t('Finish workout') : t('Finish · {0} exercises', exDone + '/' + A.entries.length)}
       </Button>
     })()}

@@ -555,7 +555,7 @@ h4.sec{
 .wprog{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:16px}
 .wprog i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width var(--med) var(--ease)}
 .exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
-.exmedia img{width:100%;height:clamp(130px,21svh,220px);object-fit:contain;display:block}   /* first set row stays above the fold */
+.exmedia img{width:100%;height:min(320px,40svh);object-fit:contain;display:block}
 .exmedia .gifhint,.exmedia .giftoggle{
   position:absolute;bottom:9px;display:inline-flex;align-items:center;gap:4px;
   background:rgba(0,0,0,.45);color:#fff;border-radius:99px;padding:5px 11px;
@@ -601,7 +601,8 @@ h4.sec{
 .effchip{flex:1;min-width:0;height:40px;border-radius:10px;background:var(--surface-2);color:var(--label);font-size:16px;font-weight:600}
 .effchip.on{background:var(--acc);color:var(--on-acc)}
 .effchip:active{background:var(--surface-3)}
-.effpill{display:block;margin:-2px 0 8px 32px;font-size:12px;color:var(--acc);background:var(--acc-soft);border-radius:99px;padding:3px 10px}
+.effedit{display:flex;align-items:center;gap:10px;min-height:44px;margin:-6px 0 4px 32px;padding:0 4px;font-size:14px;color:var(--acc)}
+.effpill{font-size:12px;background:var(--acc-soft);border-radius:99px;padding:3px 10px}
 @media (max-width:340px){
   .effq{display:none}
   /* 320px: slimmer +/- so "102.5" and "12" stay readable */
@@ -977,7 +978,7 @@ h4.sec{
 /* ------------------------------------------- light theme: readable accent text --- */
 /* the bright accent is fine as a fill but measures ~2:1 as text on white; its darker
    partner is the same hue at a readable contrast. Fills (primary buttons, dots) stay bright. */
-:root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp,.effpill,.sslink.on){color:var(--acc-2)}
+:root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp,.effedit,.sslink.on){color:var(--acc-2)}
 :root[data-theme="light"] .fin-warn{color:#b35c00}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
 :root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}

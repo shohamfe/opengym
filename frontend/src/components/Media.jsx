@@ -11,13 +11,12 @@ import Icon from './Icon.jsx'
 // future workouts (issue #12).
 export default function Media({ ex, id, compact, minimizable }) {
   const [playing, setPlaying] = useState(true)
-  // round 2: a thumbnail beside the name by default (new key, so the old 'full' default doesn't carry over);
-  // tapping the thumbnail opens the big animation, which keeps its Minimize button
-  const media = useStore(s => s.S.media) || 'thumb'
+  // big by default (it's how you check form); Minimize shrinks it to a thumbnail beside the name
+  const media = useStore(s => s.S.mediaSize) || 'full'
   const update = useStore(s => s.update)
   if (!ex.gif) return null
   const mini = minimizable && media === 'thumb'
-  const toggleSize = e => { e.stopPropagation(); update(s => { s.media = mini ? 'full' : 'thumb' }) }
+  const toggleSize = e => { e.stopPropagation(); update(s => { s.mediaSize = mini ? 'full' : 'thumb' }) }
   return (
     <div className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '')} id={id} onClick={mini ? toggleSize : () => setPlaying(p => !p)}
       role={mini ? 'button' : undefined} aria-label={mini ? t('Expand') : undefined}>
