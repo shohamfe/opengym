@@ -164,6 +164,11 @@ button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp butto
 #app{
   padding:calc(var(--sat) + 8px) var(--pad) calc(96px + var(--sab));
   max-width:560px;margin:0 auto;
+  /* fill the screen even when a page is short: iOS Home Screen apps anchor
+     position:fixed bars to a shorter box when the document ends above the
+     screen bottom, so the tab bar floated mid-air on short pages (History).
+     dvh, not vh: 100vh was taller than the screen and added a scroll. */
+  min-height:100dvh;
 }
 /* while the rest timer floats above the tab bar, keep its height scrollable-past
    (the rest variant is two rows tall — ~44px more than the single-row work timer) */
