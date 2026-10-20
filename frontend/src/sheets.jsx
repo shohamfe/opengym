@@ -882,7 +882,7 @@ function FinishSheet({ close, phase, auto }) {
   useEffect(() => { if (!A && !res) close() }, [!A, !res])
   if (res) return <FinishSummary {...res} close={close} />
   if (!A) return null
-  const done = setsDoneActive(A)
+  const done = A.entries.reduce((n, e) => n + e.sets.filter(x => x.done).length, 0)   // ticked, warm-ups included (matches the workout header)
   const total = A.entries.reduce((n, e) => n + e.sets.length, 0)
   const maxW = e => Math.max(0, ...e.sets.filter(isWork).map(x => x.w || 0))
   const loaded = A.entries.map((e, i) => ({ e, i })).filter(({ e }) => modeOf({ ...(e.target || {}), id: e.id }) === 'reps' && maxW(e) > 0)

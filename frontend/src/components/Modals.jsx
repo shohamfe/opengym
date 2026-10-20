@@ -50,14 +50,14 @@ function Sheet({ sheet }) {
     return (
       <div>
         <div className="mback" onClick={dismiss} />
-        <div className="center" role="dialog" aria-modal="true">{sheet.render(close)}</div>
+        <div className="center" role="dialog" aria-modal="true" aria-label={sheet.label}>{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={dismiss} />
-      <div className="sheet" role="dialog" aria-modal="true" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={sheet.label} ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className="grab" />
         {sheet.render(close)}
       </div>

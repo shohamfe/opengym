@@ -60,7 +60,7 @@ function ExerciseView({ w, e }) {
       <div className="rt-head" style={{ '--c': tpl }}><span />{cols.map(c => <span key={c.f}>{c.hd}</span>)}{kind && <span>{EFFORT[kind].hd}</span>}{top >= 0 && <span />}</div>
       {sets.map((s, i) => <div key={i} className={'rt-set' + (s.tech === 'warmup' ? ' wu' : '')}>
         <div className="rt-row" style={{ '--c': tpl }}>
-          <span className={'rt-n' + (s.tech === 'warmup' ? ' w' : s.tech ? ' t' : '')}>{techBadge(s) || sets.slice(0, i + 1).filter(x => x.tech !== 'warmup').length}</span>
+          <span className={'rt-n' + (s.tech === 'warmup' ? ' w' : s.tech ? ' t' : '')} {...(s.tech ? { role: 'img', 'aria-label': techName(s.tech) } : {})}>{techBadge(s) || sets.slice(0, i + 1).filter(x => x.tech !== 'warmup').length}</span>
           {cols.map(c => <span key={c.f} className="rt-v">{c.fmt ? c.fmt(s) : fmtNum(s[c.f] || 0)}</span>)}
           {kind && (s.rir != null || s.rpe != null ? <span className="rt-v eff">{fmtNum(s[effKind(s)])}</span> : <span className="rt-v nil">–</span>)}
           {top >= 0 && <span className="rt-flag">{i === top && <Icon name="trophy" aria-label="PR" />}</span>}
@@ -70,7 +70,7 @@ function ExerciseView({ w, e }) {
     </div> : <div className="empty" style={{ padding: 20 }}>{t('No sets logged')}</div>}
   </>
 }
-const exerciseViewSheet = (w, e) => useUI.getState().openSheet(() => <ExerciseView w={w} e={e} />)
+const exerciseViewSheet = (w, e) => useUI.getState().openSheet(() => <ExerciseView w={w} e={e} />, { label: nameOf(e, exOr(e.id)) })
 
 export default function WorkoutView() {
   const nav = useNavigate()
@@ -93,7 +93,7 @@ export default function WorkoutView() {
     + (clock ? ' · ' + new Date(w.start).toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit' }) : '')
   const routine = S.routines.find(r => r.id === w.routineId)
   const prs = w.prs ? w.prs.length : 0
-  const [dur, sets, vol] = wStats(w, S.unit)
+  const [dur, [sets], vol] = wStats(w, S.unit)   // the label says "Sets", so the value is just the number
   const askDelete = () => confirmSheet({
     title: t('Delete this workout?'),
     message: t('{0} on {1} will be removed from your history for good.', w.name, d.toLocaleDateString(loc, { day: 'numeric', month: 'short' })),
@@ -107,7 +107,7 @@ export default function WorkoutView() {
       <button className="iconbtn wv-del" onClick={askDelete} aria-label={t('Delete workout')}><Icon name="trash" /></button>
     </div>
     <div className="wv-sum">
-      <div className="wv-stats">{[[t('Duration'), dur], [t('Sets'), sets], [t('Volume'), vol]].map(([l, v]) => <div key={l} className="wv-s"><div className="l">{l}</div><StatCell v={v} cls="v" /></div>)}</div>
+      <div className="wv-stats">{[[t('Duration'), dur], [t('Sets'), [sets]], [t('Volume'), vol]].map(([l, v]) => <div key={l} className="wv-s"><div className="l">{l}</div><StatCell v={v} cls="v" /></div>)}</div>
       {(prs > 0 || routine || w.bw) && <div className="wv-meta">
         {prs > 0 && <span className="pr"><Icon name="trophy" />{t('{0} PR', prs)}</span>}
         {routine && <span className="tag nocap"><Icon name={glyphOf(routine.emoji)} />{routine.name}</span>}

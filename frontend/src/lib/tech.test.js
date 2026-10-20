@@ -75,3 +75,9 @@ describe('call sites', () => {
     expect(Object.values(none).every(v => !v)).toBe(true)
   })
 })
+
+describe('nextPartW with no weight', () => {
+  it('stays 0 instead of the 0.5 floor', () => {
+    expect(nextPart({ tech: 'drop', w: 0 })).toEqual({ w: 0, r: 0 })
+  })
+})

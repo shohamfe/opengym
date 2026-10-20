@@ -45,6 +45,8 @@
   --acc:  var(--green);
   --acc-2:#248a3d;
   --on-acc:#000000;
+  /* amber text/ink: the raw orange/yellow fail 4.5:1 on light surfaces, so light redefines them */
+  --orange-t:var(--orange); --yellow-t:var(--yellow); --on-orange:#000;
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
@@ -81,6 +83,7 @@
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
   --acc-2:#248a3d;
   --on-acc:#ffffff;
+  --orange-t:#6b4500; --yellow-t:#6b4500;
 }
 
 /* accents — Apple's system colours, so a recolour never looks off-system */
@@ -635,16 +638,13 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .setrow .n.t{background:var(--acc-soft);color:var(--label);font-weight:600}
 .setrow.done .n.t{background:var(--acc);color:var(--on-acc)}
 .setrow.next .n.t{color:var(--label)}
-.setrow .n.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange);font-weight:600}
-.setrow.done .n.w{background:var(--orange);color:#000}
-:root[data-theme="light"] .setrow .n.w{color:#8a5a00}
-:root[data-theme="light"] .setrow.done .n.w{color:#000}
+.setrow .n.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange-t);font-weight:600}
+.setrow.done .n.w{background:var(--orange);color:var(--on-orange)}
 .thint{margin:0 0 8px;align-items:center}
 .thint span{flex:1;min-width:0}
 .thint-x{width:44px;height:44px;margin:-12px -10px -12px 0;display:flex;align-items:center;justify-content:center;color:var(--label-2);font-size:14px;flex:none}
 /* extra drops / mini-sets: same flex ratios as the main row so steppers line up */
 .partrow{padding:3px 0}
-.partrow .stp button{height:40px}
 .pn{width:24px;height:24px;flex:none;position:relative}
 .pn::before{content:'';position:absolute;right:0;top:-10px;width:12px;height:22px;border-left:2px solid var(--label-4);border-bottom:2px solid var(--label-4);border-radius:0 0 0 7px}
 .pdel{width:34px;height:34px;border-radius:50%;flex:none;position:relative;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--label-2);font-size:14px;transition:background var(--fast),transform var(--fast)}
@@ -659,10 +659,14 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .tsheet .lrow{min-height:56px;align-items:center}
 .tb-i{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--label-2)}
 .tb-i.t{background:var(--acc-soft);color:var(--label)}
-.tb-i.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)}
-:root[data-theme="light"] .tb-i.w{color:#8a5a00}
+.tb-i.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange-t)}
 .tsheet .lrow+.lrow::before{left:54px}
 .tsheet-stp{width:132px;flex:none}
+/* short phones: one-line descriptions so the partials stepper stays on screen */
+@media (max-height:700px){
+  .tsheet .lrow{min-height:48px;padding-top:6px;padding-bottom:6px}
+  .tsheet .lrow-s,.tsheet~.sect-b .lrow-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
 /* why the next target is what it is (issue #17) */
 .progline{
   display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;
@@ -1028,7 +1032,7 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 :root[data-theme="light"] :where(.btn.ghost,.btn.plain,.btn.tinted,.tag.acc,.progline,.accent,.ss-amp,.effedit,.sslink.on){color:var(--acc-2)}
 :root[data-theme="light"] .fin-warn{color:#b35c00}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
-:root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
+:root[data-theme="light"] :where(.progline.warn,.pr){color:var(--yellow-t)}
 
 /* --- workout card (WorkoutRow) --- */
 .wr{padding:10px 12px;min-height:76px;font:inherit;color:inherit}
@@ -1063,8 +1067,7 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .wx .tt{font-weight:500;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
 .wx .ss{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-variant-numeric:tabular-nums}
 .wx-set{white-space:nowrap}
-.wx-pr{flex:none;font-size:16px;color:var(--yellow);display:flex}
-:root[data-theme="light"] .wx-pr,:root[data-theme="light"] .rt-flag{color:#8a5a00}
+.wx-pr{flex:none;font-size:16px;color:var(--yellow-t);display:flex}
 
 /* --- read-only exercise sheet --- */
 .wv-xh{margin:2px 0 6px;align-items:flex-start}
@@ -1072,19 +1075,18 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .wv-tags{gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .wx-sets{padding:12px;margin-bottom:0}
 .rt-head,.rt-row{display:grid;grid-template-columns:var(--c);column-gap:8px;align-items:center}
-.rt-head{padding:0 0 6px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.045em;color:var(--label-3)}
+.rt-head{padding:0 0 6px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.045em;color:var(--label-2)}
 .rt-head span{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rt-set{position:relative}
 .rt-set+.rt-set::before{content:'';position:absolute;left:32px;right:0;top:0;height:var(--hair);background:var(--sep)}
 .rt-row{min-height:44px;padding:7px 0}
-.rt-n{width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--label-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.rt-n{width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--label);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
 .rt-v{text-align:center;font-size:17px;font-weight:500;letter-spacing:-.012em;white-space:nowrap}
 .rt-v.eff{font-size:15px;font-weight:400;color:var(--label-2)}
 .rt-v.nil{color:var(--label-2);font-weight:400}
-.rt-flag{display:flex;justify-content:center;color:var(--yellow);font-size:15px}
+.rt-flag{display:flex;justify-content:center;color:var(--yellow-t);font-size:15px}
 .rt-n.t{background:var(--acc-soft);color:var(--label);font-weight:600}
-.rt-n.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange);font-weight:600}
-:root[data-theme="light"] .rt-n.w{color:#8a5a00}
+.rt-n.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange-t);font-weight:600}
 .rt-n.sub{background:none}
 .rt-tech{padding:0 0 4px 32px;font-size:12px;line-height:1.33;color:var(--label-2)}
 .rt-set.wu .rt-v{color:var(--label-2);font-weight:400}

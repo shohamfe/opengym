@@ -29,7 +29,7 @@ export const isProgSet = s => s.tech !== 'warmup' && s.tech !== 'backoff'
 export const setVolume = s => (isWork(s) ? (s.w || 0) * (s.r || 0) + partsOf(s).reduce((a, p) => a + (p.w || 0) * p.r, 0) : 0)
 
 // Weight for the next part: drop = 0.8x the previous part snapped to 0.5, myo/rest-pause = unchanged.
-export const nextPartW = (tech, prevW) => (tech === 'drop' ? Math.max(0.5, Math.round((prevW || 0) * 0.8 * 2) / 2) : prevW || 0)
+export const nextPartW = (tech, prevW) => (tech === 'drop' && prevW > 0 ? Math.max(0.5, Math.round(prevW * 0.8 * 2) / 2) : prevW || 0)
 export const nextPart = s => {
   const ps = s.parts || []
   return { w: nextPartW(s.tech, ps.length ? ps[ps.length - 1].w : s.w), r: 0 }

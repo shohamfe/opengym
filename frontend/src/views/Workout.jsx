@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
-import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, setsDoneActive, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
+import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
 import { t } from '../lib/i18n.js'
@@ -13,7 +13,7 @@ import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { TECH, TECH_IDS, PARTS_TECH, MAX_PARTS, techBadge, techName, techDesc, nextPart } from '../lib/tech.js'
+import { TECH, TECH_IDS, PARTS_TECH, MAX_PARTS, techBadge, techName, techDesc, nextPart, nextPartW } from '../lib/tech.js'
 
 /* ---------- set-type picker: tech, partials, and (re)seeding the parts rows ---------- */
 function TechSheet({ entryIdx, i, close }) {
@@ -179,7 +179,7 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
   const nums = entry.sets.map(x => (x.tech === 'warmup' ? 0 : ++wn))
   const openTech = i => {
     if (!useStore.getState().S.seenTechHint) useStore.getState().update(S => { S.seenTechHint = true })
-    useUI.getState().openSheet(close => <TechSheet entryIdx={entryIdx} i={i} close={close} />)
+    useUI.getState().openSheet(close => <TechSheet entryIdx={entryIdx} i={i} close={close} />, { label: t('Set type') })
   }
   return <>
     <Media ex={ex} key={entry.id} compact={compact} minimizable />
@@ -264,16 +264,29 @@ function ActiveWorkout() {
   const isSuperset = unit.length > 1
 
   const unitDone = unit.length > 0 && unit.every(ui => A.entries[ui].sets.every(x => x.done))
+  // progress counts every set you tick, warm-ups included, so 100% stays reachable (stats still skip them)
   const total = A.entries.reduce((n, e) => n + e.sets.length, 0)
-  const done = setsDoneActive(A)
+  const done = A.entries.reduce((n, e) => n + e.sets.filter(x => x.done).length, 0)
 
   const mutEntry = (idx, fn) => update(s => { fn(s.active.entries[idx]) }, true)
   // Clearing an optional field drops the key rather than storing null, so a set only carries
   // what was actually logged — in the session, in history and in a backup.
+  // Blank parts still sitting on their seeded weight follow a weight change above them
+  // (main 100 -> drop part 80), so the prefill never goes stale. Typed/filled parts are left alone.
+  const follow = (set, from, oldPrev) => {
+    let po = oldPrev, pn = from < 0 ? set.w : set.parts[from].w
+    for (let j = from + 1; j < (set.parts || []).length; j++) {
+      const p = set.parts[j], ow = p.w
+      if (!(p.r > 0) && p.w === nextPartW(set.tech, po)) p.w = nextPartW(set.tech, pn)
+      po = ow; pn = p.w
+    }
+  }
   const setField = (idx, i, field, v) => mutEntry(idx, e => {
-    if (v == null) delete e.sets[i][field]; else e.sets[i][field] = v
+    const x = e.sets[i], old = x.w
+    if (v == null) delete x[field]; else x[field] = v
+    if (field === 'w' && x.parts) follow(x, -1, old)
   })
-  const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { e.sets[i].parts[j][f] = v })
+  const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { const x = e.sets[i], old = x.parts[j].w; x.parts[j][f] = v; if (f === 'w') follow(x, j, old) })
   const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < MAX_PARTS) x.parts.push(nextPart(x)) })
   const removePart = (idx, i, j) => mutEntry(idx, e => { e.sets[i].parts.splice(j, 1) })
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
