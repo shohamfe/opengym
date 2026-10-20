@@ -991,3 +991,57 @@ h4.sec{
 :root[data-theme="light"] .fin-warn{color:#b35c00}
 :root[data-theme="light"] #tabbar button.on{color:var(--acc-2)}
 :root[data-theme="light"] :where(.progline.warn,.pr){color:#8a5a00}
+
+/* --- workout card (WorkoutRow) --- */
+.wr{padding:10px 12px;min-height:76px;font:inherit;color:inherit}
+.wr-i{width:34px;height:34px;border-radius:8px;font-size:19px}
+.wr-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.wr-top{display:flex;align-items:center;gap:8px;min-width:0}
+.wr-name{flex:1;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-pr{flex:none;padding:2px 6px;gap:3px}
+.wr-date{margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-stats{display:grid;grid-template-columns:48px 48px minmax(0,1fr);column-gap:8px;margin-top:4px;white-space:nowrap}
+.wr-c{font-size:14px;font-weight:500;line-height:1.3;letter-spacing:-.006em;min-width:0}
+.wr-c .u,.wv-s .v .u{font-size:12px;font-weight:400;color:var(--label-2);margin-left:3px}
+.wr-c.nil,.wv-s .v.nil{color:var(--label-2);font-weight:400}
+@media (min-width:375px){.wr-stats{grid-template-columns:56px 56px minmax(0,1fr)}}
+@media (max-width:340px){.wr-prw{display:none}}
+
+/* --- workout page (/history/:id) --- */
+.wv-hdr{gap:12px}
+.wv-t{flex:1;min-width:0}
+.hdr.wv-hdr h1{font-size:28px;line-height:1.12;letter-spacing:-.024em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.wv-hdr .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wv-hdr .iconbtn{position:relative}
+.wv-hdr .iconbtn::after{content:'';position:absolute;inset:-4px}
+.wv-del{color:var(--red)}
+.wv-sum{background:var(--surface);border-radius:var(--r-card);padding:14px 16px;margin-bottom:6px}
+.wv-stats{display:flex;justify-content:space-between;gap:12px}
+.wv-s .l{font-size:12px;line-height:1.33;color:var(--label-2)}
+.wv-s .v{display:block;font-size:17px;font-weight:600;letter-spacing:-.012em;line-height:1.29;margin-top:3px;white-space:nowrap}
+.wv-s .v .u{font-size:13px}
+.wv-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:var(--hair) solid var(--sep)}
+.wx{min-height:64px;padding:10px 12px;font:inherit;color:inherit}
+.wx .tt{font-weight:500;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.wx .ss{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-variant-numeric:tabular-nums}
+.wx-set{white-space:nowrap}
+.wx-pr{flex:none;font-size:16px;color:var(--yellow);display:flex}
+:root[data-theme="light"] .wx-pr,:root[data-theme="light"] .rt-flag{color:#8a5a00}
+
+/* --- read-only exercise sheet --- */
+.wv-xh{margin:2px 0 6px;align-items:flex-start}
+.wv-xn{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.2;min-width:0;overflow-wrap:anywhere}
+.wv-tags{gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.wx-sets{padding:12px;margin-bottom:0}
+.rt-head,.rt-row{display:grid;grid-template-columns:var(--c);column-gap:8px;align-items:center}
+.rt-head{padding:0 0 6px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.045em;color:var(--label-3)}
+.rt-head span{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-set{position:relative}
+.rt-set+.rt-set::before{content:'';position:absolute;left:32px;right:0;top:0;height:var(--hair);background:var(--sep)}
+.rt-row{min-height:44px;padding:7px 0}
+.rt-n{width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--label-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.rt-v{text-align:center;font-size:17px;font-weight:500;letter-spacing:-.012em;white-space:nowrap}
+.rt-v.eff{font-size:15px;font-weight:400;color:var(--label-2)}
+.rt-v.nil{color:var(--label-2);font-weight:400}
+.rt-flag{display:flex;justify-content:center;color:var(--yellow);font-size:15px}
+@media (max-width:340px){.rt-head,.rt-row{column-gap:6px}.rt-head{letter-spacing:.02em}.rt-v{font-size:16px}}

@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { effectiveRoutine, effectiveRoutineId, streakWeeks, lastBW, setsDoneActive, workoutVolume } from '../lib/history.js'
 import { fmtNum, todayISO, isoOf, weekKey, startOfWeek, DAYS } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor, workoutDetailSheet, WorkoutRow } from '../sheets.jsx'
+import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, loadStarterPlan, bwDeltaColor, WorkoutRow } from '../sheets.jsx'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
@@ -129,7 +129,7 @@ export default function Home() {
         <h4 className="sec" style={{ margin: 0 }}>{t('Last workout')}</h4>
         <Button size="sm" variant="ghost" trailingIcon="chevronRight" style={{ width: 'auto' }} onClick={() => nav('/history')}>{t('All')}</Button>
       </div>
-      <div className="list" style={{ marginBottom: 12 }}><WorkoutRow w={lastW} onClick={() => workoutDetailSheet(lastW)} /></div>
+      <div className="list" style={{ marginBottom: 12 }}><WorkoutRow w={lastW} onClick={() => nav('/history/' + lastW.id)} /></div>
       <div className="tiles">
         <div className="tile tappable" onClick={() => nav('/stats')}>
           <div className="l"><Icon name="dumbbell" />{t('Volume')}</div>

@@ -91,8 +91,9 @@ const effortTail = s => {
 
 // One-line summary of a logged set. `cfg` carries the mode when the caller has it (a routine
 // entry or a workout entry); passing an id alone keeps the old body-part behaviour.
-export function setLabel(id, s, cfg) {
+export function setLabel(id, s, cfg, o) {
   const c = cfg || { id }
+  const tail = o && o.effort === false ? '' : effortTail(s)
   const mode = modeOf(c)
   if (mode === 'cardio') return `${s.min || 0} min @ ${fmtNum(s.speed || 0)} km/h`
   if (mode === 'time') return fmtSec(s.sec) + (s.w > 0 ? ` · ${fmtNum(s.w)}` : '')
@@ -103,9 +104,9 @@ export function setLabel(id, s, cfg) {
   const reps = s.r || 0
   if (isBw({ ...c, id: c.id ?? id })) {
     const load = s.w > 0 ? `+${fmtNum(s.w)} × ` : ''
-    return `${load}${reps}` + effortTail(s)
+    return `${load}${reps}` + tail
   }
-  return `${fmtNum(s.w || 0)}×${reps}` + effortTail(s)
+  return `${fmtNum(s.w || 0)}×${reps}` + tail
 }
 // Default config for a freshly added exercise.
 export function defaultConfig(id, mode) {

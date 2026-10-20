@@ -760,25 +760,6 @@ function DayAssign({ day, close }) {
 }
 export const dayAssignSheet = day => ui().openSheet(close => <DayAssign day={day} close={close} />)
 
-/* ============================ workout detail ============================ */
-function WorkoutDetail({ w, close }) {
-  const st = useStore(s => s.S)
-  return <>
-    <h3>{w.name}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
-    {w.entries.map((e, i) => {
-      const ex = EXIDX[e.id]
-      return <div key={i} className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
-        {ex && <Thumb ex={ex} />}
-        <div className="grow"><div className="tt capitalize" style={{ fontWeight: 600 }}>{ex ? ex.n : (e.n || e.id)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
-          <div className="ss">{e.sets.filter(s => s.done).map(s => setLabel(e.id, s, e.target)).join('  ·  ') || t('no sets')}</div></div>
-      </div>
-    })}
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
-  </>
-}
-export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
-
 /* ============================ calendar ============================ */
 function Calendar({ start, close }) {
   const st = useStore(s => s.S)
@@ -799,8 +780,8 @@ function Calendar({ start, close }) {
     const dotCls = ws ? 'done' : ovr && effId ? 'ovr' : effId ? 'plan' : ''
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (iso === todayISO() ? ' today' : '')} onClick={() => {
       if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+      if (ws.length === 1) { close(); nav('/history/' + ws[0].id); return }
+      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); nav('/history/' + w.id) }} />)}</div></>)
     }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>
@@ -822,16 +803,27 @@ function Calendar({ start, close }) {
 export const calendarSheet = start => ui().openSheet(close => <Calendar start={start} close={close} />)
 
 /* shared small workout row (used in lists) */
+// [value, unit] per stat; value null = unknown/zero, shown as "–" so the columns stay aligned.
+export function wStats(w, unit) {
+  const ms = w.end - w.start, m = Math.floor(ms / 60000), n = setsDone(w)
+  return [ms >= 60000 ? (m >= 60 ? [Math.floor(m / 60) + 'h ' + (m % 60) + 'm', ''] : [m, t('min')]) : [null],
+    [n, t(n === 1 ? 'set' : 'sets')], w.vol > 0 ? [fmtNum(w.vol), unit] : [null]]
+}
+export const StatCell = ({ v: [v, u], cls }) => <span className={cls + (v == null ? ' nil' : '')}>{v ?? '–'}{v != null && u && <span className="u">{u}</span>}</span>
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
-  return <div className="item" onClick={onClick}>
-    <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
-    <div className="grow"><div className="tt">{w.name}</div>
-      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
-    {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
+  const n = w.prs ? w.prs.length : 0
+  return <button className="item wr" onClick={onClick}>
+    <span className="lrow-i wr-i"><Icon name={glyph} /></span>
+    <span className="wr-m">
+      <span className="wr-top"><span className="tt wr-name" dir="auto">{w.name}</span>
+        {n > 0 && <span className="pr wr-pr" role="img" aria-label={t('{0} PR', n)}><Icon name="trophy" />{n > 99 ? '99+' : n}<span className="wr-prw"> PR</span></span>}</span>
+      <span className="ss wr-date">{fmtDate(w.d, true)}</span>
+      <span className="wr-stats">{wStats(w, st.unit).map((v, i) => <StatCell key={i} v={v} cls="wr-c" />)}</span>
+    </span>
     <Icon name="chevronRight" className="chev" />
-  </div>
+  </button>
 }
 
 /* ============================ workout lifecycle ============================ */
