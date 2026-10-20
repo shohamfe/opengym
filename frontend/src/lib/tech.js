@@ -8,10 +8,10 @@ export const MAX_PARTS = 6
 export const TECH = {
   warmup: { b: 'W', n: 'Warm-up', d: 'A lighter set to prepare. Excluded from all stats.' },
   fail: { b: 'F', n: 'Failure', d: 'Taken to momentary failure. Counts as a hard set.' },
-  backoff: { b: 'B', n: 'Back-off', d: 'Lighter set after your top set. Counts, but does not drive progression.' },
-  drop: { b: 'D', n: 'Drop set', d: 'Reduce the weight about 20% and keep going, no rest.' },
-  myo: { b: 'M', n: 'Myo-reps', d: 'One activation set, then short mini-sets at the same weight.' },
-  rp: { b: 'R', n: 'Rest-pause', d: 'Rest 10-20 s, then continue at the same weight.' },
+  backoff: { b: 'B', n: 'Back-off', d: 'Lighter set after the top set. Ignored by progression.' },
+  drop: { b: 'D', n: 'Drop set', d: 'Cut the weight about 20% and keep going, no rest.' },
+  myo: { b: 'M', n: 'Myo-reps', d: 'Activation set, then short mini-sets at the same weight.' },
+  rp: { b: 'R', n: 'Rest-pause', d: 'Rest 10-20 s, then more reps at the same weight.' },
 }
 export const TECH_IDS = Object.keys(TECH)
 export const PARTS_TECH = ['drop', 'myo', 'rp']

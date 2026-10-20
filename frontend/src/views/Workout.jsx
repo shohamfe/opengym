@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
@@ -13,6 +13,59 @@ import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
+import { TECH, TECH_IDS, PARTS_TECH, MAX_PARTS, techBadge, techName, techDesc, nextPart } from '../lib/tech.js'
+
+/* ---------- set-type picker: tech, partials, and (re)seeding the parts rows ---------- */
+function TechSheet({ entryIdx, i, close }) {
+  const update = useStore(s => s.update)
+  const entry = useStore(s => s.S.active?.entries[entryIdx])
+  const s = entry?.sets[i]
+  if (!s) return null
+  const ex = exOr(entry.id)
+  const cur = s.tech || null
+  const num = entry.sets.slice(0, i).filter(x => x.tech !== 'warmup').length + 1
+  const mut = fn => update(S => { fn(S.active.entries[entryIdx].sets[i]) }, true)
+  const pick = id => {
+    if (id === cur) return close()
+    const filled = (s.parts || []).filter(p => p && p.r > 0).length
+    const apply = () => {
+      mut(x => {
+        if (id) x.tech = id; else delete x.tech
+        if (id === 'warmup') delete x.partials
+        if (!PARTS_TECH.includes(id)) delete x.parts
+        else if (!(x.parts && x.parts.length)) x.parts = [nextPart(x)]
+      })
+      close()
+    }
+    if (!PARTS_TECH.includes(id) && filled) confirmSheet({
+      title: t(filled === 1 ? 'Remove 1 extra part?' : 'Remove {0} extra parts?', filled),
+      message: t('Switching to {0} deletes the extra parts on this set.', id ? techName(id) : t('Normal')),
+      confirmText: t('Remove parts'), danger: true, onConfirm: apply })
+    else apply()
+  }
+  const setPartials = n => mut(x => { if (n > 0) x.partials = n; else delete x.partials })
+  const np = s.partials || 0
+  return <>
+    <h3>{t('Set type')}</h3>
+    <div className="muted small" style={{ marginBottom: 12, textTransform: 'capitalize' }}>{ex.n} · {t('set {0}', num)}</div>
+    <div className="sect-b tsheet" role="radiogroup" aria-label={t('Set type')}>
+      {[null, ...TECH_IDS].map(id => <button key={id || 'none'} className="lrow tap" role="radio" aria-checked={cur === id} onClick={() => pick(id)}>
+        <span className={'tb-i' + (id === 'warmup' ? ' w' : id ? ' t' : '')}>{id ? TECH[id].b : num}</span>
+        <span className="lrow-m"><span className="lrow-t">{id ? techName(id) : t('Normal')}</span>
+          <span className="lrow-s">{id ? techDesc(id) : t('A regular counted set.')}</span></span>
+        {cur === id && <Icon name="check" className="lrow-k" />}
+      </button>)}
+    </div>
+    {cur !== 'warmup' && <div className="sect-b" style={{ marginTop: 12 }}>
+      <div className="lrow"><span className="lrow-m"><span className="lrow-t">{t('Partial reps')}</span>
+        <span className="lrow-s">{t('Extra half-reps at the stretched end.')}</span></span>
+        <div className="stp tsheet-stp">
+          <button aria-label={t('Decrease {0}', t('Partial reps'))} onClick={() => setPartials(Math.max(0, np - 1))}><Icon name="minus" /></button>
+          <span className="val"><NumberField decimal={false} value={np} onChange={setPartials} /></span>
+          <button aria-label={t('Increase {0}', t('Partial reps'))} onClick={() => setPartials(np + 1)}><Icon name="plus" /></button>
+        </div></div></div>}
+  </>
+}
 
 /* ---------- start chooser (no active workout) ---------- */
 function StartChooser() {
@@ -53,7 +106,7 @@ function Elapsed({ start }) {
 }
 
 /* ---------- one exercise block (reps: weight×reps · time: a held duration · cardio: duration+speed) ---------- */
-function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemoveSet, onStartTimed, onSwap }) {
+function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onAddPart, onRemovePart, onAddSet, onRemoveSet, onStartTimed, onSwap }) {
   const S = useStore(s => s.S)
   const working = useUI(s => s.work)
   const entry = S.active.entries[entryIdx]
@@ -94,28 +147,40 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
   // Effort is judged after the set, so it is asked for there: a chip row under the set you just
   // finished, instead of a third stepper squeezing weight and reps on every row (round 2).
   const [pick, setPick] = useState(null)
-  const lastDone = entry.sets.reduce((k, x, i) => (x.done ? i : k), -1)
+  // warm-ups and failure sets never ask: the tag already says it
+  const noEff = x => x.tech === 'warmup' || x.tech === 'fail'
+  const lastDone = entry.sets.reduce((k, x, i) => (x.done && !noEff(x) ? i : k), -1)
   // unticking a set closes its chips: effort only belongs to a done set
-  const effOpen = !col3 ? -1 : pick != null && entry.sets[pick]?.done ? pick : (lastDone >= 0 && entry.sets[lastDone][col3.f] == null ? lastDone : -1)
+  const effOpen = !col3 ? -1 : pick != null && entry.sets[pick]?.done && !noEff(entry.sets[pick]) ? pick : (lastDone >= 0 && entry.sets[lastDone][col3.f] == null ? lastDone : -1)
   const chips = kind === 'rpe' ? [6, 7, 8, 9, 10] : [0, 1, 2, 3, 4]
   const chipLabel = v => kind === 'rpe' ? (v === 6 ? '≤6' : String(v)) : (v === 4 ? '4+' : String(v))
   // The effort column walks its own scale — see stepEffort. Weight and reps step up from 0
   // with no ceiling, as they always did.
-  const bump = (s, i, col, dir) => {
+  const bump = (s, i, col, dir, j) => {
+    if (j != null) return onPart(i, j, col.f, Math.max(0, Math.round(((s.parts[j][col.f] || 0) + dir * col.step) * 100) / 100))
     if (col.eff) return onField(i, col.f, stepEffort(col.eff, s[col.f], dir))
     onField(i, col.f, Math.max(0, Math.round(((s[col.f] || 0) + dir * col.step) * 100) / 100))
   }
   // Uses the shared stepper markup so a set row picks up the same control styling
   // as every other +/- field in the app.
-  const cell = (s, i, col, cls) => (
+  // j given: the cell edits parts[j] (extra drop / mini-set) instead of the set itself.
+  const cell = (s, i, col, cls, j) => (
     <div className={'stp ' + cls}>
-      <button aria-label={t('Decrease {0}', col.hd)} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>
+      <button aria-label={t('Decrease {0}', col.hd)} onClick={() => bump(s, i, col, -1, j)}><Icon name="minus" /></button>
       {/* a typed effort is capped — there is no RPE 12, and 12 reps in reserve is a warm-up */}
-      <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={s[col.f] ?? ''}
-        onChange={v => onField(i, col.f, col.eff ? capEffort(col.eff, v) : v)} /></span>
-      <button aria-label={t('Increase {0}', col.hd)} onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>
+      <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={(j == null ? s : s.parts[j])[col.f] ?? ''}
+        onChange={v => j == null ? onField(i, col.f, col.eff ? capEffort(col.eff, v) : v) : onPart(i, j, col.f, v)} /></span>
+      <button aria-label={t('Increase {0}', col.hd)} onClick={() => bump(s, i, col, 1, j)}><Icon name="plus" /></button>
     </div>
   )
+  const repsMode = mode === 'reps'
+  // working numbers: a warm-up never takes one, so it reads W, 1, 2, D (3rd working set), 4
+  let wn = 0
+  const nums = entry.sets.map(x => (x.tech === 'warmup' ? 0 : ++wn))
+  const openTech = i => {
+    if (!useStore.getState().S.seenTechHint) useStore.getState().update(S => { S.seenTechHint = true })
+    useUI.getState().openSheet(close => <TechSheet entryIdx={entryIdx} i={i} close={close} />)
+  }
   return <>
     <Media ex={ex} key={entry.id} compact={compact} minimizable />
     <div className="row between" style={{ marginBottom: 6 }}>
@@ -140,9 +205,19 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       <span>{t(...plan.why)}</span>
     </div>}
     <div className="card settable" id={'ex-' + entryIdx} style={{ marginTop: 10, marginBottom: 0 }}>
+      {hint && repsMode && !S.seenTechHint && <div className="progline thint">
+        <Icon name="lightbulb" /><span>{t('Tap a set number for warm-up, drop set and more.')}</span>
+        <button className="thint-x" aria-label={t('Dismiss')} onClick={() => useStore.getState().update(S => { S.seenTechHint = true })}><Icon name="xmark" /></button></div>}
       <div className="sethead"><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
-      {entry.sets.map((s, i) => <Fragment key={i}><div className={'setrow' + (s.done ? ' done' : i === nextIdx ? ' next' : '')}>
-        <div className="n">{i + 1}</div>
+      {entry.sets.map((s, i) => {
+        const isParts = repsMode && PARTS_TECH.includes(s.tech)
+        const parts = isParts ? s.parts || [] : []
+        const badge = techBadge(s)
+        const nCls = s.tech === 'warmup' ? ' w' : badge ? ' t' : ''
+        const nLabel = s.tech ? t('Set {0}, {1}, tap to change', nums[i] || i + 1, techName(s.tech)) : t('Set {0}, tap to change set type', nums[i])
+        return <div key={i} className={'setgrp' + (s.done ? ' done' : '')}><div className={'setrow' + (s.done ? ' done' : i === nextIdx ? ' next' : '')}>
+        {repsMode ? <button className={'n tb' + nCls} onClick={() => openTech(i)} aria-label={nLabel}>{badge || nums[i]}</button>
+          : <div className="n">{i + 1}</div>}
         {cell(s, i, col1, 'w')}
         {col2 && cell(s, i, col2, 'r')}
         {/* A timed set is started, not typed: the timer counts the hold down and checks the
@@ -155,9 +230,17 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
           <span className="effq">{kind === 'rir' ? t('Reps left?') : t('How hard?')}</span>
           {chips.map(v => <button key={v} role="radio" aria-checked={s[col3.f] === v} className={'effchip' + (s[col3.f] === v ? ' on' : '')}
             onClick={() => { onField(i, col3.f, s[col3.f] === v ? null : v); setPick(null) }}>{chipLabel(v)}</button>)}
-        </div> : col3 && s.done && s[col3.f] != null && <button className="effedit" onClick={() => setPick(i)}>
+        </div> : col3 && s.done && !noEff(s) && s[col3.f] != null && <button className="effedit" onClick={() => setPick(i)}>
           <span className="effpill">{col3.hd} {fmtNum(s[col3.f])}</span>{t('Edit')}</button>}
-      </Fragment>)}
+        {parts.map((p, j) => <div key={j} className="setrow partrow">
+          <span className="pn" aria-hidden="true" />
+          {cell(s, i, col1, 'w' + (col1.f === 'r' && !(p.r > 0) ? ' need' : ''), j)}
+          {col2 && cell(s, i, col2, 'r' + (!(p.r > 0) ? ' need' : ''), j)}
+          <button className="pdel" aria-label={t('Remove part')} onClick={() => onRemovePart(i, j)}><Icon name="xmark" /></button>
+        </div>)}
+        {isParts && parts.length < MAX_PARTS && <button className="effedit padd" onClick={() => onAddPart(i)}><Icon name="plus" />{s.tech === 'drop' ? t('Add drop') : t('Add mini-set')}</button>}
+        {repsMode && s.partials > 0 && <button className="effedit tpart" onClick={() => openTech(i)}>{t('+{0} partial reps', s.partials)}</button>}
+      </div>})}
       <div style={{ height: 8 }} />
       <div className="row">
         <Button size="sm" icon="minus" disabled={entry.sets.length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>
@@ -190,6 +273,9 @@ function ActiveWorkout() {
   const setField = (idx, i, field, v) => mutEntry(idx, e => {
     if (v == null) delete e.sets[i][field]; else e.sets[i][field] = v
   })
+  const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { e.sets[i].parts[j][f] = v })
+  const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < MAX_PARTS) x.parts.push(nextPart(x)) })
+  const removePart = (idx, i, j) => mutEntry(idx, e => { e.sets[i].parts.splice(j, 1) })
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
   const addSet = idx => mutEntry(idx, e => {
     const l = e.sets[e.sets.length - 1]
@@ -290,11 +376,11 @@ function ActiveWorkout() {
           {unit.map((idx, k) => <div key={idx} className="ss-ex">
             {k > 0 && <div className="ss-amp">+</div>}
             <ExerciseBlock entryIdx={idx} compact
-              onToggle={i => toggle(idx, i)} onField={(i, f, v) => setField(idx, i, f, v)} onAddSet={() => addSet(idx)} onRemoveSet={() => removeSet(idx)} onStartTimed={i => startTimed(idx, i)} onSwap={() => swapEntry(idx)} />
+              onToggle={i => toggle(idx, i)} onField={(i, f, v) => setField(idx, i, f, v)} onPart={(i, j, f, v) => setPart(idx, i, j, f, v)} onAddPart={i => addPart(idx, i)} onRemovePart={(i, j) => removePart(idx, i, j)} hint={k === 0} onAddSet={() => addSet(idx)} onRemoveSet={() => removeSet(idx)} onStartTimed={i => startTimed(idx, i)} onSwap={() => swapEntry(idx)} />
           </div>)}
         </div>
       ) : (
-        <ExerciseBlock entryIdx={cur} onToggle={i => toggle(cur, i)} onField={(i, f, v) => setField(cur, i, f, v)} onAddSet={() => addSet(cur)} onRemoveSet={() => removeSet(cur)} onStartTimed={i => startTimed(cur, i)} onSwap={() => swapEntry(cur)} />
+        <ExerciseBlock entryIdx={cur} onToggle={i => toggle(cur, i)} onField={(i, f, v) => setField(cur, i, f, v)} onPart={(i, j, f, v) => setPart(cur, i, j, f, v)} onAddPart={i => addPart(cur, i)} onRemovePart={(i, j) => removePart(cur, i, j)} hint onAddSet={() => addSet(cur)} onRemoveSet={() => removeSet(cur)} onStartTimed={i => startTimed(cur, i)} onSwap={() => swapEntry(cur)} />
       )}
     </> : <div className="empty"><div className="ico"><Icon name="shuffle" /></div>{t('Freestyle workout — add your first exercise.')}</div>}
 
