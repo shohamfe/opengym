@@ -7,6 +7,7 @@ import { fmtNum, exCount } from '../lib/format.js'
 import { exOr, EXIDX } from '../lib/exercises.js'
 import { setLabel, modeOf, isBw, fmtSec, EFFORT } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
+import { techBadge, techName, partsOf } from '../lib/tech.js'
 import { wStats, StatCell, confirmSheet } from '../sheets.jsx'
 import Media, { Thumb } from '../components/Media.jsx'
 import { Button } from '../components/ui.jsx'
@@ -21,8 +22,17 @@ const prSet = (w, e, mode, sets) => {
   return top > 0 ? sets.findIndex(s => (s.w || 0) === top) : -1
 }
 
-// Reserved for special set techniques (badge under the set, sub-rows sharing the same columns).
-function TechSlot({ set, cols, tpl }) { return null }
+// Technique legend under the set, then drop/mini-set parts in the same columns.
+function TechSlot({ set: s, cols, tpl }) {
+  const parts = partsOf(s)
+  return <>
+    {(s.tech || s.partials > 0) && <div className="rt-tech">{s.tech && techName(s.tech)}{s.tech && s.partials > 0 && ' · '}{s.partials > 0 && t('+{0} partial reps', s.partials)}</div>}
+    {parts.map((p, j) => <div key={j} className="rt-row sub" style={{ '--c': tpl }}>
+      <span className="rt-n sub" aria-hidden="true" />
+      {cols.map(c => <span key={c.f} className="rt-v">{c.fmt ? c.fmt(p) : fmtNum(p[c.f] || 0)}</span>)}
+    </div>)}
+  </>
+}
 
 function ExerciseView({ w, e }) {
   const S = useStore(s => s.S)
@@ -48,9 +58,9 @@ function ExerciseView({ w, e }) {
     <div className="row wv-tags">{(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}{ex.eq && <span className="tag">{t(ex.eq)}</span>}</div>
     {sets.length ? <div className="card settable wx-sets">
       <div className="rt-head" style={{ '--c': tpl }}><span />{cols.map(c => <span key={c.f}>{c.hd}</span>)}{kind && <span>{EFFORT[kind].hd}</span>}{top >= 0 && <span />}</div>
-      {sets.map((s, i) => <div key={i} className="rt-set">
+      {sets.map((s, i) => <div key={i} className={'rt-set' + (s.tech === 'warmup' ? ' wu' : '')}>
         <div className="rt-row" style={{ '--c': tpl }}>
-          <span className="rt-n">{i + 1}</span>
+          <span className={'rt-n' + (s.tech === 'warmup' ? ' w' : s.tech ? ' t' : '')}>{techBadge(s) || sets.slice(0, i + 1).filter(x => x.tech !== 'warmup').length}</span>
           {cols.map(c => <span key={c.f} className="rt-v">{c.fmt ? c.fmt(s) : fmtNum(s[c.f] || 0)}</span>)}
           {kind && (s.rir != null || s.rpe != null ? <span className="rt-v eff">{fmtNum(s[effKind(s)])}</span> : <span className="rt-v nil">–</span>)}
           {top >= 0 && <span className="rt-flag">{i === top && <Icon name="trophy" aria-label="PR" />}</span>}
@@ -111,7 +121,7 @@ export default function WorkoutView() {
         return <button key={i} className="item wx" onClick={() => exerciseViewSheet(w, e)}>
           <Thumb ex={ex} />
           <div className="grow"><div className="tt capitalize" dir="auto">{nameOf(e, ex)}</div>
-            <div className="ss">{ds.length ? ds.map((s, k) => <span key={k}>{k ? ' · ' : ''}<span className="wx-set">{setLabel(e.id, s, e.target, { effort: false })}</span></span>) : t('No sets logged')}</div></div>
+            <div className="ss">{ds.length ? ds.map((s, k) => <span key={k}>{k ? ' · ' : ''}<span className={'wx-set' + (partsOf(s).length ? ' chain' : '')}>{setLabel(e.id, s, e.target, { effort: false })}</span></span>) : t('No sets logged')}</div></div>
           {w.prs?.includes(e.id) && <span className="wx-pr" role="img" aria-label={t('Personal record')}><Icon name="trophy" /></span>}
           <Icon name="chevronRight" className="chev" />
         </button>

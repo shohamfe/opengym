@@ -1082,4 +1082,13 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .rt-v.eff{font-size:15px;font-weight:400;color:var(--label-2)}
 .rt-v.nil{color:var(--label-2);font-weight:400}
 .rt-flag{display:flex;justify-content:center;color:var(--yellow);font-size:15px}
+.rt-n.t{background:var(--acc-soft);color:var(--label);font-weight:600}
+.rt-n.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange);font-weight:600}
+:root[data-theme="light"] .rt-n.w{color:#8a5a00}
+.rt-n.sub{background:none}
+.rt-tech{padding:0 0 4px 32px;font-size:12px;line-height:1.33;color:var(--label-2)}
+.rt-set.wu .rt-v{color:var(--label-2);font-weight:400}
+.rt-row.sub{min-height:36px;padding:3px 0}
+.rt-row.sub .rt-v{font-size:15px;font-weight:400;color:var(--label-2)}
+.wx-set.chain{white-space:normal}
 @media (max-width:340px){.rt-head,.rt-row{column-gap:6px}.rt-head{letter-spacing:.02em}.rt-v{font-size:16px}}
