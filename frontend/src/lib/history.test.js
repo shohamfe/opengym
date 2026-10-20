@@ -421,3 +421,11 @@ describe('swapConfig', () => {
     expect(swapConfig(cfg, lift, cardio)).toEqual(defaultConfig(CARDIO))
   })
 })
+
+describe("setLabel effort flag", () => {
+  it("drops the effort tail on request", () => {
+    const s = { w: 80, r: 8, rir: 2 }
+    expect(setLabel("x", s, { id: "x" })).toContain("RIR 2")
+    expect(setLabel("x", s, { id: "x" }, { effort: false })).toBe("80×8")
+  })
+})
