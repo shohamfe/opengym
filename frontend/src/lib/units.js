@@ -13,7 +13,7 @@ export function convertState(s, to) {
   const fine = x => (typeof x === 'number' && x ? Math.round(snap(x * f, 0.1) * 10) / 10 : x)
   const lift = x => (typeof x === 'number' && x ? Math.max(0.5, snap(x * f, 0.5)) : x)
   const cfg = c => { if (!c) return; c.weight = lift(c.weight); c.inc = lift(c.inc) }
-  const entry = (e, w) => { (e.sets || []).forEach(x => { x.w = w(x.w) }); e.topW = lift(e.topW); cfg(e.target) }
+  const entry = (e, w) => { (e.sets || []).forEach(x => { x.w = w(x.w); (x.parts || []).forEach(p => { p.w = w(p.w) }) }); e.topW = lift(e.topW); cfg(e.target) }
   s.targetW = fine(s.targetW)
   ;(s.bodyweight || []).forEach(b => { b.w = fine(b.w) })
   ;(s.routines || []).forEach(r => (r.ex || []).forEach(cfg))

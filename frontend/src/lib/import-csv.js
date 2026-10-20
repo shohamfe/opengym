@@ -20,6 +20,7 @@
 
 import { EXDB, EXIDX } from './exercises.js'
 import { uid } from './format.js'
+import { isWork, setVolume } from './tech.js'
 
 /* ----------------------------------------------------------------- CSV ---- */
 
@@ -363,6 +364,9 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
     // row with an RPE would have nowhere to put it. A set is kept on one scale, so a file
     // carrying both columns is read as RIR — the same precedence setLabel reads them back with.
     if (!isCardio) {
+      const st = cell(r, 'setType')
+      if (/warm/i.test(st)) set.tech = 'warmup'
+      else if (/fail/i.test(st)) set.tech = 'fail'
       const rir = effortNum(cell(r, 'rir'), true)
       const rpe = rir == null ? effortNum(cell(r, 'rpe'), false) : null
       if (rir != null) { set.rir = rir; rirSets++ }
@@ -405,7 +409,7 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
     const day = byDate.get(d)
     const entries = [...day.ex.entries()].map(([id, ss]) => {
       const conv2 = ss.map(({ u, ...s }) => (s.w !== undefined ? { ...s, w: convRow({ ...s, u }) } : s))
-      const mx = Math.max(0, ...conv2.map(s => s.w || 0))
+      const mx = Math.max(0, ...conv2.filter(isWork).map(s => s.w || 0))
       return { id, sets: conv2, topW: mx || null }
     })
     const base = new Date(d + 'T00:00:00').getTime()
@@ -415,7 +419,7 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
       id: 'iw' + uid(), d, start, end: end > start ? end : start,
       routineId: null, name: day.name || 'Imported', entries, prs: [],
     }
-    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.w || 0) * (s.r || 0), 0), 0)
+    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + setVolume(s), 0), 0)
     return w
   })
 
@@ -519,7 +523,7 @@ export function mergeImport(S, parsed) {
   S.workouts = [...S.workouts, ...fresh].sort((a, b) => (a.d < b.d ? -1 : 1))
   // seed the weight suggestions from the newest imported set of each lift
   fresh.forEach(w => w.entries.forEach(e => {
-    const mx = Math.max(0, ...e.sets.map(s => s.w || 0), e.topW || 0)
+    const mx = Math.max(0, ...e.sets.filter(isWork).map(s => s.w || 0), e.topW || 0)
     if (mx > 0) { const cur = S.exWeights[e.id]; if (!cur || w.d >= cur.d) S.exWeights[e.id] = { w: mx, d: w.d } }
   }))
   return { added: fresh.length, skipped: parsed.workouts.length - fresh.length }

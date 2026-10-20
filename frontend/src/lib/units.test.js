@@ -9,6 +9,18 @@ const base = () => ({
   active: { bw: 78, entries: [{ id: '1', plan: { why: ['x'] }, target: { weight: 100 }, sets: [{ w: 100, r: 8 }] }] },
 })
 
+describe('convertState parts', () => {
+  it('converts parts[].w like s.w and leaves partials', () => {
+    const s = base()
+    s.workouts[0].entries[0].sets[0] = { w: 100, r: 8, done: true, tech: 'drop', parts: [{ w: 80, r: 6 }], partials: 3 }
+    s.active.entries[0].sets[0] = { w: 100, r: 8, tech: 'drop', parts: [{ w: 80, r: 6 }] }
+    convertState(s, 'lb')
+    expect(s.workouts[0].entries[0].sets[0].parts[0].w).toBe(176.4)   // 0.1 snap
+    expect(s.workouts[0].entries[0].sets[0].partials).toBe(3)
+    expect(s.active.entries[0].sets[0].parts[0].w).toBe(176.5)        // 0.5 snap
+  })
+})
+
 describe('convertState', () => {
   it('converts every load to lb and leaves reps/effort alone', () => {
     const s = convertState(base(), 'lb')

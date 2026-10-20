@@ -4,6 +4,7 @@ import { useUI, armStale, cancelStale } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf } from './lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, uid, exCount, DAYN, DAYS, MONTHS_LONG, ACCENTS, weekOrder } from './lib/format.js'
 import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
+import { isWork, cleanSet } from './lib/tech.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
@@ -858,7 +859,7 @@ export function beginWorkout(routineId, bw) {
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
   const exName = id => <span className="capitalize">{(EXIDX[id] || {}).n || id}</span>
-  const topW = id => Math.max(0, ...((w.entries.find(e => e.id === id) || {}).sets || []).filter(s => s.done).map(s => s.w || 0))
+  const topW = id => Math.max(0, ...((w.entries.find(e => e.id === id) || {}).sets || []).filter(isWork).map(s => s.w || 0))
   return <>
     <div style={{ textAlign: 'center', marginBottom: 16 }}>
       <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
@@ -891,7 +892,7 @@ function FinishSheet({ close, phase, auto }) {
   if (!A) return null
   const done = setsDoneActive(A)
   const total = A.entries.reduce((n, e) => n + e.sets.length, 0)
-  const maxW = e => Math.max(0, ...e.sets.filter(x => x.done).map(x => x.w || 0))
+  const maxW = e => Math.max(0, ...e.sets.filter(isWork).map(x => x.w || 0))
   const loaded = A.entries.map((e, i) => ({ e, i })).filter(({ e }) => modeOf({ ...(e.target || {}), id: e.id }) === 'reps' && maxW(e) > 0)
   const finish = () => {
     update(s => { Object.entries(tops).forEach(([i, v]) => { s.active.entries[i].topW = v }) })
@@ -926,7 +927,7 @@ function doFinishWorkout() {
   const prs = []
   const e1prs = []
   A.entries.forEach(e => {
-    const mx = Math.max(0, ...e.sets.filter(s => s.done).map(s => s.w))
+    const mx = Math.max(0, ...e.sets.filter(isWork).map(s => s.w))
     if (mx > 0 && mx > bestWeightFor(st, e.id)) prs.push(e.id)
     // A heavier estimate without a heavier top set is its own kind of progress —
     // same weight for more reps. Reported separately so it can't be read as a load PR.
@@ -938,13 +939,13 @@ function doFinishWorkout() {
     // `target` (what the session prescribed) is kept alongside the sets: without it a
     // finished workout cannot say whether it hit its reps, and a timed session reads back
     // as "0 reps". It is what the progression engine works from.
-    entries: A.entries.map(e => ({ id: e.id, sets: e.sets, topW: e.topW || null, target: e.target || null })).filter(e => e.sets.some(s => s.done)),
+    entries: A.entries.map(e => ({ id: e.id, sets: e.sets.map(cleanSet), topW: e.topW || null, target: e.target || null })).filter(e => e.sets.some(s => s.done)),
     prs
   }
   w.vol = workoutVolume(w)
   update(s => {
     w.entries.forEach(e => {
-      const mx = Math.max(0, ...e.sets.filter(x => x.done).map(x => x.w || 0), e.topW || 0)
+      const mx = Math.max(0, ...e.sets.filter(isWork).map(x => x.w || 0), e.topW || 0)
       if (mx > 0) { const cur = s.exWeights[e.id]; if (!cur || mx > cur.w) s.exWeights[e.id] = { w: mx, d: w.d } }
     })
     s.workouts.push(w)

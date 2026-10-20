@@ -7,6 +7,7 @@
 // RIR is the internal unit because it has a real zero — a set taken to failure — where RPE's
 // floor of 6 is only a convention about which sets are worth rating. RPE 8 == RIR 2.
 import { EFFORT, effortOf } from './history.js'
+import { isWork } from './tech.js'
 import { weekKey, startOfWeek } from './format.js'
 
 // At or below this a set is close enough to failure to be the kind that drives adaptation.
@@ -44,7 +45,7 @@ export const scaleName = kind => EFFORT[kind].hd
 function eachDoneSet(S, fn) {
   ;(S.workouts || []).forEach(w =>
     (w.entries || []).forEach(e =>
-      (e.sets || []).forEach(s => { if (s.done) fn(s, w, e) })))
+      (e.sets || []).forEach(s => { if (isWork(s)) fn(s, w, e) })))
 }
 
 // A window in days, counted back from now. 0 = everything, which is also what an empty
@@ -129,4 +130,4 @@ export function effortHistogram(S, days) {
 }
 
 /** A set that counts as hard — the filter behind the muscle map's "hard sets" mode. */
-export const isHardSet = s => { const r = rirOf(s); return r != null && r <= HARD_RIR }
+export const isHardSet = s => { const r = rirOf(s); return s.tech === 'fail' || (r != null && r <= HARD_RIR) }

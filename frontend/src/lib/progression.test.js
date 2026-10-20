@@ -23,6 +23,23 @@ const hist = (id, rows, target) => ({
   }))
 })
 
+describe('readSession with techniques', () => {
+  const T = { sets: 3, reps: 5, weight: 60 }
+  const s = (r, o) => ({ w: 60, r, done: true, ...o })
+  it('ignores warm-ups and back-offs', () => {
+    const r = readSession({ id: LIFT, target: T, sets: [s(5, { w: 20, tech: 'warmup' }), s(5), s(5), s(5), s(8, { w: 48, tech: 'backoff' })] })
+    expect(r.ok).toBe(true)
+    expect(r.count).toBe(3)
+    expect(r.amrap).toBe(5)
+  })
+  it('a warm-up does not count toward the planned set count', () => {
+    expect(readSession({ id: LIFT, target: T, sets: [s(5, { tech: 'warmup' }), s(5), s(5)] }).ok).toBe(false)
+  })
+  it('ignores drop parts', () => {
+    expect(readSession({ id: LIFT, target: T, sets: [s(5), s(5), s(5, { tech: 'drop', parts: [{ w: 48, r: 2 }] })] }).low).toBe(5)
+  })
+})
+
 describe('readSession', () => {
   const T = { sets: 3, reps: 5 }
   it('counts a session where every set made its reps as a hit', () => {

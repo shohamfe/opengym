@@ -11,6 +11,18 @@ const rows = (head, ...lines) => parseWorkoutCSV([head, ...lines].join('\n'), { 
 // every set of the first workout, in file order
 const setsOf = p => p.workouts.flatMap(w => w.entries.flatMap(e => e.sets))
 
+describe('importing set types', () => {
+  it('tags warm-up and failure sets and keeps warm-ups out of volume', () => {
+    const p = rows(HEVY,
+      'Push,"12 Jan 2026, 18:00","12 Jan 2026, 19:00",Bench Press (Barbell),0,warmup,20,10,',
+      'Push,"12 Jan 2026, 18:00","12 Jan 2026, 19:00",Bench Press (Barbell),1,normal,60,10,',
+      'Push,"12 Jan 2026, 18:00","12 Jan 2026, 19:00",Bench Press (Barbell),2,failure,60,8,')
+    expect(setsOf(p).map(s => s.tech)).toEqual(['warmup', undefined, 'fail'])
+    expect(p.workouts[0].vol).toBe(1080)
+    expect(p.workouts[0].entries[0].topW).toBe(60)
+  })
+})
+
 describe('importing effort from another app', () => {
   it('reads the RPE Hevy writes per set', () => {
     const p = rows(HEVY,
