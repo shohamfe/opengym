@@ -662,11 +662,8 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .tb-i.w{background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange-t)}
 .tsheet .lrow+.lrow::before{left:54px}
 .tsheet-stp{width:132px;flex:none}
-/* short phones: one-line descriptions so the partials stepper stays on screen */
-@media (max-height:700px){
-  .tsheet .lrow{min-height:48px;padding-top:6px;padding-bottom:6px}
-  .tsheet .lrow-s,.tsheet~.sect-b .lrow-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-}
+/* short phones: tighter rows so the partials stepper is closer; descriptions still wrap in full */
+@media (max-height:700px){.tsheet .lrow{min-height:48px;padding-top:6px;padding-bottom:6px}}
 /* why the next target is what it is (issue #17) */
 .progline{
   display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;

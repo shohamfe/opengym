@@ -210,7 +210,7 @@ export function nextPrescription(S, cfg, routine) {
   if (policy === 'double') {
     const top = cfg.reps || last.goal || 10
     const bottom = Math.min(cfg.repsMin || Math.max(1, top - 2), top)
-    if (last.ok) return { policy, kind: 'up', weight: snap(w + inc, inc), reps: bottom, why: ['Top of the rep range in every set — {0} {1} more, back to {2} reps.', inc, unit, bottom] }
+    if (last.ok) return { policy, kind: 'up', weight: snap(w + inc, inc), reps: bottom, why: ['Every set reached the top of the rep range last time — today: {0} {1} × {2}.', snap(w + inc, inc), unit, bottom] }
     if (stalls >= deloadAt) {
       const dw = deloadTo(w, inc)
       return { policy, kind: 'deload', weight: dw, reps: bottom, why: ['Stalled {0} sessions — deload to {1} {2}.', stalls, dw, unit] }

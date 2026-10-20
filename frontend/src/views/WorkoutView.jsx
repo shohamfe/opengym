@@ -121,7 +121,7 @@ export default function WorkoutView() {
         return <button key={i} className="item wx" onClick={() => exerciseViewSheet(w, e)}>
           <Thumb ex={ex} />
           <div className="grow"><div className="tt capitalize" dir="auto">{nameOf(e, ex)}</div>
-            <div className="ss">{ds.length ? ds.map((s, k) => <span key={k}>{k ? ' · ' : ''}<span className={'wx-set' + (partsOf(s).length ? ' chain' : '')}>{setLabel(e.id, s, e.target, { effort: false })}</span></span>) : t('No sets logged')}</div></div>
+            <div className="ss">{ds.length ? ds.map((s, k) => <span key={k}>{k ? ', ' : ''}<span className={'wx-set' + (partsOf(s).length ? ' chain' : '')}>{setLabel(e.id, s, e.target, { effort: false })}</span></span>) : t('No sets logged')}</div></div>
           {w.prs?.includes(e.id) && <span className="wx-pr" role="img" aria-label={t('Personal record')}><Icon name="trophy" /></span>}
           <Icon name="chevronRight" className="chev" />
         </button>
