@@ -740,16 +740,24 @@ function DayOverride({ iso, close }) {
   return <>
     <h3>{fmtDate(iso, 'full')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyR ? weeklyR.name : t('Rest')}{hasOvr && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}</div>
-    <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" onClick={() => set(r.id)}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {effId === r.id && <Icon name="check" className="accent" />}
-        <button className="iconbtn" aria-label={t('View exercises in {0}', r.name)} onClick={e => { e.stopPropagation(); close(); nav('/plan/r/' + r.id) }}><Icon name="list" /></button></div>)}
-      <div className="item" onClick={() => set('rest')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effId === null && <Icon name="check" className="accent" />}</div>
-      {hasOvr && <div className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
+    <div className="list tight">
+      {st.routines.map(r => <RoutinePick key={r.id} r={r} on={effId === r.id} pick={() => set(r.id)} close={close} />)}
+    </div>
+    {/* pinned so they stay in reach however many routines there are */}
+    <div className="sheet-foot row" style={{ gap: 8 }}>
+      <Button variant="tinted" icon={effId === null ? 'check' : 'moon'} aria-pressed={effId === null} style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('rest')}>{t('Rest day')}</Button>
+      {hasOvr && <Button variant="tinted" icon="reset" style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('')}>{t('Weekly plan')}</Button>}
     </div>
   </>
+}
+// routine row shared by the day pickers: tap picks it, the list button opens it in Plan without picking
+function RoutinePick({ r, on, pick, close }) {
+  return <div className="item" onClick={pick}>
+    <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
+    <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
+    {on && <Icon name="check" className="accent" />}
+    <button className="iconbtn" aria-label={t('View exercises in {0}', r.name)} onClick={e => { e.stopPropagation(); close(); nav('/plan/r/' + r.id) }}><Icon name="list" /></button>
+  </div>
 }
 export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso={iso} close={close} />)
 
@@ -758,12 +766,9 @@ function DayAssign({ day, close }) {
   const set = v => { update(s => { if (v) s.week[day] = v; else delete s.week[day] }); close() }
   return <>
     <h3>{t(DAYN[day])}</h3>
-    <div className="list">
+    <div className="list tight">
       <div className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div>{!st.week[day] && <Icon name="check" className="accent" />}</div>
-      {st.routines.map(r => <div key={r.id} className="item" onClick={() => set(r.id)}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {st.week[day] === r.id && <Icon name="check" className="accent" />}</div>)}
+      {st.routines.map(r => <RoutinePick key={r.id} r={r} on={st.week[day] === r.id} pick={() => set(r.id)} close={close} />)}
     </div>
   </>
 }
