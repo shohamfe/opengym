@@ -193,15 +193,9 @@ export default function Settings() {
           onChange={v => update(s => { s.body = v })}
         />
       </Row>
-      <div className="lrow" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, paddingTop: 13, paddingBottom: 14 }}>
-        <span className="lrow-t">{t('Accent color')}</span>
-        <div className="swatches">
-          {Object.entries(ACCENTS).map(([k, c]) => (
-            <button key={k} className={'swatch' + ((S.accent || 'lime') === k ? ' on' : '')}
-              style={{ background: c }} onClick={() => update(s => { s.accent = k })} aria-label={k} />
-          ))}
-        </div>
-      </div>
+      <Row icon="palette" iconTint="var(--acc)" title={t('Accent color')} accessory="chevron" onClick={accentSheet}>
+        <span className="swatch" style={{ background: ACCENTS[S.accent] || ACCENTS.lime, width: 24, height: 24 }} />
+      </Row>
     </Section>
 
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
@@ -246,6 +240,21 @@ const EFFORT_ROWS = [
 // RIR 2 / RPE 8: the row a working set usually lands on — the anchor the others are read
 // against. Not where the stepper starts; + walks up from the bottom of the scale.
 const EFFORT_TYPICAL = 2
+
+function accentSheet() {
+  const cur = useStore.getState().S.accent || 'lime'
+  useUI.getState().openSheet(close => (
+    <>
+      <h3>{t('Accent color')}</h3>
+      <div className="swatch-grid">
+        {Object.entries(ACCENTS).map(([k, c]) => (
+          <button key={k} className={'swatch' + (cur === k ? ' on' : '')} style={{ background: c }} aria-label={k}
+            aria-pressed={cur === k} onClick={() => { close(); useStore.getState().update(s => { s.accent = k }) }} />
+        ))}
+      </div>
+    </>
+  ))
+}
 
 function effortHelpSheet() {
   useUI.getState().openSheet(close => <>
