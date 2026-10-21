@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
-import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
+import { effectiveRoutine, lastEntryFor, lastLine, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { play, vibrate } from '../lib/sound.js'
 import confetti from 'canvas-confetti'
@@ -69,6 +69,15 @@ function TechSheet({ entryIdx, i, close }) {
         </div></div></div>}
   </>
 }
+
+// Read-only: every working set from last session, the detail the one-line summary leaves out.
+const lastTimeSheet = (id, last) => useUI.getState().openSheet(() => <>
+  <h3>{t('Last time')}</h3>
+  <div className="muted small" style={{ marginBottom: 12 }}>{fmtDate(last.d, true)}</div>
+  <div className="sect-b">{last.sets.map((s, i) => <div key={i} className="lrow">
+    <span className="tb-i">{i + 1}</span><span className="lrow-m"><span className="lrow-t">{setLabel(id, s, last.target)}</span></span>
+  </div>)}</div>
+</>, { label: t('Last time') })
 
 /* ---------- start chooser (no active workout) ---------- */
 function StartChooser() {
@@ -202,7 +211,8 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
     </div>
-    {last && <div className="small muted lasttime">{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
+    {last && <button className="small muted lasttime" onClick={() => lastTimeSheet(entry.id, last)}>
+      <span>{t('Last time')} ({fmtDate(last.d)}): {lastLine(entry.id, last, S.unit)}</span><Icon name="chevronRight" /></button>}
     {plan && plan.why && plan.kind !== 'off' && <div className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span>{t(...plan.why)}</span>

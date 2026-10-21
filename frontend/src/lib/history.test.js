@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, reorder, swapConfig } from './history.js'
+import { modeOf, isTimed, fmtSec, setLabel, lastLine, defaultConfig, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, reorder, swapConfig } from './history.js'
 import { EXDB } from './exercises.js'
 
 // Real ids out of the shipped catalogue, so the body-part fallback is exercised for real.
@@ -427,5 +427,22 @@ describe("setLabel effort flag", () => {
     const s = { w: 80, r: 8, rir: 2 }
     expect(setLabel("x", s, { id: "x" })).toContain("RIR 2")
     expect(setLabel("x", s, { id: "x" }, { effort: false })).toBe("80×8")
+  })
+})
+
+describe('lastLine', () => {
+  const L = (id, sets, target = null) => lastLine(id, { d: '2026-10-15', sets, target }, 'kg')
+  it('collapses sets into ranges instead of a list', () => {
+    expect(L(LIFT, [{ w: 45, r: 10 }, { w: 45, r: 15 }, { w: 45, r: 12 }])).toBe('3 × 10–15 · 45 kg')
+    expect(L(LIFT, [{ w: 40, r: 12 }, { w: 45, r: 10 }])).toBe('2 × 10–12 · 40–45 kg')
+    expect(L(LIFT, [{ w: 60, r: 5 }])).toBe('1 × 5 · 60 kg')
+  })
+  it('leaves the load off with no weight and marks added weight on bodyweight', () => {
+    expect(L(BW, [{ w: 0, r: 12 }, { w: 0, r: 10 }])).toBe('2 × 10–12')
+    expect(L(BW, [{ w: 10, r: 8 }, { w: 0, r: 8 }])).toBe('2 × 8 · +0–10 kg')
+  })
+  it('speaks time and cardio in their own units', () => {
+    expect(L(LIFT, [{ sec: 30 }, { sec: 45 }], { mode: 'time' })).toBe('2 × 0:30–0:45')
+    expect(L(CARDIO, [{ min: 20, speed: 9 }])).toBe('1 × 20 min')
   })
 })

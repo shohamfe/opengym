@@ -134,6 +134,21 @@ export function exLine(cfg, unit) {
   return `${n} × ${cfg.reps}${load}${split}`
 }
 
+// Last session in one line that never needs truncating: ranges, not a list ("3 × 10–15 · 40–45 kg").
+// The per-set detail lives in a sheet behind it.
+export function lastLine(id, last, unit) {
+  const c = { ...last.target, id }
+  const mode = modeOf(c), sets = last.sets, n = sets.length
+  const span = (f, fmt = fmtNum) => {
+    const v = sets.map(s => Number(s[f]) || 0), lo = Math.min(...v), hi = Math.max(...v)
+    return lo === hi ? fmt(lo) : fmt(lo) + '–' + fmt(hi)
+  }
+  const load = sets.some(s => s.w > 0) ? ' · ' + (isBw(c) ? '+' : '') + span('w') + ' ' + unit : ''
+  if (mode === 'cardio') return `${n} × ${span('min')} min`
+  if (mode === 'time') return `${n} × ${span('sec', fmtSec)}${load}`
+  return `${n} × ${span('r')}${load}`
+}
+
 // Drop superset ids that no longer have an adjacent partner (after unlink/reorder/remove).
 export function cleanupSg(ex) {
   ex.forEach((e, i) => {

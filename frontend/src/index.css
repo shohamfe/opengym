@@ -584,7 +584,9 @@ h4.sec{
 .exmedia.mini img{height:76px}
 .exmedia.mini::after{content:'';position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M14 4h6v6M10 20H4v-6M20 4l-6 6M4 20l6-6'/%3E%3C/svg%3E") center/10px no-repeat}
 .settable{clear:both}
-.lasttime{margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lasttime{display:flex;align-items:center;gap:4px;width:100%;min-height:44px;margin:-8px 0 -4px;text-align:start}
+.lasttime svg{flex:none;width:14px;height:14px;opacity:.6}
+[dir=rtl] .lasttime svg{transform:scaleX(-1)}
 
 .sethead{
   display:flex;align-items:center;gap:8px;padding:0 0 6px;
