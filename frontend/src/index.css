@@ -195,7 +195,7 @@ body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
 
 .iconbtn{
-  width:36px;height:36px;border-radius:50%;flex:none;
+  width:40px;height:40px;border-radius:50%;flex:none;
   background:var(--surface);color:var(--label);
   display:flex;align-items:center;justify-content:center;font-size:18px;
   transition:background var(--fast),transform var(--fast);
@@ -268,7 +268,7 @@ h4.sec{
    hit area back under the row's own 12px gap instead of adding to it. */
 .helpbtn{
   color:var(--label-3);font-size:16px;background:none;line-height:0;flex:none;
-  margin:-11px -2px -11px -4px;padding:11px 4px;
+  margin:-12px -10px -12px -12px;padding:12px;
 }
 .helpbtn:active{color:var(--label)}
 
@@ -288,7 +288,7 @@ h4.sec{
 .btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
 .btn.ghost.red{color:var(--red)}
 .btn.ghost:active,.btn.plain:active{background:var(--surface-2)}
-.btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
+.btn.sm{padding:8px 14px;min-height:40px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
 .btn.sm .icn{font-size:16px}
 .btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
 .btn:disabled{opacity:.32;pointer-events:none}
@@ -340,7 +340,8 @@ h4.sec{
 @keyframes ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.45);opacity:0}}
 
 /* ------------------------------------------------------------ week strip -- */
-.week{display:flex;justify-content:space-between;gap:4px}
+/* no gap + bleed into the card padding so each day stays a 40px target at 320px */
+.week{display:flex;justify-content:space-between;margin-inline:-12px}
 .wday{
   flex:1;text-align:center;padding:8px 2px 9px;border-radius:10px;
   background:none;border:none;transition:background var(--fast);
@@ -352,7 +353,7 @@ h4.sec{
 .wk-key span{display:inline-flex;align-items:center;gap:5px}
 .wk-key .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 .wk-key .dot.plan{background:var(--label-3)} .wk-key .dot.ovr{background:var(--orange)} .wk-key .dot.done{background:var(--acc)}
-.streak-row{display:flex;align-items:center;gap:7px;width:100%;margin:10px 0 -6px;padding:12px 2px 2px;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
+.streak-row{display:flex;align-items:center;gap:7px;width:100%;margin:10px 0 -12px;padding:12px 2px 8px;font-size:15px;text-align:left;border-top:var(--hair) solid var(--sep);background:none}
 .streak-row .muted{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bw-row{display:flex;align-items:center;gap:12px;cursor:pointer}
 .bw-row .grow{flex:1;min-width:0}
@@ -398,14 +399,20 @@ h4.sec{
 .tag.acc{background:var(--acc-soft);color:var(--acc)}
 
 /* ---------------------------------------------------------------- chips -- */
+/* the row scrolls under the page/sheet padding to the screen edge; the same amount as
+   inner padding keeps the first chip aligned with the content at rest */
 .chips{
+  --bleed:var(--pad);
   display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;
+  margin-inline:calc(-1 * var(--bleed));padding-inline:var(--bleed);scroll-padding-inline:var(--bleed);
   scrollbar-width:none;-webkit-overflow-scrolling:touch;
 }
 .chips::-webkit-scrollbar{display:none}
+.sheet .chips{--bleed:18px}
 .chip{
-  flex:none;padding:6px 13px;border-radius:99px;background:var(--surface);
-  font-size:14px;font-weight:400;color:var(--label);text-transform:capitalize;
+  flex:none;min-height:40px;min-width:40px;padding:0 15px;border-radius:99px;background:var(--surface);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:400;color:var(--label);text-transform:capitalize;
   letter-spacing:-.006em;transition:background var(--fast),color var(--fast);
 }
 .chip:active{background:var(--surface-2)}
@@ -440,6 +447,7 @@ h4.sec{
   background:var(--label-3);color:var(--bg);display:flex;align-items:center;
   justify-content:center;font-size:11px;--icon-stroke:3;
 }
+.searchf .clear::after{content:'';position:absolute;inset:-9px}   /* 40px hit area */
 /* legacy .search wrapper */
 .search{position:relative}
 .search .input{padding-left:35px;background:var(--surface-2);border-radius:10px}
@@ -452,7 +460,7 @@ h4.sec{
 /* --- switch --- */
 .sw{
   width:51px;height:31px;border-radius:99px;background:var(--surface-3);
-  flex:none;padding:2px;display:flex;align-items:center;
+  flex:none;padding:2px;display:flex;align-items:center;position:relative;
   transition:background var(--med) var(--ease);
 }
 .sw .knob{
@@ -460,6 +468,7 @@ h4.sec{
   box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
   transition:transform var(--med) var(--ease),width var(--fast) var(--ease);
 }
+.sw::after{content:'';position:absolute;inset:-5px 0}   /* 41px hit area */
 .sw.on{background:var(--acc)}
 .sw.on .knob{transform:translateX(20px)}
 .sw:active .knob{width:31px}
@@ -489,7 +498,7 @@ h4.sec{
 .seg button{
   position:relative;z-index:1;padding:6px 8px;font-size:14px;font-weight:500;
   letter-spacing:-.006em;color:var(--label);display:flex;align-items:center;
-  justify-content:center;gap:5px;min-height:30px;transition:opacity var(--fast);
+  justify-content:center;gap:5px;min-height:40px;transition:opacity var(--fast);
 }
 .seg button .icn{font-size:16px}
 .seg button:not(.on){color:var(--label-2);font-weight:400}
@@ -497,7 +506,7 @@ h4.sec{
 /* sitting in a list row: shrink to content instead of filling the row */
 .seg-inline{flex:none;min-width:132px}
 .seg-range{margin-bottom:10px}
-.seg-inline button{padding:5px 10px;font-size:13px;min-height:28px}
+.seg-inline button{padding:5px 10px;font-size:13px;min-height:40px}
 .seg-inline button .icn{font-size:14px}
 
 /* native time input, restyled to sit in a row like a value label */
@@ -528,12 +537,13 @@ h4.sec{
 .stp .num{
   width:100%;min-width:0;text-align:center;background:none;border:none;outline:none;
   font-size:17px;font-weight:500;letter-spacing:-.012em;padding:0;
+  height:44px;   /* the whole stepper height focuses the field, not just the text line */
   -moz-appearance:textfield;appearance:textfield;
 }
 .stp .num::-webkit-inner-spin-button{display:none}
 
 /* --- slider --- */
-.sld{position:relative;height:32px;display:flex;align-items:center;cursor:pointer;touch-action:none}
+.sld{position:relative;height:40px;display:flex;align-items:center;cursor:pointer;touch-action:none}
 .sld-track{
   position:absolute;left:0;right:0;height:6px;border-radius:99px;
   background:var(--surface-3);overflow:hidden;
@@ -578,6 +588,7 @@ h4.sec{
 }
 .exmedia .gifhint{right:9px}
 .exmedia .giftoggle{left:9px}
+.exmedia .giftoggle::after{content:'';position:absolute;inset:-7px -4px}   /* 40px hit area */
 .exmedia .gifhint .icn,.exmedia .giftoggle .icn{font-size:13px}
 /* superset: both exercises are on screen together, so the animations have to give way —
    at 180px you had to scroll a full screen between two exercises done back-to-back */
@@ -678,11 +689,12 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 
 /* start a timed set (issue #16) — sits where you'd otherwise reach for the checkbox */
 .setrow .setgo{
-  width:34px;height:34px;border-radius:50%;flex:none;
+  width:34px;height:34px;border-radius:50%;flex:none;position:relative;
   display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);color:var(--acc);font-size:14px;
   transition:background var(--fast),opacity var(--fast);
 }
+.setrow .setgo::after{content:'';position:absolute;inset:-5px}
 .setrow .setgo:disabled{opacity:.3;cursor:default}
 .setrow .setgo:not(:disabled):active{background:var(--surface-3)}
 /* exercise-config sheet: three steppers side by side on narrow phones */
@@ -933,7 +945,7 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .steps-list::marker{color:var(--label-3)}
 
 /* --- month calendar --- */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px 2px;margin:10px -6px 0}   /* 40px days at 320px */
 .cal-h{text-align:center;font-size:11px;color:var(--label-3);font-weight:500;text-transform:uppercase;padding:2px 0}
 .cal-d{
   aspect-ratio:1;border-radius:10px;background:var(--surface);
@@ -966,8 +978,8 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
 
 /* --- routine reorder (drag the grip; .sr-move is the keyboard fallback) --- */
-.grip{width:30px;height:44px;margin-left:-6px;border-radius:8px;font-size:16px;color:var(--label-2);touch-action:none;cursor:grab;background:none}
-.sslink{display:flex;align-items:center;gap:6px;height:30px;margin:0 auto 8px;padding:0 12px;border-radius:99px;font-size:13px;color:var(--label-2);background:none}
+.grip{width:40px;height:44px;margin-left:-10px;border-radius:8px;font-size:16px;color:var(--label-2);touch-action:none;cursor:grab;background:none}
+.sslink{display:flex;align-items:center;gap:6px;height:40px;margin:0 auto 8px;padding:0 14px;border-radius:99px;font-size:13px;color:var(--label-2);background:none}
 .sslink .icn{font-size:13px}
 .sslink.on{color:var(--acc);background:var(--acc-soft)}
 .list.reordering .sslink{visibility:hidden}

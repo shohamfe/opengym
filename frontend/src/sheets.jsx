@@ -75,7 +75,7 @@ function WeightInput({ value, setValue, unit }) {
       <div className="bw-read"><NumberField className="bw-num" aria-label={t('Weight ({0})', unit)} value={value} onChange={v => setValue(v == null ? v : Math.min(W_HI, v))} /><span className="u"> {unit}</span></div>
       <button className="bw-pm" onClick={() => onSlide(value + 0.1)} aria-label="plus 0.1"><Icon name="plus" /></button>
     </div>
-    <div className="chips" style={{ justifyContent: 'center', margin: '8px 0' }}>
+    <div className="chips" style={{ justifyContent: 'center', marginBlock: 8 }}>
       <button className="chip" onClick={() => onSlide(value - 1)}>−1</button>
       <button className="chip" onClick={() => onSlide(value - 0.5)}>−0.5</button>
       <button className="chip" onClick={() => onSlide(value + 0.5)}>+0.5</button>
@@ -375,7 +375,7 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     <h3>{existing ? t('Edit custom exercise') : t('Create your own exercise')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Name it and pick a body part — it behaves like any other exercise, just without an animation.')}</div>
     <input className="input" placeholder={t('Exercise name')} value={n} onChange={e => setN(e.target.value)} />
-    <div className="chips" style={{ margin: '12px 0' }}>
+    <div className="chips" style={{ marginBlock: 12 }}>
       {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => setBp(b)}>{t(b)}</button>)}
     </div>
     {bp === 'cardio' && <div className="small dim row" style={{ marginBottom: 10, gap: 5 }}><Icon name="figureRun" style={{ fontSize: 13 }} />{t('Cardio exercises log time + speed instead of weight × reps.')}</div>}
@@ -441,11 +441,11 @@ function ExercisePicker({ onPick, close, like }) {
     <h3>{like ? t('Swap {0}', like.n) : t('Add exercise')}</h3>
     <div className="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onChange={e => { setQ(e.target.value); setShown(50) }} /></div>
-    {like && <div className="chips" style={{ margin: '10px 0 6px' }}>
+    {like && <div className="chips" style={{ marginTop: 10, marginBottom: 6 }}>
       {[like.tg && ['tg', t('Same muscle ({0})', t(like.tg))], like.bp && ['bp', t('Same body part ({0})', t(like.bp))], ['', t('All')]].filter(Boolean).map(([k, label]) =>
         <button key={k} className={'chip nocap' + (sim === k ? ' on' : '')} onClick={() => { setSim(k); setEq(''); setShown(50) }}>{label}</button>)}
     </div>}
-    {!sim && <div className="chips" style={{ margin: (like ? '0' : '10px') + (eqOpts.length > 1 ? ' 0 6px' : ' 0 10px') }}>
+    {!sim && <div className="chips" style={{ marginTop: like ? 0 : 10, marginBottom: eqOpts.length > 1 ? 6 : 10 }}>
       {chosenCount > 0 && <button className={'chip' + (bp === '★' ? ' on' : '')} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" style={{ fontSize: 12, display: 'inline-block', marginRight: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</button>}
       <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setEq(''); setShown(50) }}>{t('All')}</button>
       {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setEq(''); setShown(50) }}>{t(b)}</button>)}
