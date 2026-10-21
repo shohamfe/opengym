@@ -730,14 +730,22 @@ function DayOverride({ iso, close }) {
     close()
     toast(v === '' ? t('Back to weekly plan') : v === 'rest' ? t('{0} set to rest', fmtDate(iso)) : t('{0} planned for {1}', (st.routines.find(r => r.id === v) || {}).name, fmtDate(iso)))
   }
+  // a logged day is history: show what was done instead of offering to re-plan it
+  const done = st.workouts.filter(w => w.d === iso)
+  if (done.length) return <>
+    <h3>{fmtDate(iso, 'full')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('You trained this day, so its workout can’t be changed.')}</div>
+    <div className="list">{done.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { close(); nav('/history/' + w.id) }} />)}</div>
+  </>
   return <>
-    <h3>{fmtDate(iso, true)}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyR ? weeklyR.name : t('Rest')}{hasOvr && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
+    <h3>{fmtDate(iso, 'full')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyR ? weeklyR.name : t('Rest')}{hasOvr && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}</div>
     <div className="list">
       {st.routines.map(r => <div key={r.id} className="item" onClick={() => set(r.id)}>
         <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
         <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {effId === r.id && <Icon name="check" className="accent" />}</div>)}
+        {effId === r.id && <Icon name="check" className="accent" />}
+        <button className="iconbtn" aria-label={t('View exercises in {0}', r.name)} onClick={e => { e.stopPropagation(); close(); nav('/plan/r/' + r.id) }}><Icon name="list" /></button></div>)}
       <div className="item" onClick={() => set('rest')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effId === null && <Icon name="check" className="accent" />}</div>
       {hasOvr && <div className="item" onClick={() => set('')}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
     </div>
