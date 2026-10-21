@@ -1,11 +1,16 @@
 // WebAudio beeps + haptics (ported from the vanilla app). `enabled` gates sound.
 let audioCtx = null
-// iOS: 'ambient' obeys the silent switch and mixes with the user's music instead of pausing it
-try { if (navigator.audioSession) navigator.audioSession.type = 'ambient' } catch (e) { /* */ }
+// iOS: 'ambient' obeys the silent switch and mixes with the user's music instead of pausing it.
+// Set again before every sound, since iOS can reset the session when the app comes back.
+function ctx() {
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient' } catch (e) { /* */ }
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+  return audioCtx
+}
 export function beep(enabled, freq, dur, when) {
   if (!enabled) return
   try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+    ctx()
     const o = audioCtx.createOscillator(), g = audioCtx.createGain()
     o.connect(g); g.connect(audioCtx.destination)
     o.frequency.value = freq || 880; o.type = 'sine'
@@ -21,10 +26,9 @@ const bufs = {}
 export function play(enabled, url) {
   if (!enabled) return
   try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
-    const ctx = audioCtx
-    bufs[url] = bufs[url] || fetch(url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b))
-    bufs[url].then(buf => { const s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination); s.start() }).catch(() => { delete bufs[url] })
+    const c = ctx()
+    bufs[url] = bufs[url] || fetch(url).then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b))
+    bufs[url].then(buf => { const s = c.createBufferSource(); s.buffer = buf; s.connect(c.destination); s.start() }).catch(() => { delete bufs[url] })
   } catch (e) { /* */ }
 }
 export function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p) } catch (e) { /* */ } }
