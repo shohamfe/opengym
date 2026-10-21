@@ -6,6 +6,7 @@ import { exOr } from '../lib/exercises.js'
 import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
+import { confetti } from '../lib/confetti.js'
 import { t } from '../lib/i18n.js'
 import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
@@ -328,8 +329,6 @@ function ActiveWorkout() {
   }
 
   const toggle = (idx, i) => {
-    const m = modeAt(idx)
-    const cardioEntry = m === 'cardio'
     let exJustDone = false, workoutDone = false, checked = false
     mutEntry(idx, e => {
       e.sets[i].done = !e.sets[i].done
@@ -348,11 +347,17 @@ function ActiveWorkout() {
       }
     })
     if (!checked) return
+    // the burst starts at the ticked set, so read its spot before the scroll below moves it
+    const at = (exJustDone && !workoutDone) ? (document.querySelectorAll(`#ex-${idx} .setgrp`)[i] || document.getElementById('ex-' + idx))?.getBoundingClientRect() : null
     // bring this exercise's next set up from under the rest timer (small phones especially)
     const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
     requestAnimationFrame(() => document.querySelector(`#ex-${idx} .setrow.next`)?.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' }))
     if (workoutDone) finishWorkout(true)
-    else if (exJustDone) useUI.getState().toast(cardioEntry ? t('Cardio logged') : m === 'time' ? t('Hold logged') : t('{0} done', exOr(A.entries[idx].id).n))
+    else if (exJustDone) {
+      // celebrate instead of a toast: tick-ting, a buzz and confetti (skipped under reduced motion)
+      beep(S.sound, 1568, 0.22, 0.09); vibrate([30, 50, 20])
+      confetti(at ? at.left + at.width / 2 : innerWidth / 2, at ? at.top + at.height / 2 : innerHeight * 0.8)
+    }
   }
 
 
