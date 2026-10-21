@@ -14,4 +14,15 @@ export function beep(enabled, freq, dur, when) {
     o.start(t0); o.stop(t0 + (dur || 0.18) + 0.05)
   } catch (e) { /* */ }
 }
+// short audio files (src/assets/sounds, Kenney CC0), decoded once and played through the same context as beep()
+const bufs = {}
+export function play(enabled, url) {
+  if (!enabled) return
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = audioCtx
+    bufs[url] = bufs[url] || fetch(url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b))
+    bufs[url].then(buf => { const s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination); s.start() }).catch(() => { delete bufs[url] })
+  } catch (e) { /* */ }
+}
 export function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p) } catch (e) { /* */ } }
