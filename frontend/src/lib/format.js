@@ -42,4 +42,5 @@ export const weekKey = (d, ws = 1) => isoOf(startOfWeek(d + 'T12:00:00', ws))
 export const localTZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' } }
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-export const ACCENTS = { lime: '#30d158', sky: '#0a84ff', orange: '#ff9f0a', violet: '#bf5af2', pink: '#ff375f', red: '#ff453a', teal: '#40c8e0', gold: '#ffd60a' }
+// grid order (3x3 in Settings): hue wheel, so the picker reads as a spectrum
+export const ACCENTS = { red: '#ff453a', orange: '#ff9f0a', gold: '#ffd60a', lime: '#30d158', teal: '#40c8e0', sky: '#0a84ff', indigo: '#5e5ce6', violet: '#bf5af2', pink: '#ff375f' }

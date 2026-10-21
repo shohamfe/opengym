@@ -95,6 +95,7 @@
 :root[data-accent="red"]   { --acc:var(--red);    --acc-2:#d70015; --on-acc:#fff }
 :root[data-accent="teal"]  { --acc:var(--teal);   --acc-2:#0071a4; --on-acc:#000 }
 :root[data-accent="gold"]  { --acc:var(--yellow); --acc-2:#b25000; --on-acc:#000 }
+:root[data-accent="indigo"]{ --acc:var(--indigo); --acc-2:#3634a3; --on-acc:#fff }
 /* Label colour on a filled accent button is picked per accent by measured contrast,
    not by taste. Button text is 17px/600, so the AA bar is 3:1 (large text). White on
    the light-theme green is 2.22:1 and on teal 2.57:1 — both fail, and green is the
@@ -106,7 +107,8 @@
 :root[data-theme="light"][data-accent="sky"],
 :root[data-theme="light"][data-accent="violet"],
 :root[data-theme="light"][data-accent="pink"],
-:root[data-theme="light"][data-accent="red"]   { --on-acc:#fff }
+:root[data-theme="light"][data-accent="red"],
+:root[data-theme="light"][data-accent="indigo"]{ --on-acc:#fff }
 
 /* ---------------------------------------------------------------- reset -- */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -252,7 +254,7 @@ h4.sec{
 /* flex:none would let a long value ("Follow the routine (Linear progression)") run straight
    through the title next to it, since the title's column is already free to shrink to nothing.
    Letting the value shrink and ellipsise instead keeps the two out of each other's way. */
-.lrow-v{color:var(--label-2);font-size:17px;letter-spacing:-.012em;flex:0 1 auto;min-width:0;
+.lrow-v{color:var(--label-2);font-size:17px;letter-spacing:-.012em;flex:1 1 auto;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 /* ...but the title still needs its own width: with basis 0 it shrank to nothing and "Rule"
    painted under the value. Natural width, capped so a long title wraps instead. */
@@ -949,7 +951,8 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .cal-legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
 
 /* --- accent swatches --- */
-.swatches{display:flex;gap:12px;flex-wrap:wrap}
+.swatch-grid{display:grid;grid-template-columns:repeat(3,56px);gap:24px;justify-content:center;padding:12px 0 20px}
+.swatch-grid .swatch{width:56px;height:56px}
 .swatch{width:32px;height:32px;border-radius:50%;flex:none;position:relative;transition:transform var(--fast)}
 .swatch:active{transform:scale(.9)}
 .swatch.on::after{content:'';position:absolute;inset:-4px;border-radius:50%;box-shadow:0 0 0 2px var(--label)}
