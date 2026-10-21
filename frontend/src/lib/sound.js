@@ -1,5 +1,7 @@
 // WebAudio beeps + haptics (ported from the vanilla app). `enabled` gates sound.
 let audioCtx = null
+// iOS: 'ambient' obeys the silent switch and mixes with the user's music instead of pausing it
+try { if (navigator.audioSession) navigator.audioSession.type = 'ambient' } catch (e) { /* */ }
 export function beep(enabled, freq, dur, when) {
   if (!enabled) return
   try {
