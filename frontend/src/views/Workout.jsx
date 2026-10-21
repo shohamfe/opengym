@@ -75,7 +75,8 @@ const lastTimeSheet = (id, last) => useUI.getState().openSheet(() => <>
   <h3>{t('Last time')}</h3>
   <div className="muted small" style={{ marginBottom: 12 }}>{fmtDate(last.d, true)}</div>
   <div className="sect-b">{last.sets.map((s, i) => <div key={i} className="lrow">
-    <span className="tb-i">{i + 1}</span><span className="lrow-m"><span className="lrow-t">{setLabel(id, s, last.target)}</span></span>
+    <span className="tb-i">{i + 1}</span><span className="lrow-m"><span className="lrow-t">{setLabel(id, s, last.target, { effort: false })}</span></span>
+    {(s.rir ?? s.rpe) != null && <span className="effpill" style={{ flex: 'none' }}>{EFFORT[s.rir != null ? 'rir' : 'rpe'].hd} {fmtNum(s.rir ?? s.rpe)}</span>}
   </div>)}</div>
 </>, { label: t('Last time') })
 
