@@ -30,7 +30,26 @@
 <link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/splash-1260x2736.png">
 </head>
 <body>
+<!-- launch animation: first frame matches the iOS splash, then a rep until React has rendered -->
+<style>
+#boot{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease}
+#boot svg{width:50vw;max-width:50vh;animation:boot-rep .9s cubic-bezier(.45,0,.3,1) infinite;transition:transform .35s ease}
+#boot .o{animation:boot-lag .9s cubic-bezier(.45,0,.3,1) infinite}
+#boot.out{opacity:0}#boot.out svg{animation:none;transform:scale(1.25)}
+@keyframes boot-rep{0%,100%{transform:none}45%,55%{transform:translateY(-12%)}}
+@keyframes boot-lag{0%,100%{transform:none}50%{transform:translateY(3%)}}
+@media (prefers-reduced-motion:reduce){#boot svg,#boot .o{animation:none}}
+</style>
+<div id="boot" aria-hidden="true"><svg viewBox="0 0 512 512" fill="#a3e635"><rect x="80" y="242" width="352" height="28"/><rect x="132" y="169" width="45" height="174"/><rect x="335" y="169" width="45" height="174"/><g class="o"><rect x="80" y="200" width="36" height="112"/><rect x="396" y="200" width="36" height="112"/></g></svg></div>
 <div id="root"></div>
 <script type="module" src="/src/main.jsx"></script>
+<script>
+(function(){var b=document.getElementById('boot'),ready=false,done=false
+function out(){if(done)return;done=true;b.classList.add('out');setTimeout(function(){b.remove()},400)}
+// finish the current rep before leaving, so it never cuts mid-lift
+b.firstElementChild.addEventListener('animationiteration',function(){if(ready)out()})
+addEventListener('DOMContentLoaded',function(){ready=true;if(matchMedia('(prefers-reduced-motion: reduce)').matches)out()})
+setTimeout(out,6000)})()
+</script>
 </body>
 </html>
