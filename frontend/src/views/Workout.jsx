@@ -5,7 +5,10 @@ import { useUI, armStale, cancelStale } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
 import { effectiveRoutine, lastEntryFor, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
-import { beep, vibrate } from '../lib/sound.js'
+import { play, vibrate } from '../lib/sound.js'
+import confetti from 'canvas-confetti'
+import setDoneSnd from '../assets/sounds/set-done.mp3'
+import exDoneSnd from '../assets/sounds/exercise-done.mp3'
 import { t } from '../lib/i18n.js'
 import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
@@ -328,14 +331,12 @@ function ActiveWorkout() {
   }
 
   const toggle = (idx, i) => {
-    const m = modeAt(idx)
-    const cardioEntry = m === 'cardio'
     let exJustDone = false, workoutDone = false, checked = false
     mutEntry(idx, e => {
       e.sets[i].done = !e.sets[i].done
       if (e.sets[i].done) {
         checked = true
-        beep(S.sound, 1040, 0.12); vibrate(30)
+        vibrate(30)
         armStale()
         const isLastExInUnit = idx === unit[unit.length - 1]
         const unitDone = unit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
@@ -348,11 +349,20 @@ function ActiveWorkout() {
       }
     })
     if (!checked) return
+    play(S.sound, exJustDone && !workoutDone ? exDoneSnd : setDoneSnd)
+    // the burst starts at the ticked set, so read its spot before the scroll below moves it
+    const at = (exJustDone && !workoutDone) ? (document.querySelectorAll(`#ex-${idx} .setgrp`)[i] || document.getElementById('ex-' + idx))?.getBoundingClientRect() : null
     // bring this exercise's next set up from under the rest timer (small phones especially)
     const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
     requestAnimationFrame(() => document.querySelector(`#ex-${idx} .setrow.next`)?.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' }))
     if (workoutDone) finishWorkout(true)
-    else if (exJustDone) useUI.getState().toast(cardioEntry ? t('Cardio logged') : m === 'time' ? t('Hold logged') : t('{0} done', exOr(A.entries[idx].id).n))
+    else if (exJustDone) {
+      // celebrate instead of a toast: chime, a buzz and confetti (skipped under reduced motion)
+      vibrate([30, 50, 20])
+      confetti({ particleCount: 40, spread: 70, startVelocity: 30, ticks: 120, scalar: 0.8, zIndex: 150, disableForReducedMotion: true,
+        colors: ['--acc', '--blue', '--orange', '--yellow', '--pink', '--purple'].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim()).filter(Boolean),
+        origin: at ? { x: (at.left + at.width / 2) / innerWidth, y: (at.top + at.height / 2) / innerHeight } : { y: 0.8 } })
+    }
   }
 
 
