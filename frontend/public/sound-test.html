@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sound test</title>
+<style>
+  :root{color-scheme:light dark;--acc:#30d158}
+  body{font:16px -apple-system,system-ui,sans-serif;margin:0;padding:calc(16px + env(safe-area-inset-top)) 16px 32px;background:Canvas;color:CanvasText}
+  h1{font-size:20px;margin:0 0 8px}
+  #info{font:13px ui-monospace,Menlo,monospace;white-space:pre-wrap;opacity:.8;margin:0 0 16px}
+  button{display:block;width:100%;text-align:start;font:inherit;padding:14px;margin:0 0 10px;border-radius:12px;border:1px solid #8886;background:transparent;color:inherit}
+  button b{display:block}
+  button span{font-size:13px;opacity:.7}
+  button.on{border-color:var(--acc)}
+</style>
+</head>
+<body>
+<h1>בדיקת צליל במצב שקט</h1>
+<p>שים את הטלפון על שקט, בלי אוזניות, ולחץ על כל כפתור. תרשום לי אחרי כל אחד אם שמעת או לא.</p>
+<pre id="info"></pre>
+<div id="btns"></div>
+<script>
+// Diagnostic for openGym: which audio path obeys the iPhone silent switch, in Safari vs the Home Screen app.
+const info = document.getElementById('info')
+function show() {
+  const s = navigator.audioSession
+  info.textContent = [
+    'standalone: ' + (matchMedia('(display-mode: standalone)').matches || navigator.standalone === true),
+    'audioSession: ' + (s ? 'type=' + s.type + ' state=' + s.state : 'not supported'),
+    'ua: ' + navigator.userAgent.replace(/^Mozilla\/5.0 /, '')
+  ].join('\n')
+}
+show()
+let ctx = null
+function beep(type) {
+  try { if (navigator.audioSession) navigator.audioSession.type = type } catch (e) { info.textContent += '\nset type failed: ' + e.message }
+  // a fresh context per test so the session category is re-evaluated
+  if (ctx) ctx.close()
+  ctx = new (window.AudioContext || window.webkitAudioContext)()
+  const o = ctx.createOscillator(), g = ctx.createGain()
+  o.connect(g); g.connect(ctx.destination); o.frequency.value = 880
+  const t = ctx.currentTime
+  g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4)
+  o.start(t); o.stop(t + 0.45)
+  setTimeout(show, 100)
+}
+function htmlAudio() {
+  // 0.4s 880Hz WAV built in memory, played through an <audio> element (media playback path)
+  const sr = 22050, n = sr * 0.4, b = new ArrayBuffer(44 + n * 2), v = new DataView(b)
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)))
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * 660 * i / sr) * 12000 * Math.min(1, (n - i) / 2000), true)
+  new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))).play()
+  setTimeout(show, 100)
+}
+const tests = [
+  ['1. Web Audio, auto', 'ברירת המחדל, כמו לפני השינויים שלי', () => beep('auto')],
+  ['2. Web Audio, ambient', 'מה שיש עכשיו באפליקציה', () => beep('ambient')],
+  ['3. Web Audio, transient', 'סוג "צליל קצר" של אפל', () => beep('transient')],
+  ['4. Web Audio, playback', 'אמור להישמע תמיד, גם בשקט', () => beep('playback')],
+  ['5. HTML audio', 'נגן מדיה רגיל, אמור להישמע תמיד', htmlAudio]
+]
+const box = document.getElementById('btns')
+for (const [t, d, f] of tests) {
+  const b = document.createElement('button')
+  b.innerHTML = '<b>' + t + '</b><span>' + d + '</span>'
+  b.onclick = () => { b.classList.add('on'); f() }
+  box.appendChild(b)
+}
+</script>
+</body>
+</html>
