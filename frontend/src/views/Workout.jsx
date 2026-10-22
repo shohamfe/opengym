@@ -244,7 +244,7 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
           <span className="effq">{kind === 'rir' ? t('Reps left?') : t('How hard?')}</span>
           {chips.map(v => <button key={v} role="radio" aria-checked={s[col3.f] === v} className={'effchip' + (s[col3.f] === v ? ' on' : '')}
             onClick={() => { onField(i, col3.f, s[col3.f] === v ? null : v); setPick(null) }}>{chipLabel(v)}</button>)}
-        </div> : col3 && s.done && !noEff(s) && s[col3.f] != null && <button className="effedit" onClick={() => setPick(i)}>
+        </div> : col3 && s.done && !noEff(s) && s[col3.f] != null && <button className="effedit eff" onClick={() => setPick(i)}>
           <span className="effpill">{col3.hd} {fmtNum(s[col3.f])}</span>{t('Edit')}</button>}
         {parts.map((p, j) => <div key={j} className="setrow partrow">
           <span className="pn" aria-hidden="true" />
