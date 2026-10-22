@@ -623,12 +623,15 @@ h4.sec{
 .setrow .stp button{width:34px;height:44px}
 .card.settable{padding-left:12px;padding-right:12px}
 /* effort chips: asked under the set you just finished (RIR 0..4+, RPE ≤6..10) */
-.effrow{display:flex;align-items:center;gap:6px;padding:2px 0 10px 32px}
+/* starts under the set number, not the stepper: the label column lined up with nothing */
+.effrow{display:flex;align-items:center;gap:6px;padding:2px 0 10px}
 .effq{font-size:12px;color:var(--label-2);width:58px;flex:none;line-height:1.2}
 .effchip{flex:1;min-width:0;height:40px;border-radius:10px;background:var(--surface-2);color:var(--label);font-size:16px;font-weight:600}
 .effchip.on{background:var(--acc);color:var(--on-acc)}
 .effchip:active{background:var(--surface-3)}
 .effedit{display:flex;align-items:center;gap:10px;min-height:44px;margin:-6px 0 4px 32px;padding:0 4px;font-size:14px;color:var(--acc)}
+.effedit.eff{margin-left:0;padding-left:0;font-size:16px}
+.effedit.eff .effpill{display:inline-flex;align-items:center;height:40px;padding:0 14px;border-radius:10px;font-size:16px;font-weight:600}
 .effpill{font-size:12px;background:var(--acc-soft);border-radius:99px;padding:3px 10px}
 @media (max-width:340px){
   .effq{display:none}
