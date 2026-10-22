@@ -29,10 +29,12 @@ describe('tech helpers', () => {
     expect(partsOf(set())).toEqual([])
   })
   it('nextPart prefill', () => {
-    expect(nextPart(set({ tech: 'drop' }))).toEqual({ w: 48, r: 0 })
-    expect(nextPart(set({ tech: 'drop', parts: [{ w: 48, r: 8 }] }))).toEqual({ w: 38.5, r: 0 })   // 38.4 -> 38.5
-    expect(nextPart(set({ tech: 'myo', w: 20 }))).toEqual({ w: 20, r: 0 })
-    expect(nextPart(set({ tech: 'rp', parts: [{ w: 60, r: 4 }] }))).toEqual({ w: 60, r: 0 })
+    expect(nextPart(set({ tech: 'drop' }))).toEqual({ w: 48, r: 8 })
+    expect(nextPart(set({ tech: 'drop', parts: [{ w: 48, r: 8 }] }))).toEqual({ w: 38.5, r: 6 })   // 38.4 -> 38.5
+    expect(nextPart(set({ tech: 'myo', w: 20 }))).toEqual({ w: 20, r: 5 })
+    expect(nextPart(set({ tech: 'rp' }))).toEqual({ w: 60, r: 4 })
+    expect(nextPart(set({ tech: 'rp', parts: [{ w: 60, r: 4 }] }))).toEqual({ w: 60, r: 3 })
+    expect(nextPart(set({ tech: 'drop', r: 0 }))).toEqual({ w: 48, r: 0 })   // nothing to base reps on
   })
   it('cleanSet strips unfilled parts and leaves plain sets alone', () => {
     const plain = set()

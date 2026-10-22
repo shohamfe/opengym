@@ -42,9 +42,15 @@ export const lighter = (w, pct, step = 0.5) => {
 
 // Weight for the next part: drop = 0.8x the previous part on the step grid, myo/rest-pause = unchanged.
 export const nextPartW = (tech, prevW, step) => (tech === 'drop' ? lighter(prevW, 0.8, step) : prevW || 0)
+// Reps for the next part, so every row arrives filled: after a ~20% drop you get about 80% of the
+// reps (60x10 > 48x8), rest-pause about 40% of the first set then one fewer each (10 > 4 > 3), myo 5.
+export const nextPartR = (tech, prevR, first) => (tech === 'myo' ? MYO_MINI
+  : !(prevR > 0) ? 0
+  : tech === 'drop' ? Math.max(1, Math.round(prevR * 0.8))
+  : Math.max(2, first ? Math.round(prevR * 0.4) : prevR - 1))
 export const nextPart = (s, step) => {
-  const ps = s.parts || []
-  return { w: nextPartW(s.tech, ps.length ? ps[ps.length - 1].w : s.w, step), r: 0 }
+  const ps = s.parts || [], prev = ps.length ? ps[ps.length - 1] : s
+  return { w: nextPartW(s.tech, prev.w, step), r: nextPartR(s.tech, prev.r, !ps.length) }
 }
 
 // Warm-up: one set before the first working set. A single heavier warm-up (~80% x 5) beat lighter,

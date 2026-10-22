@@ -316,12 +316,12 @@ function ActiveWorkout() {
   // what was actually logged — in the session, in history and in a backup.
   // Blank parts still sitting on their seeded weight follow a weight change above them
   // (main 100 -> drop part 80), so the prefill never goes stale. Typed/filled parts are left alone.
-  // Myo mini-sets are prefilled with reps, so for them "still on its seeded weight" is enough.
+  // Parts arrive with reps filled in, so "still on its seeded weight" alone decides whether one follows.
   const follow = (set, from, oldPrev, step) => {
     let po = oldPrev, pn = from < 0 ? set.w : set.parts[from].w
     for (let j = from + 1; j < (set.parts || []).length; j++) {
       const p = set.parts[j], ow = p.w
-      if ((!(p.r > 0) || set.tech === 'myo') && p.w === nextPartW(set.tech, po, step)) p.w = nextPartW(set.tech, pn, step)
+      if (p.w === nextPartW(set.tech, po, step)) p.w = nextPartW(set.tech, pn, step)
       po = ow; pn = p.w
     }
   }
@@ -334,7 +334,7 @@ function ActiveWorkout() {
     if (field === 'w' && wu && !wu.done && x === e.sets.find(y => !isWarm(y)) && wu.w === warmupW(old, step)) wu.w = warmupW(x.w, step)
   })
   const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { const x = e.sets[i], old = x.parts[j].w; x.parts[j][f] = v; if (f === 'w') follow(x, j, old, stepOf(e, S.unit)) })
-  const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < maxParts(x.tech)) x.parts.push(x.tech === 'myo' ? { w: x.w, r: MYO_MINI } : nextPart(x, stepOf(e, S.unit))) })
+  const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < maxParts(x.tech)) x.parts.push(nextPart(x, stepOf(e, S.unit))) })
   const removePart = (idx, i, j) => mutEntry(idx, e => { e.sets[i].parts.splice(j, 1) })
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
   const addSet = idx => mutEntry(idx, e => {
