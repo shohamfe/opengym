@@ -14,29 +14,58 @@ import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
-import { nextPrescription, applyPrescription } from '../lib/progression.js'
+import { nextPrescription, applyPrescription, defaultIncrement } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { TECH, TECH_IDS, PARTS_TECH, MAX_PARTS, techBadge, techName, techDesc, nextPart, nextPartW } from '../lib/tech.js'
+import { TECH, TECH_IDS, PARTS_TECH, techBadge, techName, techDesc, nextPart, nextPartW, warmupSet, warmupW, backoffW, myoW, MYO_REPS, MYO_MINI, MYO_SEED, maxParts } from '../lib/tech.js'
 
 /* ---------- set-type picker: tech, partials, and (re)seeding the parts rows ---------- */
+// The exercise's weight step: what a computed warm-up / back-off / myo / drop weight snaps to.
+const stepOf = (e, unit) => (e.target?.inc > 0 ? e.target.inc : defaultIncrement(e.id, unit))
+const isWarm = x => x.tech === 'warmup'
 function TechSheet({ entryIdx, i, close }) {
   const update = useStore(s => s.update)
   const entry = useStore(s => s.S.active?.entries[entryIdx])
+  const unit = useStore(s => s.S.unit)
   const s = entry?.sets[i]
   if (!s) return null
   const ex = exOr(entry.id)
   const cur = s.tech || null
-  const num = entry.sets.slice(0, i).filter(x => x.tech !== 'warmup').length + 1
-  const mut = fn => update(S => { fn(S.active.entries[entryIdx].sets[i]) }, true)
+  const num = entry.sets.slice(0, i).filter(x => !isWarm(x)).length + 1
+  const step = stepOf(entry, unit)
+  const mutE = fn => update(S => { fn(S.active.entries[entryIdx]) }, true)
+  const mut = fn => mutE(e => fn(e.sets[i]))
+  // Warm-up is one set, always first: picking it adds that set and leaves the tapped one alone.
+  if (cur === 'warmup') return <>
+    <h3>{techName('warmup')}</h3>
+    <div className="muted small" style={{ marginBottom: 12, textTransform: 'capitalize' }}>{ex.n}</div>
+    <p className="small" style={{ marginBottom: 12 }}>{techDesc('warmup')}</p>
+    <Button variant="danger" icon="trash" onClick={() => { mutE(e => { e.sets.splice(i, 1) }); close() }}>{t('Remove warm-up set')}</Button>
+  </>
+  const hasWarm = entry.sets.some(isWarm)
   const pick = id => {
     if (id === cur) return close()
+    if (id === 'warmup') {
+      mutE(e => { e.sets.unshift(warmupSet(e.sets.find(x => !isWarm(x)) || s, step)) })
+      return close()
+    }
     const filled = (s.parts || []).filter(p => p && p.r > 0).length
     const apply = () => {
       mut(x => {
+        // undo a computed weight when leaving myo/back-off, before anything is ticked
+        if (x.pre) { if (!x.done) Object.assign(x, x.pre); delete x.pre }
         if (id) x.tech = id; else delete x.tech
-        if (id === 'warmup') delete x.partials
         if (!PARTS_TECH.includes(id)) delete x.parts
-        else if (!(x.parts && x.parts.length)) x.parts = [nextPart(x)]
+        const fresh = !x.done && !(x.parts || []).some(p => p && p.r > 0)
+        if (id === 'myo' && fresh) {
+          x.pre = { w: x.w, r: x.r }
+          x.w = myoW(x.w, x.r, step)
+          if (x.r < MYO_REPS) x.r = MYO_REPS
+          x.parts = Array.from({ length: MYO_SEED }, () => ({ w: x.w, r: MYO_MINI }))
+        } else if (PARTS_TECH.includes(id) && !(x.parts && x.parts.length)) x.parts = [nextPart(x, step)]
+        if (id === 'backoff' && !x.done) {
+          const top = entry.sets.slice(0, i).filter(y => !y.tech || y.tech === 'fail').reduce((m, y) => Math.max(m, y.w || 0), 0)
+          if (top > 0) { x.pre = { w: x.w, r: x.r }; x.w = backoffW(top, step) }
+        }
       })
       close()
     }
@@ -52,21 +81,21 @@ function TechSheet({ entryIdx, i, close }) {
     <h3>{t('Set type')}</h3>
     <div className="muted small" style={{ marginBottom: 12, textTransform: 'capitalize' }}>{ex.n} · {t('set {0}', num)}</div>
     <div className="sect-b tsheet" role="radiogroup" aria-label={t('Set type')}>
-      {[null, ...TECH_IDS].map(id => <button key={id || 'none'} className="lrow tap" role="radio" aria-checked={cur === id} onClick={() => pick(id)}>
+      {[null, ...TECH_IDS.filter(id => id !== 'warmup' || !hasWarm)].map(id => <button key={id || 'none'} className="lrow tap" role="radio" aria-checked={cur === id} onClick={() => pick(id)}>
         <span className={'tb-i' + (id === 'warmup' ? ' w' : id ? ' t' : '')}>{id ? TECH[id].b : num}</span>
         <span className="lrow-m"><span className="lrow-t">{id ? techName(id) : t('Normal')}</span>
           <span className="lrow-s">{id ? techDesc(id) : t('A regular counted set.')}</span></span>
         {cur === id && <Icon name="check" className="lrow-k" />}
       </button>)}
     </div>
-    {cur !== 'warmup' && <div className="sect-b" style={{ marginTop: 12 }}>
+    <div className="sect-b" style={{ marginTop: 12 }}>
       <div className="lrow"><span className="lrow-m"><span className="lrow-t">{t('Partial reps')}</span>
         <span className="lrow-s">{t('Extra half-reps at the stretched end.')}</span></span>
         <div className="stp tsheet-stp">
           <button aria-label={t('Decrease {0}', t('Partial reps'))} onClick={() => setPartials(Math.max(0, np - 1))}><Icon name="minus" /></button>
           <span className="val"><NumberField decimal={false} value={np} onChange={setPartials} /></span>
           <button aria-label={t('Increase {0}', t('Partial reps'))} onClick={() => setPartials(np + 1)}><Icon name="plus" /></button>
-        </div></div></div>}
+        </div></div></div>
   </>
 }
 
@@ -252,7 +281,7 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
           {col2 && cell(s, i, col2, 'r' + (!(p.r > 0) ? ' need' : ''), j)}
           <button className="pdel" aria-label={t('Remove part')} onClick={() => onRemovePart(i, j)}><Icon name="xmark" /></button>
         </div>)}
-        {isParts && parts.length < MAX_PARTS && <button className="effedit padd" onClick={() => onAddPart(i)}><Icon name="plus" />{s.tech === 'drop' ? t('Add drop') : t('Add mini-set')}</button>}
+        {isParts && parts.length < maxParts(s.tech) && <button className="effedit padd" onClick={() => onAddPart(i)}><Icon name="plus" />{s.tech === 'drop' ? t('Add drop') : t('Add mini-set')}</button>}
         {repsMode && s.partials > 0 && <button className="effedit tpart" onClick={() => openTech(i)}>{t('+{0} partial reps', s.partials)}</button>}
       </div>})}
       <div style={{ height: 8 }} />
@@ -287,21 +316,25 @@ function ActiveWorkout() {
   // what was actually logged — in the session, in history and in a backup.
   // Blank parts still sitting on their seeded weight follow a weight change above them
   // (main 100 -> drop part 80), so the prefill never goes stale. Typed/filled parts are left alone.
-  const follow = (set, from, oldPrev) => {
+  // Myo mini-sets are prefilled with reps, so for them "still on its seeded weight" is enough.
+  const follow = (set, from, oldPrev, step) => {
     let po = oldPrev, pn = from < 0 ? set.w : set.parts[from].w
     for (let j = from + 1; j < (set.parts || []).length; j++) {
       const p = set.parts[j], ow = p.w
-      if (!(p.r > 0) && p.w === nextPartW(set.tech, po)) p.w = nextPartW(set.tech, pn)
+      if ((!(p.r > 0) || set.tech === 'myo') && p.w === nextPartW(set.tech, po, step)) p.w = nextPartW(set.tech, pn, step)
       po = ow; pn = p.w
     }
   }
   const setField = (idx, i, field, v) => mutEntry(idx, e => {
-    const x = e.sets[i], old = x.w
+    const x = e.sets[i], old = x.w, step = stepOf(e, S.unit)
     if (v == null) delete x[field]; else x[field] = v
-    if (field === 'w' && x.parts) follow(x, -1, old)
+    if (field === 'w' && x.parts) follow(x, -1, old, step)
+    // an untouched, unticked warm-up keeps tracking the first working set's weight
+    const wu = e.sets.find(isWarm)
+    if (field === 'w' && wu && !wu.done && x === e.sets.find(y => !isWarm(y)) && wu.w === warmupW(old, step)) wu.w = warmupW(x.w, step)
   })
-  const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { const x = e.sets[i], old = x.parts[j].w; x.parts[j][f] = v; if (f === 'w') follow(x, j, old) })
-  const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < MAX_PARTS) x.parts.push(nextPart(x)) })
+  const setPart = (idx, i, j, f, v) => mutEntry(idx, e => { const x = e.sets[i], old = x.parts[j].w; x.parts[j][f] = v; if (f === 'w') follow(x, j, old, stepOf(e, S.unit)) })
+  const addPart = (idx, i) => mutEntry(idx, e => { const x = e.sets[i]; x.parts = x.parts || []; if (x.parts.length < maxParts(x.tech)) x.parts.push(x.tech === 'myo' ? { w: x.w, r: MYO_MINI } : nextPart(x, stepOf(e, S.unit))) })
   const removePart = (idx, i, j) => mutEntry(idx, e => { e.sets[i].parts.splice(j, 1) })
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
   const addSet = idx => mutEntry(idx, e => {

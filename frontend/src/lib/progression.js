@@ -18,7 +18,7 @@
 
 import { modeOf, repStep } from './history.js'
 import { EXIDX } from './exercises.js'
-import { isProgSet } from './tech.js'
+import { isProgSet, snap } from './tech.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
 
@@ -88,11 +88,6 @@ export function policyFor(cfg, routine, mode) {
 }
 
 const round1 = v => Math.round(v * 10) / 10
-// Snap to a loadable multiple of the step.
-function snap(v, step) {
-  if (!(step > 0)) return round1(v)
-  return round1(Math.round(v / step) * step)
-}
 // Back off by DELOAD_FACTOR, landing on something you can actually load. Rounding to the
 // nearest step keeps the cut close to the intended 10 %, but on small weights the nearest
 // step can be the weight you started from — so a deload that did not actually reduce

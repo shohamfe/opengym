@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isWork, isProgSet, setVolume, partsOf, nextPart, cleanSet, withTech, techBadge } from './tech.js'
+import { isWork, isProgSet, setVolume, partsOf, nextPart, cleanSet, withTech, techBadge, warmupSet, warmupW, backoffW, myoW, lighter } from './tech.js'
 import { setLabel, workoutVolume, setsDone, lastEntryFor, bestWeightFor } from './history.js'
 import { bestSetOf } from './onerm.js'
 import { isHardSet } from './effort.js'
@@ -79,5 +79,30 @@ describe('call sites', () => {
 describe('nextPartW with no weight', () => {
   it('stays 0 instead of the 0.5 floor', () => {
     expect(nextPart({ tech: 'drop', w: 0 })).toEqual({ w: 0, r: 0 })
+  })
+})
+
+describe('computed weights', () => {
+  it('warm-up: 80% x 5 on the step grid; bodyweight gets half the reps', () => {
+    expect(warmupSet({ w: 60, r: 10 }, 2.5)).toEqual({ w: 47.5, r: 5, done: false, tech: 'warmup' })
+    expect(warmupW(100, 5)).toBe(80)
+    expect(warmupSet({ w: 0, r: 12 }, 2.5)).toEqual({ w: 0, r: 6, done: false, tech: 'warmup' })
+    expect(warmupSet({ w: 0, r: 4 }, 2.5).r).toBe(3)
+  })
+  it('myo: activation weight is the ~15RM, unchanged for sets already at 12+', () => {
+    expect(myoW(60, 10, 2.5)).toBe(52.5)    // 60·40/45 = 53.3
+    expect(myoW(100, 8, 5)).toBe(85)        // 84.4
+    expect(myoW(30, 15, 2.5)).toBe(30)
+    expect(myoW(0, 8, 2.5)).toBe(0)
+  })
+  it('back-off and drop always land at least one step lighter', () => {
+    expect(backoffW(100, 2.5)).toBe(85)
+    expect(lighter(10, 0.8, 5)).toBe(5)       // 8 snaps back to 10, so one step down
+    expect(nextPart({ tech: 'drop', w: 30 }, 5)).toEqual({ w: 25, r: 0 })
+    expect(lighter(5, 0.8, 5)).toBe(5)        // never below one step
+  })
+  it('myo is ignored by progression; cleanSet drops the undo snapshot', () => {
+    expect(isProgSet(set({ tech: 'myo' }))).toBe(false)
+    expect(cleanSet(set({ tech: 'backoff', pre: { w: 60, r: 10 } }))).toEqual(set({ tech: 'backoff' }))
   })
 })
