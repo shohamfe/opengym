@@ -210,7 +210,7 @@ export function nextPrescription(S, cfg, routine) {
   if (policy === 'double') {
     const top = cfg.reps || last.goal || 10
     const bottom = Math.min(cfg.repsMin || Math.max(1, top - 2), top)
-    if (last.ok) return { policy, kind: 'up', weight: snap(w + inc, inc), reps: bottom, why: ['Weight up: you hit all your reps last time, so today is {0} {1} × {2}.', snap(w + inc, inc), unit, bottom] }
+    if (last.ok) return { policy, kind: 'up', weight: round1(w + inc), reps: bottom, why: ['Weight up: you hit all your reps last time, so today is {0} {1} × {2}.', round1(w + inc), unit, bottom] }
     if (stalls >= deloadAt) {
       const dw = deloadTo(w, inc)
       return { policy, kind: 'deload', weight: dw, reps: bottom, why: ['Stalled {0} sessions — deload to {1} {2}.', stalls, dw, unit] }
@@ -226,7 +226,9 @@ export function nextPrescription(S, cfg, routine) {
     const dbl = policy === 'greyskull' && last.goal > 0 && last.amrap >= last.goal * 2
     const step = dbl ? inc * 2 : inc
     return {
-      policy, kind: 'up', weight: snap(w + step, inc),
+      // Add the step to what was lifted, unsnapped: snapping 18 + 5 onto the 5 grid gave 25,
+      // a 7 kg jump under a "5 kg more" line. The logged weight was loadable, so this is too.
+      policy, kind: 'up', weight: round1(w + step),
       why: dbl
         ? ['Last set hit {0} reps — twice the target, so take a double jump of {1} {2}.', last.amrap, step, unit]
         : ['Every rep last time — {0} {1} more.', step, unit]

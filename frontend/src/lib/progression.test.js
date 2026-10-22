@@ -182,6 +182,12 @@ describe('linear progression', () => {
     expect(p.weight).toBe(61)
   })
 
+  it('adds exactly the step to an off-grid weight, matching the "{0} more" line', () => {
+    const p = nextPrescription(hist(HEAVY, [[18, 5, 5, 5]]), { id: HEAVY, sets: 3, reps: 5, prog: 'linear' })
+    expect(p.weight).toBe(23)
+    expect(p.why[1]).toBe(5)
+  })
+
   it('works in pounds', () => {
     const S = { ...hist(LIFT, [[135, 5, 5, 5]]), unit: 'lb' }
     expect(nextPrescription(S, cfg).weight).toBe(140)
