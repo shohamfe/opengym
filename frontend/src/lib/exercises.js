@@ -44,6 +44,15 @@ export const isCardio = idOrEx => (typeof idOrEx === 'string' ? EXIDX[idOrEx] : 
 export const isBodyweightEq = idOrEx =>
   (typeof idOrEx === 'string' ? EXIDX[idOrEx] : idOrEx)?.eq === 'body weight'
 
+// Exercises worked one arm or one leg at a time, read off the name: "one arm row", "single
+// leg deadlift", lunges, split squats, step-ups, pistols. Seeds the `side` flag the same way
+// the equipment seeds `bodyweight`; the config can still turn it off.
+const UNI = /\b(one|single)[ -](arm|leg)\b|\bone[ -]legged\b|\bunilateral\b|\blunge|\bsplit squat|\bstep[- ]?up\b|\bpistol\b/i
+export const isUnilateralEx = idOrEx => {
+  const ex = typeof idOrEx === 'string' ? EXIDX[idOrEx] : idOrEx
+  return !!ex && ex.bp !== 'cardio' && UNI.test(ex.n || '')
+}
+
 // An id that resolves to nothing — a plan file built against a different exercise dataset,
 // a custom exercise deleted on another device before the sync arrived — still has to
 // render. A placeholder keeps it visible (and removable) instead of taking the whole view

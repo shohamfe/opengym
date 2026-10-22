@@ -5,8 +5,8 @@ import {
 } from './progression.js'
 import { EXDB } from './exercises.js'
 
-const LIFT = EXDB.find(e => e.bp !== 'cardio' && !['upper legs', 'lower legs', 'back', 'hips', 'glutes'].includes(e.bp)).id
-const HEAVY = EXDB.find(e => e.bp === 'upper legs').id
+const LIFT = EXDB.find(e => e.eq === 'barbell' && e.tg === 'pectorals').id   // a 2.5 kg step
+const HEAVY = EXDB.find(e => e.eq === 'barbell' && e.tg === 'quads').id      // a 5 kg step
 const CARDIO = EXDB.find(e => e.bp === 'cardio').id
 
 // Build a state whose history is a list of sessions given as [weight, ...repsPerSet].
@@ -114,6 +114,13 @@ describe('defaultIncrement', () => {
   it('scales to pounds', () => {
     expect(defaultIncrement(LIFT, 'lb')).toBe(5)
     expect(defaultIncrement(HEAVY, 'lb')).toBe(10)
+  })
+  it('sizes the step by kit and muscle', () => {
+    expect(defaultIncrement('0292', 'kg')).toBe(2)     // dumbbell one arm row → next dumbbell
+    expect(defaultIncrement('0334', 'kg')).toBe(1)     // dumbbell lateral raise
+    expect(defaultIncrement('0541', 'kg')).toBe(4)     // kettlebell → next bell
+    expect(defaultIncrement('0054', 'kg')).toBe(5)     // barbell lunge
+    expect(defaultIncrement('0334', 'lb')).toBe(2.5)
   })
   it('falls back for an unknown exercise', () => {
     expect(defaultIncrement('nope', 'kg')).toBe(2.5)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { modeOf, isTimed, fmtSec, setLabel, lastLine, defaultConfig, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, reorder, swapConfig } from './history.js'
+import { modeOf, isTimed, fmtSec, setLabel, lastLine, defaultConfig, migrateSide, buildSets, exLine, workoutVolume, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, reorder, swapConfig } from './history.js'
 import { EXDB } from './exercises.js'
 
 // Real ids out of the shipped catalogue, so the body-part fallback is exercised for real.
@@ -299,6 +299,25 @@ describe('repStep', () => {
     expect(repStep({ side: true })).toBe(2)
     expect(repStep({})).toBe(1)
     expect(repStep(null)).toBe(1)
+  })
+})
+
+describe('unilateral seeding (one arm / one leg)', () => {
+  it('starts a one-arm row per side, 10 a side', () => {
+    expect(defaultConfig('0292')).toMatchObject({ side: true, reps: 20 })
+    expect(defaultConfig('0025').side).toBeUndefined()   // bench press
+  })
+  it('doubles old plans and logs once, leaving ones that chose', () => {
+    const S = {
+      routines: [{ ex: [{ id: '0292', sets: 3, reps: 10 }, { id: '0336', sets: 3, reps: 12, side: false }, { id: '0025', sets: 3, reps: 8 }] }],
+      workouts: [{ entries: [{ id: '0292', target: { sets: 3, reps: 10 }, sets: [{ w: 18, r: 10, done: true, parts: [{ w: 14, r: 4 }] }] }] }]
+    }
+    expect(migrateSide(S)).toBe(2)
+    expect(S.routines[0].ex.map(c => [c.reps, c.side])).toEqual([[20, true], [12, false], [8, undefined]])
+    const e = S.workouts[0].entries[0]
+    expect([e.sets[0].r, e.sets[0].parts[0].r, e.target.reps, e.target.side]).toEqual([20, 8, 20, true])
+    expect(migrateSide(S)).toBe(0)
+    expect(S.routines[0].ex[0].reps).toBe(20)
   })
 })
 

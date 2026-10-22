@@ -49,16 +49,29 @@ export const POLICY_DESC = {
 export const DELOAD_AFTER = { linear: 3, greyskull: 1, double: 3, time: 3 }
 const DELOAD_FACTOR = 0.9
 
-// Body parts where a 5 kg jump is normal rather than brutal.
-const HEAVY_BP = ['upper legs', 'lower legs', 'back', 'hips', 'glutes']
-
-// Default load step. Lower-body lifts take the bigger jump — that is the "lift-specific
-// increment" a linear program lives on; an exercise can override it with cfg.inc.
+// Default load step, by the kit and the size of the muscle doing the work. A squat takes
+// 5 kg, a bench 2.5, a dumbbell row moves to the next dumbbell (2 kg), a lateral raise
+// 1 kg, a kettlebell the next bell (4 kg). An exercise can override it with cfg.inc.
+const LOWER = ['quads', 'glutes', 'hamstrings', 'calves', 'spine']
+const UPPER = ['lats', 'upper back', 'pectorals', 'traps']
+const BAR = ['barbell', 'ez barbell', 'olympic barbell', 'trap bar', 'smith machine']
+const MACHINE = ['leverage machine', 'sled machine', 'cable']
+//                     lower upper small (kg)
+const STEP_KG = {
+  bar:        [5,    2.5,  2.5],
+  machine:    [5,    2.5,  2.5],
+  dumbbell:   [2,    2,    1],
+  kettlebell: [4,    4,    4],
+  other:      [2.5,  2.5,  1]
+}
+const KG_TO_LB = { 1: 2.5, 2: 5, 2.5: 5, 4: 10, 5: 10 }
 export function defaultIncrement(exId, unit) {
   const ex = EXIDX[exId]
-  const heavy = ex && HEAVY_BP.includes(ex.bp)
-  if (unit === 'lb') return heavy ? 10 : 5
-  return heavy ? 5 : 2.5
+  const kit = !ex ? 'other' : BAR.includes(ex.eq) ? 'bar' : MACHINE.includes(ex.eq) ? 'machine'
+    : ex.eq === 'dumbbell' || ex.eq === 'kettlebell' ? ex.eq : 'other'
+  const size = ex && LOWER.includes(ex.tg) ? 0 : ex && UPPER.includes(ex.tg) ? 1 : ex ? 2 : 1
+  const kg = STEP_KG[kit][size]
+  return unit === 'lb' ? KG_TO_LB[kg] : kg
 }
 export const DEFAULT_SEC_INCREMENT = 5
 // Where adding another set of push-ups stops being progress and starts being a way to spend

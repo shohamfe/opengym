@@ -6,6 +6,7 @@ import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
 import { BASE } from '../lib/supabaseSync.js'
 import { disablePush } from '../lib/push.js'
+import { migrateSide } from '../lib/history.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
@@ -27,7 +28,12 @@ const clone = o => JSON.parse(JSON.stringify(o))
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return Object.assign(clone(DEF), JSON.parse(raw))
+    if (raw) {
+      const S = Object.assign(clone(DEF), JSON.parse(raw))
+      // A one-time data fix changes the plan, so it has to reach the server like an edit would.
+      if (migrateSide(S)) { S._ts = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem('gym_dirty', '1') }
+      return S
+    }
   } catch (e) { /* ignore */ }
   return clone(DEF)
 }
@@ -155,7 +161,8 @@ export const useStore = create((set, get) => {
             added = mergeLogs(next, S)
           }
           if (S.active) next.active = S.active
-          persist(next, false, true)
+          const fixed = migrateSide(next) > 0
+          persist(next, fixed, !fixed)
           localStorage.removeItem('gym_dirty')
           if (added) await get().pushState()
         } else if (hasData(S)) { await get().pushState() }

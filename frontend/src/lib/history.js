@@ -1,6 +1,6 @@
 // Pure helpers over the state object S (ported 1:1 from the vanilla app).
 import { todayISO, isoOf, weekKey, fmtNum } from './format.js'
-import { isCardio, isBodyweightEq } from './exercises.js'
+import { isCardio, isBodyweightEq, isUnilateralEx } from './exercises.js'
 import { t } from './i18n.js'
 import { isWork, setVolume, withTech } from './tech.js'
 
@@ -118,7 +118,42 @@ export function defaultConfig(id, mode) {
   // the flag existed and a plan file gains nothing it does not need.
   const bw = isBodyweightEq(id) ? { bodyweight: true } : {}
   if (m === 'time') return { sets: 3, sec: 45, weight: 0, mode: 'time', ...bw }
+  // Unilateral reps are the total across both sides, so the default is 10 per side.
+  if (isUnilateralEx(id)) return { sets: 3, reps: 20, weight: 0, mode: 'reps', side: true, ...bw }
   return { sets: 3, reps: 10, weight: 0, mode: 'reps', ...bw }
+}
+
+// One-time, marked by S.sideV: before `side` was seeded from the name, a one-arm row planned
+// and logged as 10 meant 10 per arm. Flag those plans and logs and double their reps, so each
+// number keeps meaning what was done, now as the total across both sides. Only configs that
+// never chose (`side` absent) are touched; the sheet writes `side: false` when you turn it off.
+// Returns how many plans/entries changed.
+export function migrateSide(S) {
+  if (S.sideV >= 1) return 0
+  S.sideV = 1
+  const dbl = x => (x > 0 ? x * 2 : x)
+  const uni = c => c.side === undefined && modeOf(c) === 'reps' && isUnilateralEx(c.id)
+  let n = 0
+  ;(S.routines || []).forEach(r => (r.ex || []).forEach(c => {
+    if (!uni(c)) return
+    n++
+    c.side = true
+    for (const k of ['reps', 'repsMin', 'repsMax']) if (c[k] > 0) c[k] = dbl(c[k])
+  }))
+  ;[...(S.workouts || []), S.active].forEach(w => w && (w.entries || []).forEach(e => {
+    if (!uni({ ...e.target, id: e.id })) return
+    n++
+    ;(e.sets || []).forEach(s => {
+      s.r = dbl(s.r)
+      if (s.partials) s.partials = dbl(s.partials)
+      ;(s.parts || []).forEach(p => { p.r = dbl(p.r) })
+    })
+    if (e.target) {
+      e.target = { ...e.target, side: true }
+      for (const k of ['reps', 'repsMin', 'repsMax']) if (e.target[k] > 0) e.target[k] = dbl(e.target[k])
+    }
+  }))
+  return n
 }
 // One-line summary of a planned exercise ("3 × 10 · 60 kg"), shared by the routine editor
 // and the plan export so a mode is described the same way everywhere.
