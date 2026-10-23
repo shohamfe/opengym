@@ -9,6 +9,8 @@ const SESSION = 'gym_session'
 // The server _ts the device's copy is built on: set by the store when it takes the server copy,
 // and here after each successful push. gym_put refuses (409) when the server moved on since.
 export const BASE = 'gym_base'
+// The auth user id the local state belongs to (see setUser in the store).
+export const OWNER = 'gym_owner'
 export const SUPABASE = !!(URL_ && ANON) && import.meta.env.VITE_MOBILE !== '1' && import.meta.env.VITE_DEMO !== '1'
 
 if (SUPABASE) localStorage.removeItem('gym_sync_key')   // left over from the old ?key= link sign-in
