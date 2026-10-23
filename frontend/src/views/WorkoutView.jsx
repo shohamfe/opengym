@@ -7,6 +7,7 @@ import { fmtNum, exCount } from '../lib/format.js'
 import { exOr, EXIDX } from '../lib/exercises.js'
 import { setLabel, modeOf, isBw, fmtSec, EFFORT } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
+import { pregOf } from '../lib/pregnancy.js'
 import { techBadge, techName, partsOf } from '../lib/tech.js'
 import { wStats, StatCell, confirmSheet } from '../sheets.jsx'
 import Media, { Thumb } from '../components/Media.jsx'
@@ -77,7 +78,9 @@ export default function WorkoutView() {
   const { id } = useParams()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
-  const w = S.workouts.find(x => String(x.id) === id)
+  const found = S.workouts.find(x => String(x.id) === id)
+  // pregnancy: PRs stay recorded but are not shown (coach section 5.3)
+  const w = found && pregOf(S) ? { ...found, prs: [] } : found
   const bk = () => back('/history')
   const backBtn = <button className="iconbtn" onClick={bk} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
   if (!w) return <>
