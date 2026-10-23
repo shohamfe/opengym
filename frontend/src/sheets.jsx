@@ -416,11 +416,11 @@ function usageMap(st) {
   st.workouts.forEach(w => w.entries.forEach(e => { u[e.id] = (u[e.id] || 0) + 1 }))
   return u
 }
-function ExercisePicker({ onPick, close, like }) {
+function ExercisePicker({ onPick, close, like, query }) {
   const st = useStore(s => s.S)
   const usage = usageMap(st)
   const all = allExercises(st)
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(query || '')
   const [bp, setBp] = useState('')          // '' = all, '★' = chosen, else a body part
   const [eq, setEq] = useState('')          // '' = any equipment
   // Swapping: '' = all, 'tg' = same target muscle, 'bp' = same body part as `like`.
@@ -468,7 +468,7 @@ function ExercisePicker({ onPick, close, like }) {
     {f.length > shown && <><div style={{ height: 8 }} /><Button onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
   </>
 }
-export const exercisePicker = (onPick, opts) => ui().openSheet(close => <ExercisePicker onPick={onPick} close={close} like={opts?.like} />)
+export const exercisePicker = (onPick, opts) => ui().openSheet(close => <ExercisePicker onPick={onPick} close={close} like={opts?.like} query={opts?.query} />)
 
 /* ============================ exercise config ============================ */
 // Progression settings for one exercise (issue #17). Shown inside the config sheet because
