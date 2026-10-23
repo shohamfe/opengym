@@ -54,3 +54,16 @@ and are **not** covered by openGym's AGPL license — they remain under that dat
 The media files are not distributed in this repository; they are downloaded from the upstream
 source on first run. If you redistribute openGym with the media included, review the upstream
 license first.
+
+## Pregnancy exercise illustrations
+
+The line-art frames in `frontend/public/media/wg/` (bird dog, cat-cow, banded clamshell, band
+pull-apart, face pull, wall push-up, landmine press; used for the built-in exercises 9002-9010)
+are from [**Workout Guide**](https://github.com/bryllim/workout-guide) by
+[Bryl Lim](https://bryllim.com), licensed under
+[**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/). The files are copied
+unmodified from the npm package `@bryllim/workout-guide` 1.0.0 (only renamed to
+`<slug>-<frame>.png`); the app inverts their colours at display time in the light theme.
+Workout Guide's own attribution notes that some of its artwork is adapted from
+[Everkinetic](https://github.com/everkinetic/data) (CC BY-SA 4.0).
+The built-in exercise texts for 9002-9013 are openGym's own.
