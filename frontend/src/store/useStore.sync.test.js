@@ -128,3 +128,80 @@ it('marks the first sync, and keeps the server profile', async () => {
   useStore.getState().setUser(null)
   expect(useStore.getState().synced).toBe(false)
 })
+
+// R2 (qa-plan.md): a shared phone. A's session dies (401 keeps her data on the device), then B
+// signs in on the same phone. B's account must never receive A's data, and A's data must leave
+// the device.
+const sessionFor = id => { ls.gym_session = JSON.stringify({ access_token: 'a1', refresh_token: 'r1', expires_at: Date.now() / 1000 + 3600, user: { id, email: id + '@x.io' } }) }
+const aLosesSession = async () => {
+  row = { workouts: [], _ts: clock }
+  signedIn()                                             // A = u1
+  await useStore.getState().pullState()
+  useStore.getState().update(s => { s.workouts = [{ id: 'a-workout', d: '2026-10-20' }]; s.profile = { preg: { due: '2027-03-01' } } })
+  ls.gym_backup_v1 = '{"workouts":[{"id":"a-old"}]}'; ls.gym_unit_backup = '{}'
+  ls.gym_session = JSON.stringify({ ...JSON.parse(ls.gym_session), expires_at: 1 })
+  revoked = true
+  await useStore.getState().pushState()                  // 401: signed out, data kept
+  expect(useStore.getState().user).toBeNull()
+  expect(useStore.getState().S.workouts).toHaveLength(1)
+  revoked = false
+}
+const signInAs = async id => { sessionFor(id); useStore.getState().setUser({ id, name: id, admin: false }); await useStore.getState().pullState() }
+
+it('does not upload the previous account’s data into a new account with no row', async () => {
+  await aLosesSession()
+  row = null; puts = 0
+  sessionFor('u2'); useStore.getState().setUser({ id: 'u2', name: 'u2', admin: false })
+  expect(useStore.getState().synced).toBe(false)   // onboarding waits for B's own pull
+  await useStore.getState().pullState()
+  expect(puts).toBe(0)
+  expect(row).toBeNull()
+  expect(useStore.getState().S.workouts).toEqual([])
+  expect(useStore.getState().S.profile ?? null).toBeNull()
+  expect(ls.gym_owner).toBe('u2')
+  for (const k of ['gym_backup_v1', 'gym_unit_backup', 'gym_base', 'gym_dirty']) expect(ls[k]).toBeUndefined()
+})
+
+it('does not merge the previous account’s workouts into an existing account', async () => {
+  await aLosesSession()
+  row = { workouts: [{ id: 'b-workout', d: '2026-10-01' }], _ts: ++clock }; puts = 0
+  await signInAs('u2')
+  expect(puts).toBe(0)
+  expect(row.workouts).toEqual([{ id: 'b-workout', d: '2026-10-01' }])
+  expect(useStore.getState().S.workouts).toEqual([{ id: 'b-workout', d: '2026-10-01' }])
+  expect(ls.gym_backup_v1).toBeUndefined()
+})
+
+it('keeps and uploads the data when the same account signs back in after a 401', async () => {
+  await aLosesSession()
+  await signInAs('u1')
+  expect(useStore.getState().S.workouts.map(w => w.id)).toEqual(['a-workout'])
+  expect(row.workouts.map(w => w.id)).toEqual(['a-workout'])
+})
+
+it('still moves true guest data into the account that signs in', async () => {
+  useStore.getState().replaceState({ ...useStore.getState().S, workouts: [{ id: 'guest' }] })
+  row = null
+  await signInAs('u2')
+  expect(row.workouts.map(w => w.id)).toEqual(['guest'])
+  expect(ls.gym_owner).toBe('u2')
+})
+
+it('tags a legacy install (synced, untagged) with its signed-in account and keeps its unsynced work', async () => {
+  row = { workouts: [], _ts: clock }
+  useStore.getState().replaceState({ ...useStore.getState().S, workouts: [{ id: 'offline' }] })
+  ls.gym_base = String(clock); ls.gym_dirty = '1'
+  sessionFor('u1')
+  await useStore.getState().boot()
+  expect(ls.gym_owner).toBe('u1')
+  expect(row.workouts.map(w => w.id)).toEqual(['offline'])
+})
+
+it('clears the owner tag and backups on sign-out', async () => {
+  row = { workouts: [], _ts: clock }
+  signedIn()
+  await useStore.getState().pullState()
+  ls.gym_backup_v1 = '{}'; ls.gym_unit_backup = '{}'
+  await useStore.getState().signOut()
+  for (const k of ['gym_owner', 'gym_backup_v1', 'gym_unit_backup', 'gym_base', 'gym_dirty']) expect(ls[k]).toBeUndefined()
+})

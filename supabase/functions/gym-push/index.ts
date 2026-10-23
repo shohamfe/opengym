@@ -1,7 +1,9 @@
 // Sends due Web Push jobs (see supabase/migrations/20261014_push.sql). pg_cron pokes it via pg_net
 // only when a job is due. Deployed with verify_jwt = false: a poke carries no input and can only make
 // this send jobs that are already due (claimed atomically, so never twice); every read and write
-// goes through service-role-only functions with the key Supabase injects here.
+// goes through service-role-only functions with the key Supabase injects here. A poke must carry
+// the x-gym-push-secret header that push_tick sends (20261023_accounts.sql); anything else gets a
+// 401 before any work, so a loop of stranger POSTs cannot drive the database.
 import webpush from 'npm:web-push@3.6.7'
 
 const URL_ = Deno.env.get('SUPABASE_URL')!
@@ -32,7 +34,13 @@ async function vapid() {
   return v as { public_key: string, private_key: string }
 }
 
-Deno.serve(async () => {
+// Read once per isolate through a service-role function, so there is no secret to paste anywhere.
+let secret: Promise<string | null> | null = null
+
+Deno.serve(async (req) => {
+  secret ||= rpc('push_secret').catch(e => { secret = null; throw e })
+  const want = await secret.catch(() => null)
+  if (!want || req.headers.get('x-gym-push-secret') !== want) return new Response('unauthorized', { status: 401 })
   const out = { sent: 0, failed: 0, gone: 0, errors: [] as string[] }
   try {
     const v = await vapid()
