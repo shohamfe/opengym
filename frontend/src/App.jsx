@@ -27,6 +27,8 @@ import Settings from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
 import Onboarding from './views/Onboarding.jsx'
 import { needsOnboarding } from './lib/profile.js'
+import ConnectAI from './views/ConnectAI.jsx'
+import Consent from './views/Consent.jsx'
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
 
@@ -80,6 +82,7 @@ function Shell() {
               <Route path="/history/:id" element={<WorkoutView />} />
               <Route path="/library" element={<Library />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/connect-ai" element={<ConnectAI />} />
               <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
@@ -94,8 +97,19 @@ function Shell() {
   )
 }
 
+// The OAuth consent page is a real path (/oauth/consent, see vercel.json), not a hash route: it
+// renders on its own, without the tab bar or onboarding, and still gets theme, language and sheets.
+export const CONSENT = location.pathname === '/oauth/consent'
+function ConsentShell() {
+  const S = useStore(s => s.S)
+  useLang()
+  useEffect(() => { applyPrefs(S.theme, S.accent) }, [S.theme, S.accent])
+  useEffect(() => { setLang(S.lang || 'en') }, [S.lang])
+  return <><ErrorBoundary><Consent /></ErrorBoundary><Modals /><Toast /></>
+}
+
 export default function App() {
   const boot = useStore(s => s.boot)
   useEffect(() => { boot() }, [boot])
-  return <HashRouter><Shell /></HashRouter>
+  return CONSENT ? <ConsentShell /> : <HashRouter><Shell /></HashRouter>
 }
