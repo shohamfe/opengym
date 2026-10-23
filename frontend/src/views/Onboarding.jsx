@@ -32,7 +32,7 @@ export const CLEARANCE = () => [
 ]
 const CLEAR_NOTE = {
   limits: 'Follow your provider’s limits. Badges are general guidance.',
-  notyet: 'Not cleared yet. Ask your doctor or midwife at your next visit. Until then: good picks, light effort.',
+  notyet: 'Not cleared yet. Ask your doctor or midwife at your next visit. Until then: Good picks, light effort.',
 }
 
 // Due date (or weeks, as an input method only), clearance and twins. `p` is the

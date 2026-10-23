@@ -99,7 +99,7 @@ export function PregLine({ ask }) {
     {pr.clear !== 'yes' && <button className="progline warn pgline" onClick={() => pregnancySheet(null, 'before')}>
       <Icon name="heart" /><span>{pr.clear === 'notyet'
         ? t('Not cleared yet. Ask your doctor or midwife at your next visit. Until then: Good picks, light effort.')
-        : t("Follow your provider's limits. Badges are general guidance.")}</span>
+        : t('Follow your provider’s limits. Badges are general guidance.')}</span>
     </button>}
   </>
 }
