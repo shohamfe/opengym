@@ -213,7 +213,7 @@ function CheckRow({ row, v, st, set }) {
           </div>)}
         </div>}
         {lab === 'avoid' && !v.keep && <div className="exnote" role="alert" style={{ marginTop: 8, borderLeft: '3px solid var(--red)', color: 'var(--label)' }}>
-          <span className="capitalize">{EXIDX[id]?.n}</span>: {t('Usually avoided in pregnancy')}{reasonOf(id, st) ? ': ' + reasonOf(id, st) : ''}
+          <span className="capitalize">{EXIDX[id]?.n}</span>: {t('Usually avoided in pregnancy')}{reasonOf(id, st) ? ': ' + t(reasonOf(id, st)) : ''}
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
             <Button size="sm" variant="tinted" icon="shuffle" onClick={swap}>{t('Swap')}</Button>
             <Button size="sm" variant="tinted" onClick={() => set({ id, keep: true })}>{t('Keep')}</Button>

@@ -900,15 +900,14 @@ function StartWarning({ rid, close }) {
     }, { like: old, good: true })
   }
   return <>
-    <h3>{bad.length === 1 ? t('1 exercise is usually avoided now') : t('{0} exercises are usually avoided now', bad.length)}</h3>
-    <div className="list" style={{ marginBottom: 12 }}>
+    <h3>{!bad.length ? t('All set.') : bad.length === 1 ? t('1 exercise is usually avoided now') : t('{0} exercises are usually avoided now', bad.length)}</h3>
+    {bad.length > 0 && <div className="list" style={{ marginBottom: 12 }}>
       {bad.map(({ e, i }) => { const ex = EXIDX[e.id]; return <div key={i} className="item" style={{ minHeight: 56 }}>
         <Thumb ex={ex} />
         <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{t(reasonOf(e.id, st))}</div></div>
         <Button size="sm" variant="tinted" style={{ width: 'auto', flex: 'none' }} onClick={() => swap(i, ex)}>{t('Swap')}</Button>
       </div> })}
-      {!bad.length && <div className="empty">{t('All set.')}</div>}
-    </div>
+    </div>}
     <div className="sheet-foot">
       <Button variant="primary" onClick={() => { close(); startFlow(rid, true) }}>{bad.length ? t('Start anyway') : t('Start {0}', r.name)}</Button>
       <div style={{ height: 8 }} />

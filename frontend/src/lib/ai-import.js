@@ -59,12 +59,12 @@ const ALIASES_RAW = {
 // Only aliases whose id exists, so a dataset change can't route a name to a blank row.
 const ALIASES = Object.fromEntries(Object.entries(ALIASES_RAW).filter(([, id]) => EXIDX[id]).map(([k, id]) => [norm(k), id]))
 
-const isFemaleDup = e => /\(female\)/.test(e.n)
 let NAME_IDX = null
 function nameIndex() {
   if (!NAME_IDX) {
     NAME_IDX = new Map()
-    EXDB.forEach(e => { if (!isFemaleDup(e)) { const k = norm(e.n); NAME_IDX.set(k, [...(NAME_IDX.get(k) || []), e.id]) } })
+    // EXDB already leaves out the female picture variants (lib/exercises.js)
+    EXDB.forEach(e => { const k = norm(e.n); NAME_IDX.set(k, [...(NAME_IDX.get(k) || []), e.id]) })
   }
   return NAME_IDX
 }
@@ -100,7 +100,7 @@ function lev(a, b) {
 // Top 3 library/custom ids for a name nothing matched exactly (spec matching row 5).
 export function fuzzy(k, S, n = 3) {
   if (!k) return []
-  return [...customs(S), ...EXDB.filter(e => !isFemaleDup(e))]
+  return [...customs(S), ...EXDB]
     .map(e => {
       const en = norm(e.n)
       const eq = e.eq && e.eq !== 'custom' ? norm(e.eq) : ''
@@ -336,7 +336,6 @@ export function catalogue(S, cap, preg) {
   const keep = new Set((S.routines || []).flatMap(r => (r.ex || []).map(e => e.id)))
   const groups = {}
   EXDB.forEach(e => {
-    if (isFemaleDup(e)) return
     const lab = preg ? labelOf(e.id, S) : null
     if (lab === 'avoid' && !keep.has(e.id)) return
     const g = e.tg || e.bp
