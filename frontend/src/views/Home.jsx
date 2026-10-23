@@ -75,7 +75,7 @@ export default function Home() {
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
 
   return <div className="narrow">
-    <div className="hdr">
+    <div className="hdr home-hdr">
       <div><h1>{user || S.profile ? greeting(today, S.profile?.name || user?.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>

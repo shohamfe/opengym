@@ -196,6 +196,9 @@ body:has(.onb-foot) #toast{bottom:calc(96px + var(--sab))}   /* clear of the onb
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
 .hdr:has(>.iconbtn:first-child){align-items:center}   /* back button sits beside the title block, not at its baseline */
 .hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
+.hdr.home-hdr{align-items:flex-start}
+.hdr.home-hdr h1{font-size:26px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr.home-hdr>div:first-child{min-width:0}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
 .hdr-sub{color:var(--label-2);font-size:15px;line-height:1.4;letter-spacing:-.006em;margin:0 0 20px}   /* subtitle under a back-button header */
 
@@ -411,7 +414,8 @@ h4.sec{
 .item .ss .tag.pg{margin-right:6px}
 /* the badge and "abs · band" each wrap as a whole, so a narrow row never splits "abs ·" from its equipment */
 .item .ss:has(> .tag.pg){display:flex;flex-wrap:wrap;align-items:center;row-gap:3px}
-button.pgbtn{min-height:40px;padding:3px 10px}
+button.pgbtn{position:relative;border:0;font:inherit;font-size:12px;font-weight:500}   /* looks like the tags beside it */
+button.pgbtn::after{content:'';position:absolute;inset:-10px -4px}   /* 40px hit area */
 .seg.pgseg{margin-top:10px}
 .exnote.pgnote{border-left:3px solid var(--orange-t)}
 .exnote.pgnote.avoid{border-color:var(--red-t)}
