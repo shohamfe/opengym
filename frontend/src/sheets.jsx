@@ -324,7 +324,8 @@ function ExerciseDetail({ ex, close }) {
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
     </div>}
-    {!isCardio(ex) && <OneRM ex={ex} />}
+    {/* pregnancy: no max-strength estimates (coach: no maximal efforts) */}
+    {!isCardio(ex) && !pregOf(st) && <OneRM ex={ex} />}
     {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
   </>
 }
@@ -467,7 +468,7 @@ function ExercisePicker({ onPick: pick, close, like, good, query }) {
   const f = eqOn ? base.filter(e => e.eq === eqOn) : base
   const chosenCount = Object.keys(usage).length
   return <>
-    <h3>{like ? t('Swap {0}', like.n) : t('Add exercise')}</h3>
+    <h3>{like ? t('Swap {0}', like.n.replace(/(^|\s)\S/g, c => c.toUpperCase())) : t('Add exercise')}</h3>
     <div className="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onChange={e => { setQ(e.target.value); setShown(50) }} /></div>
     {preg && <Segmented className="pgseg" value={pg} onChange={v => { setPg(v); setShown(50) }}
@@ -904,8 +905,9 @@ function StartWarning({ rid, close }) {
     {bad.length > 0 && <div className="list" style={{ marginBottom: 12 }}>
       {bad.map(({ e, i }) => { const ex = EXIDX[e.id]; return <div key={i} className="item" style={{ minHeight: 56 }}>
         <Thumb ex={ex} />
-        <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{t(reasonOf(e.id, st))}</div></div>
-        <Button size="sm" variant="tinted" style={{ width: 'auto', flex: 'none' }} onClick={() => swap(i, ex)}>{t('Swap')}</Button>
+        {/* Swap sits under the reason: beside it, the reason was squeezed to ~4 words a line at 320px */}
+        <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{t(reasonOf(e.id, st))}</div>
+          <Button size="sm" variant="tinted" icon="shuffle" style={{ width: 'auto', marginTop: 8 }} onClick={() => swap(i, ex)}>{t('Swap')}</Button></div>
       </div> })}
     </div>}
     <div className="sheet-foot">

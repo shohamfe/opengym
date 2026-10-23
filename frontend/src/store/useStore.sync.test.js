@@ -150,8 +150,10 @@ const signInAs = async id => { sessionFor(id); useStore.getState().setUser({ id,
 
 it('does not upload the previous account’s data into a new account with no row', async () => {
   await aLosesSession()
+  expect(useStore.getState().canGuest()).toBe(false)   // A's data is on the phone: no guest way in
   row = null; puts = 0
-  sessionFor('u2'); useStore.getState().setUser({ id: 'u2', name: 'u2', admin: false })
+  sessionFor('u2')
+  expect(useStore.getState().setUser({ id: 'u2', name: 'u2', admin: false })).toBe(true)   // A's unsynced edits went: say so
   expect(useStore.getState().synced).toBe(false)   // onboarding waits for B's own pull
   await useStore.getState().pullState()
   expect(puts).toBe(0)
@@ -174,6 +176,8 @@ it('does not merge the previous account’s workouts into an existing account', 
 
 it('keeps and uploads the data when the same account signs back in after a 401', async () => {
   await aLosesSession()
+  sessionFor('u1')
+  expect(useStore.getState().setUser({ id: 'u1', name: 'u1', admin: false })).toBe(false)   // nothing lost
   await signInAs('u1')
   expect(useStore.getState().S.workouts.map(w => w.id)).toEqual(['a-workout'])
   expect(row.workouts.map(w => w.id)).toEqual(['a-workout'])
@@ -202,6 +206,8 @@ it('clears the owner tag and backups on sign-out', async () => {
   signedIn()
   await useStore.getState().pullState()
   ls.gym_backup_v1 = '{}'; ls.gym_unit_backup = '{}'
+  expect(useStore.getState().canGuest()).toBe(false)
   await useStore.getState().signOut()
   for (const k of ['gym_owner', 'gym_backup_v1', 'gym_unit_backup', 'gym_base', 'gym_dirty']) expect(ls[k]).toBeUndefined()
+  expect(useStore.getState().canGuest()).toBe(true)   // a clean phone offers guest mode again
 })

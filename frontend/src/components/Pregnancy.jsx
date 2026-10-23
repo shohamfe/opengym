@@ -36,7 +36,7 @@ const NOGO = [
   'Placenta lying low after 26 weeks', 'Pre-eclampsia or high blood pressure', 'A weak cervix or a stitch (cerclage)',
   'Baby not growing as expected', 'Serious heart or lung disease, or uncontrolled diabetes or thyroid disease'
 ]
-const TRI = { 1: '1st trimester', 2: '2nd trimester', 3: '3rd trimester' }
+export const TRI = { 1: '1st trimester', 2: '2nd trimester', 3: '3rd trimester' }
 
 function PregnancySheet({ ex, at }) {
   const S = useStore(s => s.S)

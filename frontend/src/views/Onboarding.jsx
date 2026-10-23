@@ -7,9 +7,10 @@ import { t } from '../lib/i18n.js'
 import { lastBW } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { convertState } from '../lib/units.js'
-import { dueRange, dueValid, dueFromWeeks, weeksOf, cmToFtIn, ftInToCm } from '../lib/profile.js'
+import { dueRange, dueValid, dueFromWeeks, weeksOf, cmToFtIn, ftInToCm, nameFromEmail } from '../lib/profile.js'
 import { WeightInput, loadStarterPlan, loadPregnancyStarter, openPlanFile } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import { TRI } from '../components/Pregnancy.jsx'
 import { Section, Row, Segmented, Switch, Button, TextField, Stepper, NumberField } from '../components/ui.jsx'
 
 // Single-select list of big rows (56px) with a check on the chosen one.
@@ -21,9 +22,9 @@ export function Choice({ options, value, onChange }) {
 }
 
 export const TRAINING = () => [
-  { value: 'none', label: t('New to it') },
-  { value: 'some', label: t('Some (cardio or < 1 year lifting)') },
-  { value: 'regular', label: t('Regular strength training') },
+  { value: 'none', label: t('New to it'), short: t('New') },
+  { value: 'some', label: t('Some (cardio or < 1 year lifting)'), short: t('Some') },
+  { value: 'regular', label: t('Regular strength training'), short: t('Regular') },
 ]
 export const CLEARANCE = () => [
   { value: 'yes', label: t('Yes, my doctor or midwife said exercise is OK') },
@@ -43,7 +44,7 @@ export function PregFields({ p, onChange }) {
   const ok = dueValid(p.due)
   const wk = ok ? weeksOf(p.due) : null
   return <>
-    <Section title={t('Due date')} footer={ok ? t('Week {0} · trimester {1}', Math.max(0, wk), wk < 14 ? 1 : wk < 28 ? 2 : 3) : null}>
+    <Section footer={ok ? t('Week {0} · {1}', Math.max(0, wk), t(TRI[wk < 14 ? 1 : wk < 28 ? 2 : 3])) : null}>
       {byWeeks
         ? <Row icon="calendar" iconTint="var(--pink)" title={t('Weeks pregnant')}>
             <Stepper value={ok ? Math.max(0, Math.min(42, wk)) : 20} decimal={false}
@@ -84,9 +85,8 @@ export default function Onboarding() {
   const update = useStore(s => s.update)
   const fileRef = useRef(null)
   const existing = !!(S.routines.length || S.workouts.length)   // Shoham: already has a plan
-  const emailName = (user?.name || '').split('@')[0]
   const [d, setD] = useState(() => ({
-    name: emailName ? emailName[0].toUpperCase() + emailName.slice(1) : '',
+    name: nameFromEmail(user?.name),
     sex: null, pregAns: null, preg: { due: '', clear: null, clearAt: null, twins: null },
     unit: S.unit, weight: null, heightCm: null, exp: null,
   }))

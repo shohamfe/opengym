@@ -11,6 +11,9 @@ import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { PgBadge } from '../components/Pregnancy.jsx'
 
+// Only exercises that actually have a picture to play (the pregnancy built-ins partly don't).
+const ANIMATED = EXDB.filter(e => e.gif || e.wg).length
+
 export default function Library() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
@@ -26,7 +29,7 @@ export default function Library() {
   const f = eqOn ? base.filter(e => e.eq === eqOn) : base
 
   return <>
-    <div className="hdr"><div><h1>{t('Exercises')}</h1><div className="sub">{t('{0} exercises with animations', EXDB.length)}</div></div>
+    <div className="hdr"><div><h1>{t('Exercises')}</h1><div className="sub">{t('{0} exercises with animations', ANIMATED)}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button></div>
     <div className="search" style={{ marginBottom: 10 }}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" autoCorrect="off" autoCapitalize="off" spellCheck={false} placeholder={t('Search…')} value={q} onChange={e => { setQ(e.target.value); setShown(40) }} /></div>

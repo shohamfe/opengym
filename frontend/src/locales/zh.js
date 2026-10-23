@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': '是的，但有一些限制',
   'Not yet': '还没有',
   'Due date': '预产期',
-  'Week {0} · trimester {1}': '第 {0} 周 · 孕{1}期',
   'Weeks pregnant': '怀孕周数',
   'Pick a date between two weeks ago and 40 weeks from now.': '请选择两周前到 40 周后之间的日期。',
   'Don’t know the date? Enter weeks instead': '不知道日期？改为输入周数',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': '在 Apps 中选择 Create app。名称：openGym。MCP server URL：粘贴链接。Authentication：OAuth。勾选“I trust this application”，然后点 Create。',
   'In a chat, choose + → Developer mode → openGym, then ask.': '在对话中选择 + → Developer mode → openGym，然后提问。',
   'AI': 'AI',
+  // polish pass
+  "Some": "一些",
+  "Regular": "规律",
+  "Unsynced changes from the previous account were removed from this phone.": "上一个账户未同步的更改已从此手机中删除。",
 }

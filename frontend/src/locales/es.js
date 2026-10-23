@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': 'Sí, con algunos límites',
   'Not yet': 'Todavía no',
   'Due date': 'Fecha prevista de parto',
-  'Week {0} · trimester {1}': 'Semana {0} · trimestre {1}',
   'Weeks pregnant': 'Semanas de embarazo',
   'Pick a date between two weeks ago and 40 weeks from now.': 'Elige una fecha entre hace dos semanas y dentro de 40 semanas.',
   'Don’t know the date? Enter weeks instead': '¿No sabes la fecha? Introduce las semanas',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': 'En Apps, elige Create app. Nombre: openGym. MCP server URL: pega el enlace. Authentication: OAuth. Marca «I trust this application» y luego Create.',
   'In a chat, choose + → Developer mode → openGym, then ask.': 'En un chat, elige + → Developer mode → openGym y pregunta.',
   'AI': 'IA',
+  // polish pass
+  "Some": "Algo",
+  "Regular": "Regular",
+  "Unsynced changes from the previous account were removed from this phone.": "Se eliminaron de este teléfono los cambios sin sincronizar de la cuenta anterior.",
 }

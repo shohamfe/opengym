@@ -72,8 +72,9 @@ export function EmailSignInSheet({ close, start = 'in' }) {
       const c = normCode(code)
       const u = mode === 'join' ? await signUp(m, pw, c) : mode === 'reset' ? await resetPassword(m, c, pw) : await pwSignIn(m, pw)
       localStorage.setItem('gym_email', m)
-      setUser(u); close()
-      toast(mode === 'join' ? t('Welcome to openGym!') : t('Signed in — syncing your workouts.'))
+      const lost = setUser(u); close()
+      toast(lost ? t('Unsynced changes from the previous account were removed from this phone.')
+        : mode === 'join' ? t('Welcome to openGym!') : t('Signed in — syncing your workouts.'))
       await pullState()
     } catch (e) {
       setBusy(false)
@@ -111,7 +112,8 @@ export function EmailSignInSheet({ close, start = 'in' }) {
 }
 
 export default function Login() {
-  const { setUser, pullState, setGuest } = useStore()
+  const { setUser, pullState, setGuest, canGuest } = useStore()
+  const guest = canGuest()   // false while the phone holds a signed-out account's data
   const signIn = async () => {
     try { const u = await passkeyLogin(); setUser(u); await pullState(); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
     catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(e.message || t('Sign-in failed')) }
@@ -152,9 +154,9 @@ export default function Login() {
         <Button icon="sparkles" onClick={() => useUI.getState().openSheet(close => <RegisterSheet close={close} />)}>{t('Create new profile')}</Button>
         <div style={{ height: 10 }} />
       </> : <div className="card small muted" style={{ textAlign: 'left' }}>{t("This browser doesn't support passkeys — you can still use openGym locally on this device.")}</div>}
-      <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>
+      {guest && <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>}
       {SUPABASE
-        ? <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('openGym is invite-only. Ask Shoham for a code.')}<br />{t('Without an account, data stays on this phone.')}</div>
+        ? <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('openGym is invite-only. Ask Shoham for a code.')}{guest && <><br />{t('Without an account, data stays on this phone.')}</>}</div>
         : <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Passkeys use {0} — no passwords.', BIO)}<br />{t('Each profile keeps its own plan, workouts & body weight.')}</div>}
     </div>
   )

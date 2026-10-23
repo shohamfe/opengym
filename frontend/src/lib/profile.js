@@ -11,8 +11,16 @@ export const bodyOf = S => S.bodyPick ||
   (S.profile ? (isFemale(S) ? 'female' : 'male') : (S.body === 'female' ? 'female' : 'male'))
 
 // Onboarding only once the server copy is known (a fresh phone must not re-onboard an account
-// whose profile simply hasn't arrived yet), and only for a signed-in account.
-export const needsOnboarding = ({ user, synced, S }) => !!user && !!synced && !S.profile
+// whose profile simply hasn't arrived yet), only for a signed-in account, and never over a
+// workout in progress (a late first pull must not swap the live session for the stepper).
+export const needsOnboarding = ({ user, synced, S }) => !!user && !!synced && !S.profile && !S.active
+
+// Onboarding's name prefill: the letters before the first dot, digit or other symbol of the
+// email's local part, capitalised ("shoham.fe@…" → "Shoham"); '' when that leaves under 2 letters.
+export const nameFromEmail = email => {
+  const m = String(email || '').split('@')[0].match(/^\p{L}{2,}/u)
+  return m ? m[0][0].toUpperCase() + m[0].slice(1).toLowerCase() : ''
+}
 
 // Due-date math in local time: a date string is read at local noon, never as UTC midnight.
 const DAY = 86400000

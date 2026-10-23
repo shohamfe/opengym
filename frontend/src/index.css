@@ -188,6 +188,7 @@ body.notabs #timer{bottom:calc(12px + var(--sab))}
 body.notabs #toast{bottom:calc(24px + var(--sab))}
 body.resting #toast{bottom:calc(170px + var(--sab))}
 body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
+body:has(.onb-foot) #toast{bottom:calc(96px + var(--sab))}   /* clear of the onboarding Continue */
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
@@ -196,6 +197,7 @@ body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
 .hdr:has(>.iconbtn:first-child){align-items:center}   /* back button sits beside the title block, not at its baseline */
 .hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
+.hdr-sub{color:var(--label-2);font-size:15px;line-height:1.4;letter-spacing:-.006em;margin:0 0 20px}   /* subtitle under a back-button header */
 
 .iconbtn{
   width:40px;height:40px;border-radius:50%;flex:none;
@@ -407,6 +409,8 @@ h4.sec{
 .tag.pg.care{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange-t)}
 .tag.pg.good{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-t)}
 .item .ss .tag.pg{margin-right:6px}
+/* the badge and "abs · band" each wrap as a whole, so a narrow row never splits "abs ·" from its equipment */
+.item .ss:has(> .tag.pg){display:flex;flex-wrap:wrap;align-items:center;row-gap:3px}
 button.pgbtn{min-height:40px;padding:3px 10px}
 .seg.pgseg{margin-top:10px}
 .exnote.pgnote{border-left:3px solid var(--orange-t)}
@@ -858,6 +862,8 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .bw-read{display:flex;align-items:baseline;justify-content:center}
 .bw-read .bw-num{width:5.4ch;background:none;border:none;outline:none;padding:0;color:var(--label);font:inherit;letter-spacing:inherit;text-align:center}
 .bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em}
+/* 320px: 46+52px readout+46 overflowed and the unit slid under the + button */
+@media (max-width:359px){.bwstep{gap:8px}.bw-read{font-size:44px;min-width:0}}
 .bwin{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:16px 0}
 .bwin input{
   width:150px;background:none;border:none;outline:none;text-align:right;

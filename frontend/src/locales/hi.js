@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': 'हाँ, कुछ सीमाओं के साथ',
   'Not yet': 'अभी नहीं',
   'Due date': 'डिलीवरी की संभावित तारीख',
-  'Week {0} · trimester {1}': 'सप्ताह {0} · तिमाही {1}',
   'Weeks pregnant': 'गर्भावस्था के सप्ताह',
   'Pick a date between two weeks ago and 40 weeks from now.': 'दो सप्ताह पहले से 40 सप्ताह बाद तक की तारीख चुनें।',
   'Don’t know the date? Enter weeks instead': 'तारीख नहीं पता? सप्ताह दर्ज करें',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': 'Apps में Create app चुनें। नाम: openGym. MCP server URL: लिंक पेस्ट करें। Authentication: OAuth. “I trust this application” पर टिक करें, फिर Create.',
   'In a chat, choose + → Developer mode → openGym, then ask.': 'किसी चैट में + → Developer mode → openGym चुनें, फिर पूछें।',
   'AI': 'AI',
+  // polish pass
+  "Some": "थोड़ा",
+  "Regular": "नियमित",
+  "Unsynced changes from the previous account were removed from this phone.": "पिछले खाते के बिना सिंक हुए बदलाव इस फ़ोन से हटा दिए गए।",
 }

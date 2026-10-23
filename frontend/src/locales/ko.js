@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': '네, 몇 가지 제한이 있어요',
   'Not yet': '아직이요',
   'Due date': '출산 예정일',
-  'Week {0} · trimester {1}': '{0}주 · {1}분기',
   'Weeks pregnant': '임신 주수',
   'Pick a date between two weeks ago and 40 weeks from now.': '2주 전부터 40주 후 사이의 날짜를 고르세요.',
   'Don’t know the date? Enter weeks instead': '날짜를 모르나요? 주수로 입력하기',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': 'Apps에서 Create app을 선택하세요. 이름: openGym. MCP server URL: 링크 붙여넣기. Authentication: OAuth. “I trust this application”을 체크한 뒤 Create를 누르세요.',
   'In a chat, choose + → Developer mode → openGym, then ask.': '채팅에서 + → Developer mode → openGym을 선택한 뒤 질문하세요.',
   'AI': 'AI',
+  // polish pass
+  "Some": "조금",
+  "Regular": "꾸준히",
+  "Unsynced changes from the previous account were removed from this phone.": "이전 계정의 동기화되지 않은 변경 사항이 이 휴대폰에서 삭제되었습니다.",
 }

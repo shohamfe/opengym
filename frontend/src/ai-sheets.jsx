@@ -195,7 +195,7 @@ function CheckRow({ row, v, st, set }) {
 
   return <div style={{ marginBottom: 16 }}>
     <div className="row between" style={{ gap: 8, marginBottom: 6, alignItems: 'baseline' }}>
-      <div className="tt" style={{ textDecoration: row.how === 'mismatch' ? 'line-through' : 'none', minWidth: 0, overflowWrap: 'anywhere' }}>{name}</div>
+      <div className="tt capitalize" style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{name}</div>
       {v === 'skip' && <span className="tag nocap">{t('Skipped')}</span>}
     </div>
     {v === 'skip'
@@ -221,11 +221,11 @@ function CheckRow({ row, v, st, set }) {
           </div>
         </div>}
         {lab === 'avoid' && v.keep && <div className="small" style={{ color: 'var(--label-2)', marginTop: 6 }}>{t('Kept: usually avoided in pregnancy.')}</div>}
-        {lab === 'caution' && <span className="tag nocap" style={{ color: 'var(--orange-t)', marginTop: 6 }}>{t('Take care')}</span>}
+        {lab === 'caution' && <div style={{ marginTop: 6 }}><span className="tag pg care"><Icon name="warn" />{t('Take care')}</span></div>}
         {row.status !== 'ok' && row.status !== 'avoid' && <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           <Button size="sm" variant="tinted" icon="magnifier" style={{ width: 'auto' }} onClick={search}>{t('Search library…')}</Button>
           {row.ai.name && <Button size="sm" variant="tinted" icon="plus" style={{ width: 'auto' }} onClick={custom}>{t('Create custom “{0}”', row.ai.name)}</Button>}
-          <Button size="sm" variant="tinted" style={{ width: 'auto' }} onClick={() => set('skip')}>{t('Skip this exercise')}</Button>
+          <Button size="sm" variant="ghost" style={{ width: 'auto' }} onClick={() => set('skip')}>{t('Skip this exercise')}</Button>
         </div>}
       </>}
   </div>

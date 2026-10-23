@@ -13,6 +13,7 @@ import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { isWork } from '../lib/tech.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
 import { bodyOf } from '../lib/profile.js'
+import { pregOf } from '../lib/pregnancy.js'
 import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
@@ -177,7 +178,7 @@ export default function Stats() {
   // work simply have no points and the toggle stays hidden.
   const e1Pts = curEx ? e1rmSeries(S, curEx) : []
   const e1Best = curEx ? best1RM(S, curEx) : null
-  const showE1 = e1Pts.length > 0
+  const showE1 = e1Pts.length > 0 && !pregOf(S)   // no max estimates in pregnancy
   // Effort on this exercise, per session. It rides on the top-set curve as well as having a
   // curve of its own, because the two only mean something together: the same weight moved
   // with more left in the tank is progress a weight-only chart draws as a flat line.

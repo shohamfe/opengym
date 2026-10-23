@@ -39,15 +39,15 @@ export default function ConnectAI() {
   const copy = () => navigator.clipboard?.writeText(MCP_URL).then(() => toast(t('Link copied')), () => toast(MCP_URL))
   const ready = SUPABASE && user
   return <div className="narrow">
-    <div className="hdr"><button className="iconbtn" onClick={() => back('/settings')} aria-label={t('Settings')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, marginLeft: 12 }}><h1>{t('Connect your AI')}</h1>
-        <div className="sub">{t('Let Claude or ChatGPT read your plan and build routines for you.')}</div></div></div>
+    <div className="hdr wv-hdr" style={{ marginBottom: 6 }}><button className="iconbtn" onClick={() => back('/settings')} aria-label={t('Settings')}><Icon name="chevronLeft" /></button>
+      <h1 style={{ flex: 1 }}>{t('Connect your AI')}</h1></div>
+    <div className="hdr-sub">{t('Let Claude or ChatGPT read your plan and build routines for you.')}</div>
 
     {!ready ? <Section><Row icon="lock" iconTint="var(--grey)" title={t('Sign in with email to connect an AI app.')} /></Section> : <>
       <Section title={t('Your connector link')} footer={t('Works with the free Claude plan. ChatGPT needs a paid plan and only works on chatgpt.com on a computer. Any other AI: use Copy prompt.')}>
-        <Row icon="link" iconTint="var(--acc)" title={<span style={{ wordBreak: 'break-all', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{MCP_URL}</span>}>
-          <Button size="sm" variant="tinted" onClick={copy}>{t('Copy link')}</Button>
-        </Row>
+        {/* the link gets the full row width (it wrapped 4 lines beside the button at 320px) */}
+        <Row icon="link" iconTint="var(--acc)" title={<span style={{ wordBreak: 'break-all', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{MCP_URL}</span>} />
+        <Row icon="clipboard" iconTint="var(--blue)" title={<span className="accent">{t('Copy link')}</span>} onClick={copy} />
       </Section>
 
       <Section title={t('Claude (free plan works)')} footer={t('The free plan allows one custom connector. If yours is taken, remove the other one first.')}>

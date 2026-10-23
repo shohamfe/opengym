@@ -36,7 +36,7 @@ export function MembersCard() {
   const resetFor = m => confirmSheet({
     title: t('Make a reset code?'), message: t('For {0}. They enter it under “Forgot password?” to choose a new password.', m.email), confirmText: t('Make code'),
     onConfirm: () => accountRpc('gym_reset_mint', { user_id: m.user_id })
-      .then(code => useUI.getState().openSheet(() => <CodeSheet code={code} note={t('Shown once. Works once, for one hour.')}
+      .then(code => useUI.getState().openSheet(() => <CodeSheet code={code} title={t('Reset code')} who={m.email} note={t('Shown once. Works once, for one hour.')}
         share={t('Your openGym reset code: {0}. Open {1}, tap Sign in, then “Forgot password?”.', fmtCode(code), location.origin)} />),
       () => toast(t('Could not make a reset code.')))
   })
@@ -68,7 +68,7 @@ function InviteSheet({ close, onMade }) {
     catch (e) { toast(t('Could not create the invite.')) }
     setBusy(false)
   }
-  if (code) return <CodeSheet code={code} note={t('Shown once. Expires in 7 days.')}
+  if (code) return <CodeSheet code={code} title={t('Invite code')} who={note.trim() || email.trim()} note={t('Shown once. Expires in 7 days.')}
     share={t('Your openGym invite: {0}. Open {1} and tap “I have an invite code”.', fmtCode(code), location.origin)} />
   return <>
     <h3>{t('Create invite code')}</h3>
@@ -83,10 +83,12 @@ function InviteSheet({ close, onMade }) {
   </>
 }
 
-function CodeSheet({ code, note, share }) {
+function CodeSheet({ code, title, who, note, share }) {
   const c = fmtCode(code)
   const copy = () => navigator.clipboard?.writeText(c).then(() => toast(t('Copied')), () => toast(c))
   return <div style={{ textAlign: 'center' }}>
+    <h3 style={{ marginBottom: 2 }}>{title}</h3>
+    {who && <div className="muted small" style={{ overflowWrap: 'anywhere' }}>{who}</div>}
     <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '.08em', margin: '8px 0 14px', userSelect: 'all', overflowWrap: 'anywhere' }}>{c}</div>
     <Button variant="primary" icon="clipboard" onClick={copy}>{t('Copy')}</Button>
     {navigator.share && <><div style={{ height: 8 }} />

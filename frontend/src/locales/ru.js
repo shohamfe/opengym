@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': 'Да, с некоторыми ограничениями',
   'Not yet': 'Пока нет',
   'Due date': 'Предполагаемая дата родов',
-  'Week {0} · trimester {1}': 'Неделя {0} · триместр {1}',
   'Weeks pregnant': 'Недель беременности',
   'Pick a date between two weeks ago and 40 weeks from now.': 'Выберите дату от двух недель назад до 40 недель вперёд.',
   'Don’t know the date? Enter weeks instead': 'Не знаете дату? Введите недели',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': 'В Apps выберите Create app. Name: openGym. MCP server URL: вставьте ссылку. Authentication: OAuth. Отметьте «I trust this application», затем Create.',
   'In a chat, choose + → Developer mode → openGym, then ask.': 'В чате выберите + → Developer mode → openGym и задайте вопрос.',
   'AI': 'ИИ',
+  // polish pass
+  "Some": "Немного",
+  "Regular": "Регулярно",
+  "Unsynced changes from the previous account were removed from this phone.": "Несинхронизированные изменения предыдущего аккаунта удалены с этого телефона.",
 }

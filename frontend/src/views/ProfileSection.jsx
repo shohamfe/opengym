@@ -34,7 +34,7 @@ export default function ProfileSection() {
     <Row icon="target" iconTint="var(--purple)" title={t('Height')} value={heightTxt} accessory="chevron"
       onClick={() => ui().openSheet(close => <HeightSheet close={close} cm={P.heightCm} unit={S.unit} />)} />
     <SelectRow icon="barbell" iconTint="var(--orange)" title={t('Training')} value={P.exp} onChange={v => setP({ exp: v })}
-      options={TRAINING()} />
+      options={TRAINING()} empty={t('Not set')} />
     {P.sex === 'female' && <Row icon="heart" iconTint="var(--pink)" title={t('Pregnancy')} accessory="chevron"
       value={wk != null ? t('Week {0}', Math.max(0, wk)) : t('Off')}
       onClick={() => ui().openSheet(close => <PregSheet close={close} preg={P.preg} />)} />}

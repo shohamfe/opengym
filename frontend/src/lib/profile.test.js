@@ -1,5 +1,5 @@
 import { it, expect, describe } from 'vitest'
-import { isFemale, bodyOf, needsOnboarding, dueRange, dueValid, dueFromWeeks, weeksOf, cmToFtIn, ftInToCm } from './profile.js'
+import { isFemale, bodyOf, needsOnboarding, nameFromEmail, dueRange, dueValid, dueFromWeeks, weeksOf, cmToFtIn, ftInToCm } from './profile.js'
 import { EXDB, EXIDX, FEMALE_OF, mediaOf } from './exercises.js'
 
 const F = { profile: { sex: 'female' } }
@@ -22,12 +22,23 @@ describe('profile', () => {
     expect(bodyOf({ profile: null, bodyPick: null, body: 'female' })).toBe('female')
     expect(bodyOf({ profile: null, bodyPick: null, body: 'male' })).toBe('male')
   })
+  it('nameFromEmail keeps the letters before the first dot or digit, or gives up', () => {
+    expect(nameFromEmail('shoham.fe@gmail.com')).toBe('Shoham')
+    expect(nameFromEmail('sis@example.com')).toBe('Sis')
+    expect(nameFromEmail('DANA_k@x.io')).toBe('Dana')
+    expect(nameFromEmail('maya92@x.io')).toBe('Maya')
+    expect(nameFromEmail('j.doe@x.io')).toBe('')
+    expect(nameFromEmail('123@x.io')).toBe('')
+    expect(nameFromEmail(null)).toBe('')
+  })
   it('onboarding waits for the first sync and a missing profile', () => {
     const u = { id: 'u1' }
     expect(needsOnboarding({ user: u, synced: false, S: { profile: null } })).toBe(false)
     expect(needsOnboarding({ user: null, synced: true, S: { profile: null } })).toBe(false)
     expect(needsOnboarding({ user: u, synced: true, S: { profile: { name: 'a' } } })).toBe(false)
     expect(needsOnboarding({ user: u, synced: true, S: { profile: null } })).toBe(true)
+    // QA 3: a pull that lands mid-workout waits until the workout is over
+    expect(needsOnboarding({ user: u, synced: true, S: { profile: null, active: { id: 'w' } } })).toBe(false)
   })
 })
 

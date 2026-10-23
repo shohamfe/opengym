@@ -139,14 +139,23 @@ export const useStore = create((set, get) => {
         // Untagged data is claimed: shortcut: before this build only the owner could sign in, so
         // untagged synced data is the owner's or a true guest's; fine as long as this build
         // reaches every device before a second account exists.
+        // Returns true when that wipe threw away changes that never reached the server, so the
+        // caller can say so (once, without showing any of it).
         const owner = localStorage.getItem(OWNER)
+        const lost = !!owner && owner !== String(u.id) && localStorage.getItem('gym_dirty') === '1'
         if (owner && owner !== String(u.id)) { dropLocal(); disablePush().catch(() => {}) }
         localStorage.setItem(OWNER, u.id)
         localStorage.setItem('gym_user', JSON.stringify(u)); localStorage.removeItem('gym_guest')
+        set({ user: u })
+        return lost
       }
-      else localStorage.removeItem('gym_user')
-      set(u ? { user: u } : { user: u, synced: false })
+      localStorage.removeItem('gym_user')
+      set({ user: u, synced: false })
+      return false
     },
+    // "Continue without account" would open the local copy, which after a dead session is still
+    // the signed-out account's (shared phone). Only offer it when the data has no owner.
+    canGuest: () => !localStorage.getItem(OWNER),
 
     async pushState() {
       if (!get().user) return

@@ -597,7 +597,6 @@ export default {
   'Yes, with some limits': 'Evet, bazı sınırlamalarla',
   'Not yet': 'Henüz değil',
   'Due date': 'Tahmini doğum tarihi',
-  'Week {0} · trimester {1}': 'Hafta {0} · {1}. trimester',
   'Weeks pregnant': 'Gebelik haftası',
   'Pick a date between two weeks ago and 40 weeks from now.': 'İki hafta öncesi ile 40 hafta sonrası arasında bir tarih seç.',
   'Don’t know the date? Enter weeks instead': 'Tarihi bilmiyor musun? Bunun yerine haftayı gir',
@@ -902,4 +901,8 @@ export default {
   'In Apps, choose Create app. Name: openGym. MCP server URL: paste the link. Authentication: OAuth. Tick “I trust this application”, then Create.': 'Apps’te Create app’i seç. Ad: openGym. MCP server URL: bağlantıyı yapıştır. Authentication: OAuth. “I trust this application”ı işaretle, sonra Create.',
   'In a chat, choose + → Developer mode → openGym, then ask.': 'Bir sohbette + → Developer mode → openGym’i seç ve sorunu sor.',
   'AI': 'Yapay zekâ',
+  // polish pass
+  "Some": "Biraz",
+  "Regular": "Düzenli",
+  "Unsynced changes from the previous account were removed from this phone.": "Önceki hesabın eşitlenmemiş değişiklikleri bu telefondan kaldırıldı.",
 }
