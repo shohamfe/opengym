@@ -47,6 +47,8 @@
   --on-acc:#000000;
   /* amber text/ink: the raw orange/yellow fail 4.5:1 on light surfaces, so light redefines them */
   --orange-t:var(--orange); --yellow-t:var(--yellow); --on-orange:#000;
+  /* pregnancy badge ink (design.md 2.3): raw red/green fail 4.5:1 on their tint in light */
+  --red-t:#ff7a72; --green-t:#30d158;
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
@@ -84,6 +86,7 @@
   --acc-2:#248a3d;
   --on-acc:#ffffff;
   --orange-t:#6b4500; --yellow-t:#6b4500;
+  --red-t:#b3140a; --green-t:#17692c;
 }
 
 /* accents — Apple's system colours, so a recolour never looks off-system */
@@ -397,6 +400,19 @@ h4.sec{
   font-weight:500;text-transform:capitalize;
 }
 .tag.acc{background:var(--acc-soft);color:var(--acc)}
+/* pregnancy badges (design.md 2.3): the word and the glyph carry the meaning, not the colour */
+.tag.pg{text-transform:none;white-space:nowrap;vertical-align:1px}
+.tag.pg .icn{font-size:12px}
+.tag.pg.avoid{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red-t)}
+.tag.pg.care{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange-t)}
+.tag.pg.good{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-t)}
+.item .ss .tag.pg{margin-right:6px}
+button.pgbtn{min-height:40px;padding:3px 10px}
+.seg.pgseg{margin-top:10px}
+.exnote.pgnote{border-left:3px solid var(--orange-t)}
+.exnote.pgnote.avoid{border-color:var(--red-t)}
+.exnote.pgnote.good{border-color:var(--green-t)}
+.progline.warn.pgline{width:100%;text-align:start;min-height:40px;margin:0 0 12px;color:var(--orange-t)}
 
 /* ---------------------------------------------------------------- chips -- */
 /* the row scrolls under the page/sheet padding to the screen edge; the same amount as
@@ -596,6 +612,19 @@ h4.sec{
 .exmedia.mini{float:left;width:76px;height:76px;margin:0 12px 6px 0;border-radius:var(--r)}
 .exmedia.mini img{height:76px}
 .exmedia.mini::after{content:'';position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M14 4h6v6M10 20H4v-6M20 4l-6 6M4 20l6-6'/%3E%3C/svg%3E") center/10px no-repeat}
+/* Workout Guide line art: white figure on transparent, so a dark tile; inverted in light theme.
+   Three frames loop at ~1 s each (frame k shows during second k of a 3 s cycle). */
+.exmedia.wg,.thumb.wg{background:var(--surface-2)}
+/* light: the filter also inverts a thumb's own background, hence black there */
+:root[data-theme="light"] .exmedia.wg img,:root[data-theme="light"] .thumb.wg{filter:invert(1)}
+:root[data-theme="light"] .exmedia.wg{background:#fff}
+:root[data-theme="light"] .thumb.wg{background:#000}
+.wgloop{display:grid}
+.wgloop img{grid-area:1/1;opacity:0;animation:wgf 3s step-end infinite}
+.wgloop img:nth-child(2){animation-delay:-2s}
+.wgloop img:nth-child(3){animation-delay:-1s}
+@keyframes wgf{0%{opacity:1}33.33%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wgloop img{animation:none}.wgloop img:first-child{opacity:1}}
 .settable{clear:both}
 .lasttime{display:flex;align-items:center;gap:4px;width:100%;min-height:44px;margin:-8px 0 -4px;text-align:start}
 .lasttime svg{flex:none;width:14px;height:14px;opacity:.6}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS
+  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, pregnancyStep
 } from './progression.js'
 import { EXDB } from './exercises.js'
 
@@ -478,5 +478,91 @@ describe('applyPrescription', () => {
 
   it('never shrinks a session that has already logged sets', () => {
     expect(applyPrescription(sets, { kind: 'up', weight: 60, sets: 1 })).toHaveLength(sets.length)
+  })
+})
+
+describe('pregnancy gate (coach 2026-10-23 A)', () => {
+  const DAY = 86400000
+  const isoAgo = k => { const d = new Date(Date.now() - k * DAY); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  const SQUAT = '0043'          // barbell full squat: ok in every trimester, 5 kg default step
+  // rows: [weight, ...sets] where a set is reps or [reps, rir]; dated over the last few days
+  const pState = (id, rows, { tri = 2, clear = 'yes', effort = null, pre = null } = {}) => ({
+    unit: 'kg', effort,
+    profile: { sex: 'female', exp: 'regular', preg: { due: isoAgo(-(tri === 1 ? 250 : tri === 2 ? 140 : 50)), clear } },
+    workouts: [
+      ...(pre ? [{ d: '2020-01-01', entries: [{ id, target: { sets: 1, reps: 5 }, sets: [{ w: pre, r: 5, done: true }] }] }] : []),
+      ...rows.map((row, i) => ({
+        d: isoAgo(rows.length - i),
+        entries: [{ id, target: { sets: row.length - 1, reps: 5, weight: row[0] },
+          sets: row.slice(1).map(x => Array.isArray(x) ? { w: row[0], r: x[0], rir: x[1], done: true } : { w: row[0], r: x, done: true }) }]
+      }))
+    ]
+  })
+  const cfg = { id: SQUAT, sets: 3, reps: 5 }
+  const good = w => [w, 5, 5, 5]
+
+  it('male or not pregnant: unchanged (+5 after one good session)', () => {
+    const S = { ...pState(SQUAT, [good(60)]), profile: { sex: 'male' } }
+    expect(nextPrescription(S, cfg)).toMatchObject({ kind: 'up', weight: 65 })
+  })
+  it('holds until 3 good sessions at the same weight', () => {
+    const p = nextPrescription(pState(SQUAT, [good(60), good(60)]), cfg)
+    expect(p).toMatchObject({ kind: 'hold', weight: 60 })
+    expect(p.why[0]).toMatch(/3 good sessions/)
+  })
+  it('then adds the half step (5 -> 2.5 kg)', () => {
+    expect(nextPrescription(pState(SQUAT, [good(60), good(60), good(60)]), cfg)).toMatchObject({ kind: 'up', weight: 62.5 })
+  })
+  it('a set at RIR 1 in those sessions blocks the increase', () => {
+    const S = pState(SQUAT, [good(60), [60, 5, [5, 1], 5], good(60)])
+    expect(nextPrescription(S, cfg)).toMatchObject({ kind: 'hold', weight: 60 })
+  })
+  it('a set at RIR 0 last time holds with the tip', () => {
+    const p = nextPrescription(pState(SQUAT, [good(60), good(60), [60, 5, 5, [5, 0]]]), cfg)
+    expect(p).toMatchObject({ kind: 'hold', weight: 60 })
+    expect(p.why[0]).toBe('Leave 2-3 reps in the tank during pregnancy.')
+  })
+  it('T3: no increase without effort logging, increase at RIR 3+', () => {
+    expect(nextPrescription(pState(SQUAT, [good(60), good(60), good(60)], { tri: 3 }), cfg).kind).toBe('hold')
+    const r3 = [60, [5, 3], [5, 3], [5, 4]]
+    expect(nextPrescription(pState(SQUAT, [r3, r3, r3], { tri: 3, effort: 'rir' }), cfg)).toMatchObject({ kind: 'up', weight: 62.5 })
+    const r2 = [60, [5, 3], [5, 2], [5, 4]]
+    expect(nextPrescription(pState(SQUAT, [r3, r3, r2], { tri: 3, effort: 'rir' }), cfg).kind).toBe('hold')
+  })
+  it('never past the best pre-pregnancy weight', () => {
+    expect(nextPrescription(pState(SQUAT, [good(60), good(60), good(60)], { pre: 61 }), cfg)).toMatchObject({ kind: 'up', weight: 61 })
+    const p = nextPrescription(pState(SQUAT, [good(60), good(60), good(60)], { pre: 60 }), cfg)
+    expect(p).toMatchObject({ kind: 'hold', weight: 60 })
+    expect(p.why[0]).toMatch(/pre-pregnancy/)
+  })
+  it('Gentle mode: no load increases', () => {
+    const p = nextPrescription(pState(SQUAT, [good(60), good(60), good(60)], { clear: 'limits' }), cfg)
+    expect(p).toMatchObject({ kind: 'hold', weight: 60 })
+    expect(p.why[0]).toMatch(/Gentle mode/)
+  })
+  it('Take care / Avoid lifts hold the load (bench press is supine from T2)', () => {
+    const c = { id: '0025', sets: 3, reps: 5 }
+    expect(nextPrescription(pState('0025', [good(40), good(40), good(40)]), c)).toMatchObject({ kind: 'hold', weight: 40 })
+    expect(nextPrescription(pState('0025', [good(40), good(40), good(40)], { tri: 1 }), c)).toMatchObject({ kind: 'up', weight: 41.25 })
+  })
+  it('double progression keeps reps at the top while the weight holds', () => {
+    const S = pState(SQUAT, [[60, 8, 8, 8]])
+    S.workouts.forEach(w => { w.entries[0].target.reps = 8 })
+    expect(nextPrescription(S, { id: SQUAT, sets: 3, reps: 8, repsMin: 6, prog: 'double' })).toMatchObject({ kind: 'hold', weight: 60, reps: 8 })
+  })
+  it('Greyskull runs as linear (no double jump)', () => {
+    const rows = [good(60), good(60), [60, 5, 5, 12]]
+    expect(nextPrescription(pState(SQUAT, rows), { ...cfg, prog: 'greyskull' })).toMatchObject({ kind: 'up', weight: 62.5 })
+  })
+  it('deloads pass through', () => {
+    const miss = [60, 5, 5, 3]
+    expect(nextPrescription(pState(SQUAT, [miss, miss, miss]), cfg).kind).toBe('deload')
+  })
+  it('pregnancyStep: half on bars, 5 lb in lb, next dumbbell otherwise', () => {
+    expect(pregnancyStep(SQUAT, 'kg')).toBe(2.5)
+    expect(pregnancyStep('0025', 'kg')).toBe(1.25)
+    expect(pregnancyStep(SQUAT, 'lb')).toBe(5)
+    expect(pregnancyStep('1760', 'kg')).toBe(defaultIncrement('1760', 'kg'))
+    expect(pregnancyStep(SQUAT, 'kg', 1)).toBe(1)
   })
 })

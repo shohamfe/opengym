@@ -16,9 +16,10 @@
 //   · fewer sets than prescribed                       → miss
 // So a session that fell apart can never advance the load as though it had succeeded.
 
-import { modeOf, repStep } from './history.js'
+import { modeOf, repStep, effortOf } from './history.js'
 import { EXIDX } from './exercises.js'
 import { isProgSet, snap } from './tech.js'
+import { pregOf, labelOf, gentle, conceptionISO } from './pregnancy.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
 
@@ -130,6 +131,8 @@ export function readSession(entry, fallback) {
     mode, goal, reps,
     weight: Math.max(0, ...sets.filter(s => s.done).map(s => s.w || 0)),
     count: reps.length,                                   // the dimension bodyweight work grows (#33)
+    // reps in reserve per done set (RPE read as 10 - RPE), null = not logged; pregnancy gate
+    rir: sets.filter(s => s.done).map(s => (s.rir != null ? s.rir : s.rpe != null ? 10 - s.rpe : null)),
     low: reps.length ? Math.min(...reps) : 0,
     amrap: reps.length ? reps[reps.length - 1] : 0,       // Greyskull's final set
     ok: goal > 0 && enough && reps.length > 0 && reps.every(r => r >= goal)
@@ -165,6 +168,58 @@ export function stallCount(sessions) {
  * undefined and the caller keeps whatever the plan said.
  */
 export function nextPrescription(S, cfg, routine) {
+  const preg = pregOf(S)
+  if (!preg) return basePrescription(S, cfg, routine)
+  // Greyskull's failure set has no place in pregnancy: it runs as linear (coach A.6).
+  const greyskull = policyFor(cfg, routine) === 'greyskull'
+  const p = basePrescription(S, greyskull ? { ...cfg, prog: 'linear' } : cfg, routine)
+  return pregnancyGate(S, cfg, p, preg)
+}
+
+// Pregnancy steps: half the default on bars and machines (assumes 1.25 kg plates; 5 lb in
+// lb), the next dumbbell or kettlebell otherwise (coach 2026-10-23 A.3).
+export function pregnancyStep(exId, unit, inc) {
+  const ex = EXIDX[exId]
+  const def = defaultIncrement(exId, unit)
+  const half = ex && (BAR.includes(ex.eq) || MACHINE.includes(ex.eq)) ? (unit === 'lb' ? 5 : def / 2) : def
+  return inc > 0 ? Math.min(inc, half) : half
+}
+
+const HOLD_WHY = ['Pregnancy: weight goes up after 3 good sessions with 2+ reps left.']
+const HARD_WHY = ['Leave 2-3 reps in the tank during pregnancy.']
+
+/**
+ * Load progression in pregnancy (coach-pregnancy.md "2026-10-23 update" A): the weight goes up
+ * only after 3 clean sessions in a row at one weight with reps to spare, by the smallest step,
+ * and never past the best pre-pregnancy weight. Reps, holds and deloads pass through.
+ */
+function pregnancyGate(S, cfg, p, preg) {
+  if (p.kind !== 'up' || !(p.weight > 0)) return p
+  const sessions = sessionsFor(S, cfg.id, cfg).filter(s => s.mode === 'reps')
+  const last = sessions[sessions.length - 1]
+  const w = last.weight
+  // Double progression keeps the reps at the top of the range while the weight holds.
+  const hold = why => ({ ...p, kind: 'hold', weight: w, reps: p.policy === 'double' ? (cfg.reps || last.goal || p.reps) : p.reps, why })
+  if (last.rir.some(r => r != null && r <= 0)) return hold(HARD_WHY)
+  if (gentle(S)) return hold(['Gentle mode: same weight. Reps can still go up.'])
+  const label = labelOf(cfg.id, S)
+  if (label === 'caution' || label === 'avoid') return hold(['Pregnancy: this one stays at the same weight.'])
+  const last3 = sessions.slice(-3)
+  const effortOn = effortOf(S) !== 'none'
+  const easy = preg.tri === 3
+    ? effortOn && last3.every(s => s.rir.every(r => r != null && r >= 3))
+    : last3.every(s => s.rir.every(r => r == null || r >= 2))
+  if (last3.length < 3 || !last3.every(s => s.ok && s.weight === w) || !easy) return hold(HOLD_WHY)
+  const step = pregnancyStep(cfg.id, S.unit || 'kg', cfg.inc)
+  const conc = conceptionISO(S)
+  const before = sessionsFor(S, cfg.id, cfg).filter(s => s.d < conc)
+  const cap = before.length ? Math.max(...before.map(s => s.weight)) : Infinity
+  if (w >= cap) return hold(["That's your pre-pregnancy weight; staying here."])
+  const next = Math.min(Math.round((w + step) * 100) / 100, cap)   // 2 decimals: 1.25 kg steps
+  return { ...p, weight: next, why: ['3 good sessions with reps to spare: +{0} {1}.', Math.round((next - w) * 100) / 100, S.unit || 'kg'] }
+}
+
+function basePrescription(S, cfg, routine) {
   const mode = modeOf(cfg)
   const policy = policyFor(cfg, routine, mode)
   const unit = S.unit || 'kg'

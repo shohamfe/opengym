@@ -16,6 +16,8 @@ import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription, defaultIncrement } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
+import { pregOf } from '../lib/pregnancy.js'
+import { PgBadge, pregnancySheet, PregLine, GentleTip } from '../components/Pregnancy.jsx'
 import { TECH, TECH_IDS, PARTS_TECH, techBadge, techName, techDesc, nextPart, nextPartW, warmupSet, warmupW, backoffW, myoW, MYO_REPS, MYO_MINI, MYO_SEED, maxParts } from '../lib/tech.js'
 
 /* ---------- set-type picker: tech, partials, and (re)seeding the parts rows ---------- */
@@ -233,13 +235,14 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
       </div>
     </div>
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+      <PgBadge id={entry.id} button />
       {cardio && <span className="tag acc"><Icon name="figureRun" />{t('Cardio')}</span>}
       {/* You log the total; this is the split, so the set in front of you is unambiguous
           without the rep count having to mean two different things (issue #31). */}
       {!cardio && !timed && isPerSide(cfg) && <span className="tag acc nocap"><Icon name="shuffle" />{t('{0} per side', fmtNum(sideReps(entry.sets.find(s => !s.done)?.r ?? entry.sets[0]?.r)))}</span>}
       {(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
-      {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
+      {best > 0 && !pregOf(S) && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
     </div>
     {last && <button className="small muted lasttime" onClick={() => lastTimeSheet(entry.id, last)}>
       <span>{t('Last time')} ({fmtDate(last.d)}): {lastLine(entry.id, last, S.unit)}</span><Icon name="chevronRight" /></button>}
@@ -420,6 +423,7 @@ function ActiveWorkout() {
   // the rare actions live behind ⋯ so the bottom of the page has one job: move on, or finish
   const menu = () => useUI.getState().openSheet(close => <>
     <h3>{A.name}</h3>
+    {pregOf(S) && <><Button icon="heart" style={{ color: 'var(--red-t)' }} onClick={() => { close(); pregnancySheet(null, 'warn') }}>{t('Warning signs')}</Button><div style={{ height: 8 }} /></>}
     <Button icon="plus" onClick={() => { close(); addExercise() }}>{t('Add exercise')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="danger" icon="trash" onClick={() => { close(); discard() }}>{t('Discard workout')}</Button>
@@ -434,6 +438,8 @@ function ActiveWorkout() {
       <button className="iconbtn" aria-label={t('More')} onClick={menu}><Icon name="more" /></button>
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
+    <PregLine />
+    <GentleTip />
 
     {A.entries.length ? <>
       <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>
