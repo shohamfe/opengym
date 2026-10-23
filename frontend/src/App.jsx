@@ -25,6 +25,8 @@ import WorkoutView from './views/WorkoutView.jsx'
 import Library from './views/Library.jsx'
 import Settings from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
+import Onboarding from './views/Onboarding.jsx'
+import { needsOnboarding } from './lib/profile.js'
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
 
@@ -39,7 +41,7 @@ function applyPrefs(theme, accent) {
 function Shell() {
   const navigate = useNavigate()
   const loc = useLocation()
-  const { S, user, ready } = useStore()
+  const { S, user, ready, synced } = useStore()
   const isGuest = useStore(s => s.isGuest())
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
@@ -52,6 +54,7 @@ function Shell() {
   useWakeLock(!!S.active && S.keepAwake !== false)
 
   const authed = user || isGuest
+  const onboard = needsOnboarding({ user, synced, S })
   if (!ready && !authed) return (
     <div id="app">
       <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 34, color: 'var(--label-3)' }}>
@@ -66,7 +69,7 @@ function Shell() {
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app" className="vfade" key={loc.pathname}>
         <ErrorBoundary>
-          {!authed ? <Login /> : (
+          {!authed ? <Login /> : onboard ? <Onboarding /> : (
             <Routes>
               <Route path="/home" element={<Home />} />
               <Route path="/plan" element={<Plan />} />
@@ -83,7 +86,7 @@ function Shell() {
           )}
         </ErrorBoundary>
       </div>
-      <TabBar onStart={startFlow} />
+      {!onboard && <TabBar onStart={startFlow} />}
       <RestTimer />
       <Modals />
       <Toast />

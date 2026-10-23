@@ -8,7 +8,7 @@ import { isWork, cleanSet } from './lib/tech.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
-import { starterRoutines } from './lib/starter.js'
+import { starterRoutines, pregnancyStarterRoutines } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
@@ -53,6 +53,14 @@ export function loadStarterPlan() {
   })
   toast(t('Starter plan loaded — Mon Push · Wed Pull · Fri Legs'))
 }
+export function loadPregnancyStarter() {
+  const [a, b] = pregnancyStarterRoutines()
+  update(st => {
+    st.routines.push(a, b)
+    st.week[1] = a.id; st.week[4] = b.id
+  })
+  toast(t('Pregnancy starter loaded — Mon A · Thu B'))
+}
 
 /* ============================ weight picker (shared: body weight + goal) ============================ */
 // Fixed range, not a moving window — a window that resizes itself mid-drag (the previous
@@ -64,7 +72,7 @@ export function loadStarterPlan() {
 // below an everyday squat.
 const W_LO = 1
 const wHi = unit => (unit === 'lb' ? 660 : 300)
-function WeightInput({ value, setValue, unit }) {
+export function WeightInput({ value, setValue, unit }) {
   const W_HI = wHi(unit)
   const clamp = x => Math.max(W_LO, Math.min(W_HI, Math.round((x || 0) * 10) / 10))
   const sv = Math.max(W_LO, Math.min(W_HI, value))
@@ -657,15 +665,7 @@ function PlanTools({ close }) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
     close(); toast(t('Plan file saved — send it to a friend'))
   }
-  const pickFile = ev => {
-    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return
-    const rd = new FileReader()
-    rd.onload = () => {
-      try { const bundle = parsePlan(rd.result); close(); planImportSheet(bundle) }
-      catch (e) { toast(t('Import failed: {0}', e.message)) }
-    }
-    rd.readAsText(f)
-  }
+  const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) openPlanFile(f, close) }
 
   return <>
     <h3>{t('Share your plan')}</h3>
@@ -682,6 +682,16 @@ function PlanTools({ close }) {
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
   </>
+}
+
+// A plan file picked anywhere (Plan tools, onboarding) → the import preview.
+export function openPlanFile(f, onParsed) {
+  const rd = new FileReader()
+  rd.onload = () => {
+    try { const bundle = parsePlan(rd.result); onParsed && onParsed(); planImportSheet(bundle) }
+    catch (e) { toast(t('Import failed: {0}', e.message)) }
+  }
+  rd.readAsText(f)
 }
 
 export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)

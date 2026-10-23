@@ -118,7 +118,7 @@ it('merges offline workouts into the server copy on a 409 and keeps a backup', a
 // otherwise a signed-in account on a new phone would be onboarded again.
 it('marks the first sync, and keeps the server profile', async () => {
   row = { workouts: [], profile: { name: 'Dana', sex: 'female' }, _ts: clock }
-  useStore.setState({ synced: false, S: { ...useStore.getState().S, profile: null, workouts: [], routines: [], bodyweight: [] } })
+  useStore.setState({ synced: false, S: { ...useStore.getState().S, _ts: 0, profile: null, workouts: [], routines: [], bodyweight: [] } })
   signedIn()
   expect(useStore.getState().synced).toBe(false)
   await useStore.getState().pullState()

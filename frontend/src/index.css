@@ -1112,3 +1112,18 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .rt-row.sub .rt-v{font-size:15px;font-weight:400;color:var(--label-2)}
 .wx-set.chain{white-space:normal}
 @media (max-width:340px){.rt-head,.rt-row{column-gap:6px}.rt-head{letter-spacing:.02em}.rt-v{font-size:16px}}
+
+/* --- onboarding (views/Onboarding.jsx): full-screen stepper --- */
+.onb{min-height:calc(100dvh - var(--sat) - 40px);display:flex;flex-direction:column}
+.onb-hdr{align-items:center;margin-bottom:22px}
+.onb-sp{width:44px;height:44px;flex:none}
+.onb-dots{display:flex;gap:6px}
+.onb-dots span{width:8px;height:8px;border-radius:99px;background:var(--label-4)}
+.onb-dots span.on{background:var(--acc)}
+.onb-h{font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.024em}
+.onb-sub{color:var(--label-2);font-size:15px;line-height:1.4;margin:6px 0 20px}
+.onb-opt{min-height:56px}
+.onb-w{margin-bottom:22px}
+.onb-w.untouched .bw-read{opacity:.45}
+.onb-foot{position:sticky;bottom:0;margin:auto calc(-1 * var(--pad)) 0;padding:12px var(--pad) calc(12px + var(--sab));background:var(--bg);border-top:var(--hair) solid var(--sep)}
+.hfield{width:56px;text-align:center;background:var(--surface-2);border:none;border-radius:8px;padding:8px 6px;font-size:16px;color:var(--label);min-height:40px}

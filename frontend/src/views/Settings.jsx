@@ -15,6 +15,7 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { loadStarterPlan, confirmSheet, importFromApp } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import ProfileSection from './ProfileSection.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
 export default function Settings() {
@@ -116,6 +117,8 @@ export default function Settings() {
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
 
+    <ProfileSection />
+
     {/* ---------- general ---------- */}
     <Section title={t('General')}>
       <SelectRow
@@ -184,13 +187,13 @@ export default function Settings() {
           onChange={v => update(s => { s.theme = v })}
         />
       </Row>
-      {/* Purely how the muscle map is drawn — nothing else in the app reads this. */}
-      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')}>
+      {/* How the muscle map is drawn (lib/profile.js bodyOf). Auto follows Profile › Body. */}
+      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')} subtitle={S.bodyPick ? null : t('Auto follows Profile › Body.')}>
         <Segmented
           className="seg-inline"
-          options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
-          value={S.body === 'female' ? 'female' : 'male'}
-          onChange={v => update(s => { s.body = v })}
+          options={[{ value: 'auto', label: t('Auto') }, { value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
+          value={S.bodyPick || 'auto'}
+          onChange={v => update(s => { s.bodyPick = v === 'auto' ? null : v })}
         />
       </Row>
       <Row icon="palette" iconTint="var(--acc)" title={t('Accent color')} accessory="chevron" onClick={accentSheet}>
@@ -222,7 +225,7 @@ export default function Settings() {
 
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       openGym · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (CC)
+      <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (MIT) · media <a href="https://gymvisual.com/" target="_blank" rel="noopener">© Gym visual</a>
     </div>
   </div>
 }
