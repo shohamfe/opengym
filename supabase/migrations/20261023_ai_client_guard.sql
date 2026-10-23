@@ -4,6 +4,7 @@
 -- Every account-level RPC starts with `perform public.gym_not_ai();`. The functions added on the
 -- multi-user branch (invites, admin, reset codes, account removal) call it too; this file covers
 -- the ones that already exist. Additive only: create or replace keeps the existing grants.
+-- 20261023_accounts.sql defines the same gym_not_ai() first (it sorts earlier); keep both bodies identical.
 
 create or replace function public.gym_not_ai() returns void
 language plpgsql stable set search_path = '' as $$
@@ -14,6 +15,7 @@ begin
 end $$;
 comment on function public.gym_not_ai() is
   'Raises when the caller''s token came from the OAuth server (client_id claim): account-level RPCs call it first.';
+revoke all on function public.gym_not_ai() from public, anon;
 grant execute on function public.gym_not_ai() to authenticated;
 
 -- Push subscriptions decide which device gets this user's alerts: account-level. Bodies as in

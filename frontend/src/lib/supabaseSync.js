@@ -27,15 +27,15 @@ const save = (d, prev) => {
 
 // status 0 = no network or no answer within 15 s (captive/bad gym Wi-Fi): the store treats
 // anything but 401 as "offline, keep going locally".
-async function call(path, body, token) {
+async function call(path, body, token, method = 'POST') {
   const ctl = new AbortController()
   const tm = setTimeout(() => ctl.abort(), 15000)
   let r, data
   try {
     r = await fetch(`${URL_}${path}`, {
-      method: 'POST', signal: ctl.signal,
+      method, signal: ctl.signal,
       headers: { apikey: ANON, 'Content-Type': 'application/json', ...(token && { Authorization: 'Bearer ' + token }) },
-      body: JSON.stringify(body || {})
+      ...(method === 'GET' || method === 'DELETE' ? {} : { body: JSON.stringify(body || {}) })
     })
     data = await r.json().catch(e => { if (e.name === 'AbortError') throw e; return null })
   } catch (e) { throw err(0, 'offline', 'offline') }
@@ -62,9 +62,9 @@ async function session() {
   return s.expires_at - 60 > Date.now() / 1000 ? s : refresh(s)
 }
 
-async function rpc(fn, args, retry = true) {
+async function authed(path, args, method = 'POST', retry = true) {
   const s = await session()
-  try { return await call(`/rest/v1/rpc/${fn}`, args, s.access_token) }
+  try { return await call(path, args, s.access_token, method) }
   catch (e) {
     if (e.status !== 401 || !retry) throw e
     // Token rejected before its stated expiry (clock skew, revoked): refresh once and retry, with
@@ -72,9 +72,21 @@ async function rpc(fn, args, retry = true) {
     const cur = load()
     if (!cur) throw err(401, 'not signed in')
     if (cur.access_token === s.access_token) await refresh(cur)
-    return rpc(fn, args, false)
+    return authed(path, args, method, false)
   }
 }
+const rpc = (fn, args) => authed(`/rest/v1/rpc/${fn}`, args)
+
+// Connected AI apps: the MCP connector's address, and the Supabase OAuth 2.1 server's consent and
+// grant endpoints (the REST calls behind supabase-js auth.oauth.*, read from @supabase/auth-js
+// 2.118). The consent ones answer { redirect_url } once the user decided or already consented.
+export const MCP_URL = URL_ ? URL_ + '/functions/v1/gym-mcp' : ''
+const enc = encodeURIComponent
+export const oauthDetails = id => authed(`/auth/v1/oauth/authorizations/${enc(id)}`, null, 'GET')
+export const oauthDecide = (id, approve) => authed(`/auth/v1/oauth/authorizations/${enc(id)}/consent`, { action: approve ? 'approve' : 'deny' })
+export const oauthGrants = () => authed('/auth/v1/user/oauth/grants', null, 'GET')
+export const oauthRevoke = clientId => authed(`/auth/v1/user/oauth/grants?client_id=${enc(clientId)}`, null, 'DELETE')
+export const signedInEmail = () => load()?.user?.email || null
 
 const me = ({ user }) => ({ id: user.id, name: user.email, admin: false })
 

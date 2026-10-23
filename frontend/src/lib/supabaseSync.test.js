@@ -160,3 +160,29 @@ it('maps the push routes onto the push_* functions', async () => {
   await expect(api('/api/push/public-key')).rejects.toMatchObject({ status: 503 })
   await expect(post('/api/push/other')).rejects.toMatchObject({ status: 404 })
 })
+
+it('calls the OAuth consent and grant endpoints with the session token', async () => {
+  const { signIn, oauthDetails, oauthDecide, oauthGrants, oauthRevoke, MCP_URL } = await import('./supabaseSync.js')
+  await signIn('me@x.io', pw)
+  const real = fetch.getMockImplementation()
+  const seen = []
+  fetch.mockImplementation(async (url, o) => {
+    seen.push([o.method, url.replace('https://x.supabase.co', ''), o.body, o.headers.Authorization])
+    if (url.includes('/consent')) return res(200, { redirect_url: 'https://claude.ai/cb?code=c' })
+    if (o.method === 'DELETE') return { ok: true, status: 204, json: async () => { throw new SyntaxError('empty') } }
+    return res(200, url.endsWith('/grants') ? [{ client: { id: 'c1', name: 'Claude' } }] : { authorization_id: 'a b' })
+  })
+  expect(MCP_URL).toBe('https://x.supabase.co/functions/v1/gym-mcp')
+  expect(await oauthDetails('a b')).toEqual({ authorization_id: 'a b' })
+  expect(await oauthDecide('a b', true)).toEqual({ redirect_url: 'https://claude.ai/cb?code=c' })
+  expect(await oauthGrants()).toHaveLength(1)
+  expect(await oauthRevoke('c1')).toBeNull()
+  expect(seen.map(s => s.slice(0, 3))).toEqual([
+    ['GET', '/auth/v1/oauth/authorizations/a%20b', undefined],
+    ['POST', '/auth/v1/oauth/authorizations/a%20b/consent', '{"action":"approve"}'],
+    ['GET', '/auth/v1/user/oauth/grants', undefined],
+    ['DELETE', '/auth/v1/user/oauth/grants?client_id=c1', undefined]
+  ])
+  expect(seen.every(s => s[3] === 'Bearer a1' || s[3] === 'Bearer a2')).toBe(true)
+  fetch.mockImplementation(real)
+})

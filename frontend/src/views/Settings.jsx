@@ -199,6 +199,10 @@ export default function Settings() {
     </Section>
 
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
+    {SUPABASE && user && <Section title={t('AI')}>
+      <Row icon="sparkles" iconTint="var(--indigo)" title={t('Connect your AI')} subtitle={t('Let Claude or ChatGPT read your plan and build routines for you.')} accessory="chevron" onClick={() => nav('/connect-ai')} />
+    </Section>}
+
     <Section title={t('Data')}>
       <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan (PPL)')} accessory="chevron" onClick={loadStarterPlan} />
       <Row icon="shuffle" iconTint="var(--teal)" title={t('Import from another app')}
