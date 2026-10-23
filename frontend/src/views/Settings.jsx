@@ -8,6 +8,7 @@ import { convertState } from '../lib/units.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
 import { SUPABASE } from '../lib/supabaseSync.js'
 import { EmailSignInSheet } from './Login.jsx'
+import { MembersCard, deleteAccountSheet } from './Members.jsx'
 import { pushSupported, enablePush, disablePush, sendTestPush, saveSubscription, notifyState, IOS, standalone } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
@@ -92,7 +93,7 @@ export default function Settings() {
         <Row icon="personCircle" iconTint="var(--grey)" title={user.name}
           subtitle={localStorage.getItem('gym_dirty') === '1' ? t('Changes waiting to sync') : t('Signed in — data syncs to the cloud.')} />
         <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({
-          title: t('Sign out?'), message: t('Your data is synced first, then cleared from this device. You’ll need a new email code to sign back in.'), confirmText: t('Sign out'), danger: true,
+          title: t('Sign out?'), message: t('Your data is synced first, then cleared from this device. You’ll need your password to sign back in.'), confirmText: t('Sign out'), danger: true,
           onConfirm: async () => {
             try { await signOut(); nav('/home') }
             catch (e) { toast(t('Couldn’t sync, so you’re still signed in. Nothing was deleted.')) }
@@ -116,6 +117,7 @@ export default function Settings() {
       )}
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
+    {SUPABASE && <MembersCard />}
 
     <ProfileSection />
 
@@ -210,6 +212,8 @@ export default function Settings() {
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
       <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
+      {SUPABASE && user && <Row icon="personCircle" iconTint="var(--red)" title={t('Delete account')} subtitle={t('Removes your account and everything in it from openGym.')} danger
+        onClick={() => deleteAccountSheet({ exportFirst: doExport, onDeleted: () => { nav('/home'); toast(t('Your account was deleted.')) } })} />}
     </Section>
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
     {/* Reset after reading so picking the same file twice still fires onChange. */}

@@ -82,12 +82,22 @@ const me = ({ user }) => ({ id: user.id, name: user.email, admin: false })
 
 export const signIn = async (email, password) => me(save(await call('/auth/v1/token?grant_type=password', { email, password })))
 
-// First sign-in on the free plan: its email can only carry a link (iOS previews use it up), so the
-// password is set with a single-use setup code that Claude creates in SQL (see supabase/migrations).
-export async function setupPassword(email, code, password) {
-  await call('/rest/v1/rpc/gym_set_password', { code, pw: password })
+// Sign-up with an invite code (the gate in supabase/migrations/20261023_accounts.sql checks and
+// uses it). With "Confirm email" off the answer already holds a session.
+export async function signUp(email, password, invite) {
+  const d = await call('/auth/v1/signup', { email, password, data: { invite } })
+  if (!d?.access_token) throw err(503, 'no session', 'no_session')
+  return me(save(d))
+}
+
+// Forgotten password: a single-use reset code that the admin made for this account.
+export async function resetPassword(email, code, password) {
+  await call('/rest/v1/rpc/gym_set_password', { email, code, pw: password })
   return signIn(email, password)
 }
+
+// Admin card and account deletion: plain calls to the RPCs; each one checks the caller itself.
+export const accountRpc = (fn, args) => rpc(fn, args)
 
 export async function supabaseApi(path, opts = {}) {
   const method = opts.method || 'GET'

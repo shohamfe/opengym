@@ -4,7 +4,7 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
-import { BASE, OWNER } from '../lib/supabaseSync.js'
+import { BASE, OWNER, accountRpc } from '../lib/supabaseSync.js'
 import { disablePush } from '../lib/push.js'
 import { migrateSide } from '../lib/history.js'
 
@@ -208,6 +208,16 @@ export const useStore = create((set, get) => {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
       await disablePush().catch(() => {})
       await api('/api/logout/all', { method: 'POST', body: '{}' })
+      clearLocalSession()
+    },
+
+    // Settings → Delete account (Supabase build). The server removes the account and all its rows
+    // (gym_delete_me); this device then ends up where a sign-out leaves it. Throws, and keeps
+    // everything, when the server call fails.
+    async deleteAccount() {
+      await accountRpc('gym_delete_me')
+      await disablePush().catch(() => {})
+      await api('/api/logout', { method: 'POST', body: '{}' }).catch(() => {})
       clearLocalSession()
     },
 
