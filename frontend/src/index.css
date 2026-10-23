@@ -1155,4 +1155,6 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .onb-w{margin-bottom:22px}
 .onb-w.untouched .bw-read{opacity:.45}
 .onb-foot{position:sticky;bottom:0;margin:auto calc(-1 * var(--pad)) 0;padding:12px var(--pad) calc(12px + var(--sab));background:var(--bg);border-top:var(--hair) solid var(--sep)}
+/* a stepper as a list row's control (onboarding weeks / height) keeps its size; it used to cover the title */
+.lrow > .stp{flex:none;width:148px}
 .hfield{width:56px;text-align:center;background:var(--surface-2);border:none;border-radius:8px;padding:8px 6px;font-size:16px;color:var(--label);min-height:40px}
