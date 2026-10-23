@@ -113,3 +113,18 @@ it('merges offline workouts into the server copy on a 409 and keeps a backup', a
   expect(JSON.parse(ls.gym_backup_v1).routines).toEqual([{ id: 'old' }])
   expect(ls.gym_dirty).toBeUndefined()
 })
+
+// Onboarding gate (QA D6): S.profile is only trustworthy once the server copy has been read,
+// otherwise a signed-in account on a new phone would be onboarded again.
+it('marks the first sync, and keeps the server profile', async () => {
+  row = { workouts: [], profile: { name: 'Dana', sex: 'female' }, _ts: clock }
+  useStore.setState({ synced: false, S: { ...useStore.getState().S, profile: null, workouts: [], routines: [], bodyweight: [] } })
+  signedIn()
+  expect(useStore.getState().synced).toBe(false)
+  await useStore.getState().pullState()
+  expect(useStore.getState().synced).toBe(true)
+  expect(useStore.getState().S.profile.name).toBe('Dana')
+  expect(useStore.getState().S.bodyPick).toBe(null)   // DEF overlay: Auto
+  useStore.getState().setUser(null)
+  expect(useStore.getState().synced).toBe(false)
+})

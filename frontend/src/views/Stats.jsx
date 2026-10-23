@@ -12,6 +12,7 @@ import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { isWork } from '../lib/tech.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { bodyOf } from '../lib/profile.js'
 import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
@@ -51,7 +52,7 @@ function MuscleBalance({ S }) {
     <Segmented className="seg-range" value={win} onChange={v => { setWin(v); setSel(null) }}
       options={[{ value: 7, label: t('Week') }, { value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 0, label: t('All') }]} />
     {inWin.length ? <>
-      <BodyMap className="tappable" load={load} body={S.body} selected={sel}
+      <BodyMap className="tappable" load={load} body={bodyOf(S)} selected={sel}
         onMuscle={m => setSel(s => (s === m ? null : m))} />
       <BodyMapLegend />
       {sel && <div className="mrow" style={{ borderTop: 'var(--hair) solid var(--sep)', marginTop: 4, paddingTop: 10 }}>

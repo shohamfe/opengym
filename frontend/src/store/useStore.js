@@ -21,7 +21,9 @@ export const DEF = {
   reminder: { on: false, time: '08:00', tz: null }, effort: null,
   // Push alert types besides the day reminder (S.reminder); the server reads these too, and
   // reminder.tz is the timezone for all of them.
-  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' }
+  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' },
+  // The person (lib/profile.js); null = not onboarded yet. bodyPick: the diagram override, null = Auto.
+  profile: null, bodyPick: null
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -111,6 +113,7 @@ export const useStore = create((set, get) => {
     S: (() => { const s = loadState(); registerCustom(s.customEx); return s })(),
     user: (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })(),
     ready: false,
+    synced: false,   // the server copy has been read at least once since sign-in (onboarding gate)
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
@@ -126,7 +129,7 @@ export const useStore = create((set, get) => {
     setUser(u) {
       if (u) { localStorage.setItem('gym_user', JSON.stringify(u)); localStorage.removeItem('gym_guest') }
       else localStorage.removeItem('gym_user')
-      set({ user: u })
+      set(u ? { user: u } : { user: u, synced: false })
     },
 
     async pushState() {
@@ -146,6 +149,7 @@ export const useStore = create((set, get) => {
     async pullState(force = false) {
       try {
         const { state } = await api('/api/data')
+        set({ synced: true })
         const S = get().S
         const dirty = localStorage.getItem('gym_dirty') === '1'
         // First sync of this device (fresh sign-in, guest data): merge rather than pick a side.

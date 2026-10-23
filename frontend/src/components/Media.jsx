@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { imgSrc, gifSrc } from '../lib/exercises.js'
+import { imgSrc, gifSrc, mediaOf } from '../lib/exercises.js'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
@@ -9,7 +9,8 @@ import Icon from './Icon.jsx'
 // `minimizable` (workout view) adds a persistent minimize/expand control so the animation stops
 // eating the screen; the chosen size is saved to settings and carries across exercises and
 // future workouts (issue #12).
-export default function Media({ ex, id, compact, minimizable }) {
+export default function Media({ ex: base, id, compact, minimizable }) {
+  const ex = mediaOf(base, useStore(s => s.S))
   const [playing, setPlaying] = useState(true)
   // big by default (it's how you check form); Minimize shrinks it to a thumbnail beside the name
   const media = useStore(s => s.S.mediaSize) || 'full'
@@ -35,7 +36,8 @@ export default function Media({ ex, id, compact, minimizable }) {
   )
 }
 
-export function Thumb({ ex }) {
+export function Thumb({ ex: base }) {
+  const ex = mediaOf(base, useStore(s => s.S))
   if (!ex.img) return <div className="thumb thumb-x"><Icon name="dumbbell" /></div>
   return <img className="thumb" loading="lazy" decoding="async" src={imgSrc(ex)} alt="" />
 }

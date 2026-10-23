@@ -16,6 +16,7 @@ import { Button, NumberField, Slider, Switch, Segmented, SelectRow, Row, Section
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
+import { bodyOf } from './lib/profile.js'
 import { parseImport, mergeImport } from './lib/import-csv.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
@@ -881,7 +882,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
       {prs.map(id => <Row key={id} icon="trophy" iconTint="var(--yellow)" title={exName(id)} value={fmtNum(topW(id)) + ' ' + st.unit} />)}
       {e1prs.map(p => <Row key={p.id} icon="chartLine" title={exName(p.id)} subtitle={t('Best estimated 1RM')} value={fmtNum(p.est) + ' ' + st.unit} />)}
     </Section>}
-    <Section title={t('What you just trained')}><div style={{ padding: 14 }}><BodyMap load={loadOfWorkouts([w])} body={st.body} /></div></Section>
+    <Section title={t('What you just trained')}><div style={{ padding: 14 }}><BodyMap load={loadOfWorkouts([w])} body={bodyOf(st)} /></div></Section>
     <div className="sheet-foot"><Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button></div>
   </>
 }

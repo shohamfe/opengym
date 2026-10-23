@@ -14,6 +14,7 @@ import { Button, SelectRow } from '../components/ui.jsx'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC } from '../lib/progression.js'
 import BodyMap from '../components/BodyMap.jsx'
 import { loadOfRoutine, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { bodyOf } from '../lib/profile.js'
 
 export default function RoutineEdit() {
   const nav = useNavigate()
@@ -114,7 +115,7 @@ export default function RoutineEdit() {
       const { worked } = rankOf(load)
       return <div className="card" style={{ marginTop: 12 }}>
         <h2>{t('What this session hits')}</h2>
-        <BodyMap load={load} body={S.body} />
+        <BodyMap load={load} body={bodyOf(S)} />
         <div className="mchips">
           {worked.slice(0, 6).map(m => <span key={m} className="mchip">{t(MUSCLE_NAME[m])}</span>)}
         </div>
