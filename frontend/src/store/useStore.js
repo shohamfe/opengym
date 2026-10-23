@@ -4,7 +4,7 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
-import { BASE } from '../lib/supabaseSync.js'
+import { BASE, OWNER, accountRpc } from '../lib/supabaseSync.js'
 import { disablePush } from '../lib/push.js'
 import { migrateSide } from '../lib/history.js'
 
@@ -21,7 +21,9 @@ export const DEF = {
   reminder: { on: false, time: '08:00', tz: null }, effort: null,
   // Push alert types besides the day reminder (S.reminder); the server reads these too, and
   // reminder.tz is the timezone for all of them.
-  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' }
+  notify: { rest: true, stale: true, staleMin: 90, streak: false, weigh: false, weighDay: 1, weighTime: '08:00' },
+  // The person (lib/profile.js); null = not onboarded yet. bodyPick: the diagram override, null = Auto.
+  profile: null, bodyPick: null
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -98,19 +100,26 @@ export const useStore = create((set, get) => {
     }
   })
 
+  // Everything on this device that belongs to the signed-in account, backups included.
+  const dropLocal = () => {
+    clearTimeout(pushTm)
+    for (const k of [KEY, BASE, OWNER, 'gym_dirty', 'gym_backup_v1', 'gym_unit_backup']) localStorage.removeItem(k)
+    persist(clone(DEF), false, true)   // no _ts: an empty copy is never "newer" than the server's
+    set({ synced: false })   // the empty copy says nothing about the account's profile until the next pull
+  }
+
   // Everything a sign-out leaves behind on this device, whichever way it was triggered.
   const clearLocalSession = () => {
     get().setUser(null)
     localStorage.removeItem('gym_guest')
-    localStorage.removeItem('gym_dirty')
-    localStorage.removeItem(KEY)
-    persist(clone(DEF), false)
+    dropLocal()
   }
 
   return {
     S: (() => { const s = loadState(); registerCustom(s.customEx); return s })(),
     user: (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })(),
     ready: false,
+    synced: false,   // the server copy has been read at least once since sign-in (onboarding gate)
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
@@ -124,10 +133,29 @@ export const useStore = create((set, get) => {
     setGuest(v) { if (v) localStorage.setItem('gym_guest', '1'); else localStorage.removeItem('gym_guest'); set({}) },
 
     setUser(u) {
-      if (u) { localStorage.setItem('gym_user', JSON.stringify(u)); localStorage.removeItem('gym_guest') }
-      else localStorage.removeItem('gym_user')
-      set({ user: u })
+      if (u) {
+        // Shared phone: the local data belongs to another account whose session died (401 keeps
+        // it). Never push or merge it into this one: wipe it, and stop its alerts on this device.
+        // Untagged data is claimed: shortcut: before this build only the owner could sign in, so
+        // untagged synced data is the owner's or a true guest's; fine as long as this build
+        // reaches every device before a second account exists.
+        // Returns true when that wipe threw away changes that never reached the server, so the
+        // caller can say so (once, without showing any of it).
+        const owner = localStorage.getItem(OWNER)
+        const lost = !!owner && owner !== String(u.id) && localStorage.getItem('gym_dirty') === '1'
+        if (owner && owner !== String(u.id)) { dropLocal(); disablePush().catch(() => {}) }
+        localStorage.setItem(OWNER, u.id)
+        localStorage.setItem('gym_user', JSON.stringify(u)); localStorage.removeItem('gym_guest')
+        set({ user: u })
+        return lost
+      }
+      localStorage.removeItem('gym_user')
+      set({ user: u, synced: false })
+      return false
     },
+    // "Continue without account" would open the local copy, which after a dead session is still
+    // the signed-out account's (shared phone). Only offer it when the data has no owner.
+    canGuest: () => !localStorage.getItem(OWNER),
 
     async pushState() {
       if (!get().user) return
@@ -146,6 +174,7 @@ export const useStore = create((set, get) => {
     async pullState(force = false) {
       try {
         const { state } = await api('/api/data')
+        set({ synced: true })
         const S = get().S
         const dirty = localStorage.getItem('gym_dirty') === '1'
         // First sync of this device (fresh sign-in, guest data): merge rather than pick a side.
@@ -188,6 +217,16 @@ export const useStore = create((set, get) => {
       await get().pushState()   // never throws — stores gym_dirty and moves on when offline
       await disablePush().catch(() => {})
       await api('/api/logout/all', { method: 'POST', body: '{}' })
+      clearLocalSession()
+    },
+
+    // Settings → Delete account (Supabase build). The server removes the account and all its rows
+    // (gym_delete_me); this device then ends up where a sign-out leaves it. Throws, and keeps
+    // everything, when the server call fails.
+    async deleteAccount() {
+      await accountRpc('gym_delete_me')
+      await disablePush().catch(() => {})
+      await api('/api/logout', { method: 'POST', body: '{}' }).catch(() => {})
       clearLocalSession()
     },
 

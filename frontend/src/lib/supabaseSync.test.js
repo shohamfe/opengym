@@ -15,8 +15,12 @@ globalThis.fetch = vi.fn(async (url, o) => {
     if (b.email !== 'me@x.io' || b.password !== pw) return res(400, { error_code: 'invalid_credentials' })
     valid.add('a1'); return res(200, tokens('a1', Math.floor(Date.now() / 1000) + 3600))
   }
+  if (url.endsWith('/auth/v1/signup')) {
+    if (b.data?.invite !== 'K7QX29MD4HNP') return res(500, { code: 'unexpected_failure', msg: 'Database error saving new user' })
+    return res(200, { ...tokens('a1', Math.floor(Date.now() / 1000) + 3600), user: { id: 'u2', email: b.email } })
+  }
   if (url.endsWith('/gym_set_password')) {
-    if (bearer || !codes.delete(b.code.trim().toUpperCase())) return res(403, { code: '28000' })
+    if (bearer || b.email !== 'me@x.io' || !codes.delete(b.code.trim().toUpperCase())) return res(403, { code: '28000' })
     pw = b.pw; return res(204, null)
   }
   if (url.includes('grant_type=refresh_token')) {
@@ -38,7 +42,7 @@ globalThis.fetch = vi.fn(async (url, o) => {
 it('signs in with a password, syncs, refreshes, detects conflicts and signs out', async () => {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://x.supabase.co')
   vi.stubEnv('VITE_SUPABASE_KEY', 'pub')
-  const { SUPABASE, supabaseApi: api, signIn, setupPassword, BASE } = await import('./supabaseSync.js')
+  const { SUPABASE, supabaseApi: api, signIn, resetPassword, signUp, BASE } = await import('./supabaseSync.js')
   expect(SUPABASE).toBe(true)
   expect(store.gym_sync_key).toBeUndefined()   // old link key cleaned up
 
@@ -46,11 +50,17 @@ it('signs in with a password, syncs, refreshes, detects conflicts and signs out'
   await expect(api('/api/me')).rejects.toMatchObject({ status: 401 })
   await expect(api('/api/data')).rejects.toMatchObject({ status: 401 })
 
-  // First time: the setup code sets the password once (anon call), then it's a normal sign-in.
+  // Sign-up: the invite rides in the metadata; a refused code comes back as the gate's 500.
+  await expect(signUp('new@x.io', 'new-password-1', 'WRONG')).rejects.toMatchObject({ status: 500 })
+  expect(await signUp('new@x.io', 'new-password-1', 'K7QX29MD4HNP')).toEqual({ id: 'u2', name: 'new@x.io', admin: false })
+  delete store.gym_session
+
+  // Reset code: sets the password once for that email (anon call), then it's a normal sign-in.
   await expect(signIn('me@x.io', 'new-password-1')).rejects.toMatchObject({ status: 400, code: 'invalid_credentials' })
-  await expect(setupPassword('me@x.io', 'WRONG', 'new-password-1')).rejects.toMatchObject({ status: 403 })
-  expect(await setupPassword('me@x.io', ' setup1 ', 'new-password-1')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
-  await expect(setupPassword('me@x.io', 'SETUP1', 'other-password')).rejects.toMatchObject({ status: 403 })
+  await expect(resetPassword('me@x.io', 'WRONG', 'new-password-1')).rejects.toMatchObject({ status: 403 })
+  await expect(resetPassword('other@x.io', 'SETUP1', 'new-password-1')).rejects.toMatchObject({ status: 403 })
+  expect(await resetPassword('me@x.io', ' setup1 ', 'new-password-1')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
+  await expect(resetPassword('me@x.io', 'SETUP1', 'other-password')).rejects.toMatchObject({ status: 403 })
   expect(await signIn('me@x.io', 'new-password-1')).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
   expect((await api('/api/me')).user).toEqual({ id: 'u1', name: 'me@x.io', admin: false })
 
@@ -159,4 +169,30 @@ it('maps the push routes onto the push_* functions', async () => {
   pubKey = null
   await expect(api('/api/push/public-key')).rejects.toMatchObject({ status: 503 })
   await expect(post('/api/push/other')).rejects.toMatchObject({ status: 404 })
+})
+
+it('calls the OAuth consent and grant endpoints with the session token', async () => {
+  const { signIn, oauthDetails, oauthDecide, oauthGrants, oauthRevoke, MCP_URL } = await import('./supabaseSync.js')
+  await signIn('me@x.io', pw)
+  const real = fetch.getMockImplementation()
+  const seen = []
+  fetch.mockImplementation(async (url, o) => {
+    seen.push([o.method, url.replace('https://x.supabase.co', ''), o.body, o.headers.Authorization])
+    if (url.includes('/consent')) return res(200, { redirect_url: 'https://claude.ai/cb?code=c' })
+    if (o.method === 'DELETE') return { ok: true, status: 204, json: async () => { throw new SyntaxError('empty') } }
+    return res(200, url.endsWith('/grants') ? [{ client: { id: 'c1', name: 'Claude' } }] : { authorization_id: 'a b' })
+  })
+  expect(MCP_URL).toBe('https://x.supabase.co/functions/v1/gym-mcp')
+  expect(await oauthDetails('a b')).toEqual({ authorization_id: 'a b' })
+  expect(await oauthDecide('a b', true)).toEqual({ redirect_url: 'https://claude.ai/cb?code=c' })
+  expect(await oauthGrants()).toHaveLength(1)
+  expect(await oauthRevoke('c1')).toBeNull()
+  expect(seen.map(s => s.slice(0, 3))).toEqual([
+    ['GET', '/auth/v1/oauth/authorizations/a%20b', undefined],
+    ['POST', '/auth/v1/oauth/authorizations/a%20b/consent', '{"action":"approve"}'],
+    ['GET', '/auth/v1/user/oauth/grants', undefined],
+    ['DELETE', '/auth/v1/user/oauth/grants?client_id=c1', undefined]
+  ])
+  expect(seen.every(s => s[3] === 'Bearer a1' || s[3] === 'Bearer a2')).toBe(true)
+  fetch.mockImplementation(real)
 })

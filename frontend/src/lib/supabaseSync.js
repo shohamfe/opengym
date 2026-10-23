@@ -9,6 +9,8 @@ const SESSION = 'gym_session'
 // The server _ts the device's copy is built on: set by the store when it takes the server copy,
 // and here after each successful push. gym_put refuses (409) when the server moved on since.
 export const BASE = 'gym_base'
+// The auth user id the local state belongs to (see setUser in the store).
+export const OWNER = 'gym_owner'
 export const SUPABASE = !!(URL_ && ANON) && import.meta.env.VITE_MOBILE !== '1' && import.meta.env.VITE_DEMO !== '1'
 
 if (SUPABASE) localStorage.removeItem('gym_sync_key')   // left over from the old ?key= link sign-in
@@ -27,15 +29,15 @@ const save = (d, prev) => {
 
 // status 0 = no network or no answer within 15 s (captive/bad gym Wi-Fi): the store treats
 // anything but 401 as "offline, keep going locally".
-async function call(path, body, token) {
+async function call(path, body, token, method = 'POST') {
   const ctl = new AbortController()
   const tm = setTimeout(() => ctl.abort(), 15000)
   let r, data
   try {
     r = await fetch(`${URL_}${path}`, {
-      method: 'POST', signal: ctl.signal,
+      method, signal: ctl.signal,
       headers: { apikey: ANON, 'Content-Type': 'application/json', ...(token && { Authorization: 'Bearer ' + token }) },
-      body: JSON.stringify(body || {})
+      ...(method === 'GET' || method === 'DELETE' ? {} : { body: JSON.stringify(body || {}) })
     })
     data = await r.json().catch(e => { if (e.name === 'AbortError') throw e; return null })
   } catch (e) { throw err(0, 'offline', 'offline') }
@@ -62,9 +64,9 @@ async function session() {
   return s.expires_at - 60 > Date.now() / 1000 ? s : refresh(s)
 }
 
-async function rpc(fn, args, retry = true) {
+async function authed(path, args, method = 'POST', retry = true) {
   const s = await session()
-  try { return await call(`/rest/v1/rpc/${fn}`, args, s.access_token) }
+  try { return await call(path, args, s.access_token, method) }
   catch (e) {
     if (e.status !== 401 || !retry) throw e
     // Token rejected before its stated expiry (clock skew, revoked): refresh once and retry, with
@@ -72,20 +74,42 @@ async function rpc(fn, args, retry = true) {
     const cur = load()
     if (!cur) throw err(401, 'not signed in')
     if (cur.access_token === s.access_token) await refresh(cur)
-    return rpc(fn, args, false)
+    return authed(path, args, method, false)
   }
 }
+const rpc = (fn, args) => authed(`/rest/v1/rpc/${fn}`, args)
+
+// Connected AI apps: the MCP connector's address, and the Supabase OAuth 2.1 server's consent and
+// grant endpoints (the REST calls behind supabase-js auth.oauth.*, read from @supabase/auth-js
+// 2.118). The consent ones answer { redirect_url } once the user decided or already consented.
+export const MCP_URL = URL_ ? URL_ + '/functions/v1/gym-mcp' : ''
+const enc = encodeURIComponent
+export const oauthDetails = id => authed(`/auth/v1/oauth/authorizations/${enc(id)}`, null, 'GET')
+export const oauthDecide = (id, approve) => authed(`/auth/v1/oauth/authorizations/${enc(id)}/consent`, { action: approve ? 'approve' : 'deny' })
+export const oauthGrants = () => authed('/auth/v1/user/oauth/grants', null, 'GET')
+export const oauthRevoke = clientId => authed(`/auth/v1/user/oauth/grants?client_id=${enc(clientId)}`, null, 'DELETE')
+export const signedInEmail = () => load()?.user?.email || null
 
 const me = ({ user }) => ({ id: user.id, name: user.email, admin: false })
 
 export const signIn = async (email, password) => me(save(await call('/auth/v1/token?grant_type=password', { email, password })))
 
-// First sign-in on the free plan: its email can only carry a link (iOS previews use it up), so the
-// password is set with a single-use setup code that Claude creates in SQL (see supabase/migrations).
-export async function setupPassword(email, code, password) {
-  await call('/rest/v1/rpc/gym_set_password', { code, pw: password })
+// Sign-up with an invite code (the gate in supabase/migrations/20261023_accounts.sql checks and
+// uses it). With "Confirm email" off the answer already holds a session.
+export async function signUp(email, password, invite) {
+  const d = await call('/auth/v1/signup', { email, password, data: { invite } })
+  if (!d?.access_token) throw err(503, 'no session', 'no_session')
+  return me(save(d))
+}
+
+// Forgotten password: a single-use reset code that the admin made for this account.
+export async function resetPassword(email, code, password) {
+  await call('/rest/v1/rpc/gym_set_password', { email, code, pw: password })
   return signIn(email, password)
 }
+
+// Admin card and account deletion: plain calls to the RPCs; each one checks the caller itself.
+export const accountRpc = (fn, args) => rpc(fn, args)
 
 export async function supabaseApi(path, opts = {}) {
   const method = opts.method || 'GET'

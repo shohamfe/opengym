@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore.js'
 import { DAYN, uid, exCount, weekOrder } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { dayAssignSheet, loadStarterPlan, planToolsSheet } from '../sheets.jsx'
+import { aiSheet } from '../ai-sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
@@ -22,6 +23,7 @@ export default function Plan() {
     <div className="hdr">
       <div><h1>{t('Plan')}</h1><div className="sub">{t('Your weekly routine')}</div></div>
       <div className="row" style={{ gap: 8 }}>
+      <button className="iconbtn" onClick={aiSheet} aria-label={t('Build with AI')} title={t('Build with AI')}><Icon name="sparkles" /></button>
       <button className="iconbtn" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button></div></div>
     <div className="cols"><div>

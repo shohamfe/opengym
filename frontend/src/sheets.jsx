@@ -3,12 +3,14 @@ import { useStore } from './store/useStore.js'
 import { useUI, armStale, cancelStale } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, isUnilateralEx, allExercises, equipmentOf } from './lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, uid, exCount, DAYN, DAYS, MONTHS_LONG, ACCENTS, weekOrder } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps, swapConfig } from './lib/history.js'
 import { isWork, cleanSet } from './lib/tech.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
-import { starterRoutines } from './lib/starter.js'
+import { starterRoutines, pregnancyStarterRoutines } from './lib/starter.js'
+import { pregOf, labelOf, reasonOf, gentle } from './lib/pregnancy.js'
+import { PgBadge, pregnancySheet } from './components/Pregnancy.jsx'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
@@ -16,6 +18,7 @@ import { Button, NumberField, Slider, Switch, Segmented, SelectRow, Row, Section
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
+import { bodyOf } from './lib/profile.js'
 import { parseImport, mergeImport } from './lib/import-csv.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
@@ -52,6 +55,14 @@ export function loadStarterPlan() {
   })
   toast(t('Starter plan loaded — Mon Push · Wed Pull · Fri Legs'))
 }
+export function loadPregnancyStarter() {
+  const [a, b] = pregnancyStarterRoutines()
+  update(st => {
+    st.routines.push(a, b)
+    st.week[1] = a.id; st.week[4] = b.id
+  })
+  toast(t('Pregnancy starter loaded — Mon A · Thu B'))
+}
 
 /* ============================ weight picker (shared: body weight + goal) ============================ */
 // Fixed range, not a moving window — a window that resizes itself mid-drag (the previous
@@ -63,7 +74,7 @@ export function loadStarterPlan() {
 // below an everyday squat.
 const W_LO = 1
 const wHi = unit => (unit === 'lb' ? 660 : 300)
-function WeightInput({ value, setValue, unit }) {
+export function WeightInput({ value, setValue, unit }) {
   const W_HI = wHi(unit)
   const clamp = x => Math.max(W_LO, Math.min(W_HI, Math.round((x || 0) * 10) / 10))
   const sv = Math.max(W_LO, Math.min(W_HI, value))
@@ -296,19 +307,25 @@ function ExerciseDetail({ ex, close }) {
     <h3 className="capitalize">{ex.n}</h3>
     <Media ex={ex} />
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
+      <PgBadge id={ex.id} button />
       <span className="tag acc">{t(ex.bp)}</span>
       {ex.tg && <span className="tag"><Icon name="target" />{t(ex.tg)}</span>}
       <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
       {(ex.sm || []).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(s)}</span>)}
     </div>
+    {labelOf(ex.id, st) && <>
+      <div className={'exnote pgnote ' + { avoid: 'avoid', caution: 'care', rec: 'good' }[labelOf(ex.id, st)]}>{t(reasonOf(ex.id, st))}</div>
+      <Button size="sm" variant="ghost" trailingIcon="chevronRight" style={{ marginBottom: 8 }} onClick={() => pregnancySheet()}>{t('About exercise in pregnancy')}</Button>
+    </>}
     {ex.desc && <div className="exnote">{ex.desc}</div>}
-    {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent">{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
+    {best > 0 && !pregOf(st) && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent">{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
     {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
     </div>}
-    {!isCardio(ex) && <OneRM ex={ex} />}
+    {/* pregnancy: no max-strength estimates (coach: no maximal efforts) */}
+    {!isCardio(ex) && !pregOf(st) && <OneRM ex={ex} />}
     {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
   </>
 }
@@ -345,7 +362,13 @@ function AddToRoutine({ ex, close }) {
     </div>
   </>
 }
-export const addToRoutineSheet = ex => ui().openSheet(close => <AddToRoutine ex={ex} close={close} />)
+export const addToRoutineSheet = ex => avoidGuard(ex, () => ui().openSheet(close => <AddToRoutine ex={ex} close={close} />))
+
+// Adding an exercise usually avoided at this stage asks once; Take care adds silently (pm-spec 5).
+export function avoidGuard(ex, go) {
+  if (labelOf(ex.id, S()) !== 'avoid') return go()
+  confirmSheet({ title: t('Usually avoided in pregnancy'), message: t(reasonOf(ex.id, S())), confirmText: t('Add anyway'), onConfirm: go })
+}
 
 /* ============================ custom exercises (issue #11) ============================ */
 // Name + body part is all it takes — the exercise then behaves like any built-in one
@@ -416,11 +439,16 @@ function usageMap(st) {
   st.workouts.forEach(w => w.entries.forEach(e => { u[e.id] = (u[e.id] || 0) + 1 }))
   return u
 }
-function ExercisePicker({ onPick, close, like }) {
+function ExercisePicker({ onPick: pick, close, like, good, query }) {
   const st = useStore(s => s.S)
   const usage = usageMap(st)
+  // Pregnancy filter: Hide avoid by default, Good picks in Gentle mode or a start-sheet swap.
+  const preg = !!pregOf(st)
+  const [pg, setPg] = useState(good || gentle(st) ? 'good' : 'safe')
+  const onPick = e => avoidGuard(e, () => pick(e))
+  const pgOk = e => !preg || pg === 'all' || (pg === 'good' ? labelOf(e.id, st) === 'rec' : labelOf(e.id, st) !== 'avoid')
   const all = allExercises(st)
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(query || '')
   const [bp, setBp] = useState('')          // '' = all, '★' = chosen, else a body part
   const [eq, setEq] = useState('')          // '' = any equipment
   // Swapping: '' = all, 'tg' = same target muscle, 'bp' = same body part as `like`.
@@ -428,9 +456,11 @@ function ExercisePicker({ onPick, close, like }) {
   const [shown, setShown] = useState(50)
   const ql = q.toLowerCase().trim()
   const chosen = !sim && bp === '★'
-  let base = all.filter(e => e.id !== like?.id &&
+  const pre = all.filter(e => e.id !== like?.id &&
     (sim ? e[sim] === like[sim] : chosen ? usage[e.id] : (!bp || e.bp === bp)) &&
     (!ql || e.n.toLowerCase().includes(ql) || e.tg.includes(ql) || e.eq.includes(ql) || (e.desc || '').toLowerCase().includes(ql)))
+  let base = pre.filter(pgOk)
+  const hidden = preg && pg === 'safe' ? pre.length - base.length : 0
   if (chosen) base = [...base].sort((a, b) => (usage[b.id] - usage[a.id]) || (a.n < b.n ? -1 : 1))
   const eqOpts = equipmentOf(base)
   // Drop the equipment filter if the search narrowed it away, so you never hit a dead end.
@@ -438,10 +468,12 @@ function ExercisePicker({ onPick, close, like }) {
   const f = eqOn ? base.filter(e => e.eq === eqOn) : base
   const chosenCount = Object.keys(usage).length
   return <>
-    <h3>{like ? t('Swap {0}', like.n) : t('Add exercise')}</h3>
+    <h3>{like ? t('Swap {0}', like.n.replace(/(^|\s)\S/g, c => c.toUpperCase())) : t('Add exercise')}</h3>
     <div className="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onChange={e => { setQ(e.target.value); setShown(50) }} /></div>
-    {like && <div className="chips" style={{ marginTop: 10, marginBottom: 6 }}>
+    {preg && <Segmented className="pgseg" value={pg} onChange={v => { setPg(v); setShown(50) }}
+      options={[{ value: 'all', label: t('All') }, { value: 'safe', label: t('Hide avoid') }, { value: 'good', label: t('Good picks') }]} />}
+    {like &&<div className="chips" style={{ marginTop: 10, marginBottom: 6 }}>
       {[like.tg && ['tg', t('Same muscle ({0})', t(like.tg))], like.bp && ['bp', t('Same body part ({0})', t(like.bp))], ['', t('All')]].filter(Boolean).map(([k, label]) =>
         <button key={k} className={'chip nocap' + (sim === k ? ' on' : '')} onClick={() => { setSim(k); setEq(''); setShown(50) }}>{label}</button>)}
     </div>}
@@ -460,15 +492,17 @@ function ExercisePicker({ onPick, close, like }) {
         <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, no animation')}</div></div><Icon name="plus" className="chev" />
       </div>}
       {f.slice(0, shown).map(e => <div key={e.id} className="item" onClick={() => onPick(e)}>
-        <Thumb ex={e} /><div className="grow"><div className="tt capitalize">{e.n}</div><div className="ss capitalize">{t(e.tg || e.bp)} · {t(e.eq)}</div></div>
+        <Thumb ex={e} /><div className="grow"><div className="tt capitalize">{e.n}</div><div className="ss capitalize"><PgBadge id={e.id} />{t(e.tg || e.bp)} · {t(e.eq)}</div></div>
         {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}<Icon name="plus" className="chev" />
       </div>)}
       {f.length === 0 && chosen && <div className="empty">{t('Nothing chosen yet — add exercises and they’ll show up here.')}</div>}
+      {f.length === 0 && !chosen && preg && pg !== 'all' && <div className="empty">{t('No match')}</div>}
     </div>
+    {hidden > 0 && <div className="dim small" style={{ margin: '8px 2px 0' }}>{t("{0} hidden because they're usually avoided now", hidden)}</div>}
     {f.length > shown && <><div style={{ height: 8 }} /><Button onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
   </>
 }
-export const exercisePicker = (onPick, opts) => ui().openSheet(close => <ExercisePicker onPick={onPick} close={close} like={opts?.like} />)
+export const exercisePicker = (onPick, opts) => ui().openSheet(close => <ExercisePicker onPick={onPick} close={close} like={opts?.like} good={opts?.good} query={opts?.query} />)
 
 /* ============================ exercise config ============================ */
 // Progression settings for one exercise (issue #17). Shown inside the config sheet because
@@ -656,15 +690,7 @@ function PlanTools({ close }) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
     close(); toast(t('Plan file saved — send it to a friend'))
   }
-  const pickFile = ev => {
-    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return
-    const rd = new FileReader()
-    rd.onload = () => {
-      try { const bundle = parsePlan(rd.result); close(); planImportSheet(bundle) }
-      catch (e) { toast(t('Import failed: {0}', e.message)) }
-    }
-    rd.readAsText(f)
-  }
+  const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) openPlanFile(f, close) }
 
   return <>
     <h3>{t('Share your plan')}</h3>
@@ -681,6 +707,16 @@ function PlanTools({ close }) {
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
   </>
+}
+
+// A plan file picked anywhere (Plan tools, onboarding) → the import preview.
+export function openPlanFile(f, onParsed) {
+  const rd = new FileReader()
+  rd.onload = () => {
+    try { const bundle = parsePlan(rd.result); onParsed && onParsed(); planImportSheet(bundle) }
+    catch (e) { toast(t('Import failed: {0}', e.message)) }
+  }
+  rd.readAsText(f)
 }
 
 export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)
@@ -827,7 +863,7 @@ export const StatCell = ({ v: [v, u], cls }) => <span className={cls + (v == nul
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
-  const n = w.prs ? w.prs.length : 0
+  const n = w.prs && !pregOf(st) ? w.prs.length : 0
   return <button className="item wr" onClick={onClick}>
     <span className="lrow-i wr-i"><Icon name={glyph} /></span>
     <span className="wr-m">
@@ -841,8 +877,45 @@ export function WorkoutRow({ w, onClick }) {
 }
 
 /* ============================ workout lifecycle ============================ */
-export function startFlow(routineId) {
+export function startFlow(routineId, checked) {
+  const r = routineId && S().routines.find(x => x.id === routineId)
+  if (!checked && r && r.ex.some(e => labelOf(e.id, S()) === 'avoid')) {
+    ui().openSheet(close => <StartWarning rid={routineId} close={close} />)
+    return
+  }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineId, bw) })
+}
+
+// Once per workout start: list the routine's Avoid exercises, each with a swap to a Good pick
+// of the same muscle. A swap edits the routine, so the question does not come back next time.
+function StartWarning({ rid, close }) {
+  const st = useStore(s => s.S)
+  const r = st.routines.find(x => x.id === rid)
+  if (!r) return null
+  const bad = r.ex.map((e, i) => ({ e, i })).filter(({ e }) => labelOf(e.id, st) === 'avoid')
+  const swap = (i, old) => {
+    const p = exercisePicker(n => {
+      p.close()
+      update(s => { const x = s.routines.find(y => y.id === rid).ex; x[i] = { ...swapConfig(x[i], old, n), id: n.id, sg: x[i].sg } })
+      toast(t('“{0}” added to {1}', n.n, r.name))
+    }, { like: old, good: true })
+  }
+  return <>
+    <h3>{!bad.length ? t('All set.') : bad.length === 1 ? t('1 exercise is usually avoided now') : t('{0} exercises are usually avoided now', bad.length)}</h3>
+    {bad.length > 0 && <div className="list" style={{ marginBottom: 12 }}>
+      {bad.map(({ e, i }) => { const ex = EXIDX[e.id]; return <div key={i} className="item" style={{ minHeight: 56 }}>
+        <Thumb ex={ex} />
+        {/* Swap sits under the reason: beside it, the reason was squeezed to ~4 words a line at 320px */}
+        <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{t(reasonOf(e.id, st))}</div>
+          <Button size="sm" variant="tinted" icon="shuffle" style={{ width: 'auto', marginTop: 8 }} onClick={() => swap(i, ex)}>{t('Swap')}</Button></div>
+      </div> })}
+    </div>}
+    <div className="sheet-foot">
+      <Button variant="primary" onClick={() => { close(); startFlow(rid, true) }}>{bad.length ? t('Start anyway') : t('Start {0}', r.name)}</Button>
+      <div style={{ height: 8 }} />
+      <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+    </div>
+  </>
 }
 export function beginWorkout(routineId, bw) {
   const st = S()
@@ -865,6 +938,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
   const exName = id => <span className="capitalize">{(EXIDX[id] || {}).n || id}</span>
   const topW = id => Math.max(0, ...((w.entries.find(e => e.id === id) || {}).sets || []).filter(isWork).map(s => s.w || 0))
+  const preg = !!pregOf(st)
   return <>
     <div style={{ textAlign: 'center', marginBottom: 16 }}>
       <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
@@ -875,13 +949,15 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
       <div className="tile"><div className="l">{t('Duration')}</div><div className="v">{fmtDur(w.end - w.start)}</div></div>
       <div className="tile"><div className="l">{t('Volume')}</div><div className="v">{fmtVol(w.vol, st.unit)}</div></div>
       <div className="tile"><div className="l">{t('Sets')}</div><div className="v">{setsDone(w)}</div></div>
-      <div className="tile"><div className="l">{t('PRs')}</div><div className="v">{prs.length || '—'}</div></div>
+      {/* pregnancy: PRs are still recorded, just not celebrated (coach section 5.3) */}
+      {!preg && <div className="tile"><div className="l">{t('PRs')}</div><div className="v">{prs.length || '—'}</div></div>}
     </div>
-    {(prs.length > 0 || e1prs.length > 0) && <Section title={t('PRs')}>
+    {preg && <div className="muted small" style={{ textAlign: 'center', marginBottom: 12 }}>{t('Great, you trained.')}</div>}
+    {!preg && (prs.length > 0 || e1prs.length > 0) && <Section title={t('PRs')}>
       {prs.map(id => <Row key={id} icon="trophy" iconTint="var(--yellow)" title={exName(id)} value={fmtNum(topW(id)) + ' ' + st.unit} />)}
       {e1prs.map(p => <Row key={p.id} icon="chartLine" title={exName(p.id)} subtitle={t('Best estimated 1RM')} value={fmtNum(p.est) + ' ' + st.unit} />)}
     </Section>}
-    <Section title={t('What you just trained')}><div style={{ padding: 14 }}><BodyMap load={loadOfWorkouts([w])} body={st.body} /></div></Section>
+    <Section title={t('What you just trained')}><div style={{ padding: 14 }}><BodyMap load={loadOfWorkouts([w])} body={bodyOf(st)} /></div></Section>
     <div className="sheet-foot"><Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button></div>
   </>
 }

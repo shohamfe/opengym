@@ -1,9 +1,30 @@
-import { EXDB } from './exercises-data.js'
+import { EXDB as ALL } from './exercises-data.js'
 import { t } from './i18n.js'
+import { isFemale } from './profile.js'
 
-export { EXDB }
+// Female media (design §1.4): "X (female)" is a picture of X (or "X (male)"), not another
+// exercise. Map base id -> female entry, keep the female rows out of the lists, and drop the
+// model's sex from every displayed name. Ids, history and progression stay on the base.
+const byName = {}
+ALL.forEach(e => { byName[e.n] = e })
+export const FEMALE_OF = {}
+ALL.forEach(e => {
+  const m = / \(female\)$/.test(e.n) && e.n.slice(0, -9)
+  const base = m && (byName[m] || byName[m + ' (male)'])
+  if (base) FEMALE_OF[base.id] = e
+})
+ALL.forEach(e => { e.n = e.n.replace(/ \((male|female)\)$/, '') })
+const variants = new Set(Object.values(FEMALE_OF).map(e => e.id))
+export const EXDB = ALL.filter(e => !variants.has(e.id))
 export const EXIDX = {}
-EXDB.forEach(e => { EXIDX[e.id] = e })
+ALL.forEach(e => { EXIDX[e.id] = e })   // variants stay resolvable (old logs, mediaOf)
+
+// The media to show for an exercise: the female variant's picture for a female profile when
+// one exists, otherwise the exercise itself.
+export const mediaOf = (ex, S) => {
+  const f = isFemale(S) && FEMALE_OF[ex.id]
+  return f ? { ...ex, img: f.img, gif: f.gif } : ex
+}
 export const BODYPARTS = [...new Set(EXDB.map(e => e.bp))].sort()
 
 // Equipment options present in a given list of exercises, most common first (issue #6).

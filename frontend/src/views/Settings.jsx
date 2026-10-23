@@ -8,6 +8,7 @@ import { convertState } from '../lib/units.js'
 import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
 import { SUPABASE } from '../lib/supabaseSync.js'
 import { EmailSignInSheet } from './Login.jsx'
+import { MembersCard, deleteAccountSheet } from './Members.jsx'
 import { pushSupported, enablePush, disablePush, sendTestPush, saveSubscription, notifyState, IOS, standalone } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
@@ -15,6 +16,7 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
 import { loadStarterPlan, confirmSheet, importFromApp } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import ProfileSection from './ProfileSection.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
 export default function Settings() {
@@ -91,7 +93,7 @@ export default function Settings() {
         <Row icon="personCircle" iconTint="var(--grey)" title={user.name}
           subtitle={localStorage.getItem('gym_dirty') === '1' ? t('Changes waiting to sync') : t('Signed in — data syncs to the cloud.')} />
         <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({
-          title: t('Sign out?'), message: t('Your data is synced first, then cleared from this device. You’ll need a new email code to sign back in.'), confirmText: t('Sign out'), danger: true,
+          title: t('Sign out?'), message: t('Your data is synced first, then cleared from this device. You’ll need your password to sign back in.'), confirmText: t('Sign out'), danger: true,
           onConfirm: async () => {
             try { await signOut(); nav('/home') }
             catch (e) { toast(t('Couldn’t sync, so you’re still signed in. Nothing was deleted.')) }
@@ -115,6 +117,9 @@ export default function Settings() {
       )}
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
+    {SUPABASE && <MembersCard />}
+
+    <ProfileSection />
 
     {/* ---------- general ---------- */}
     <Section title={t('General')}>
@@ -184,13 +189,13 @@ export default function Settings() {
           onChange={v => update(s => { s.theme = v })}
         />
       </Row>
-      {/* Purely how the muscle map is drawn — nothing else in the app reads this. */}
-      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')}>
+      {/* How the muscle map is drawn (lib/profile.js bodyOf). Auto follows Profile › Body. */}
+      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')} subtitle={S.bodyPick ? null : t('Auto follows Profile › Body.')}>
         <Segmented
           className="seg-inline"
-          options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
-          value={S.body === 'female' ? 'female' : 'male'}
-          onChange={v => update(s => { s.body = v })}
+          options={[{ value: 'auto', label: t('Auto') }, { value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
+          value={S.bodyPick || 'auto'}
+          onChange={v => update(s => { s.bodyPick = v === 'auto' ? null : v })}
         />
       </Row>
       <Row icon="palette" iconTint="var(--acc)" title={t('Accent color')} accessory="chevron" onClick={accentSheet}>
@@ -199,6 +204,10 @@ export default function Settings() {
     </Section>
 
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
+    {SUPABASE && user && <Section title={t('AI')}>
+      <Row icon="sparkles" iconTint="var(--indigo)" title={t('Connect your AI')} subtitle={t('Let Claude or ChatGPT read your plan and build routines for you.')} accessory="chevron" onClick={() => nav('/connect-ai')} />
+    </Section>}
+
     <Section title={t('Data')}>
       <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan (PPL)')} accessory="chevron" onClick={loadStarterPlan} />
       <Row icon="shuffle" iconTint="var(--teal)" title={t('Import from another app')}
@@ -207,6 +216,8 @@ export default function Settings() {
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
       <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={() => confirmSheet({ title: t('Reset everything?'), message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'), confirmText: t('Delete everything'), danger: true, onConfirm: () => { replaceState(JSON.parse(JSON.stringify(DEF)), true); nav('/home'); toast(t('All data reset')) } })} />
+      {SUPABASE && user && <Row icon="personCircle" iconTint="var(--red)" title={t('Delete account')} subtitle={t('Removes your account and everything in it from openGym.')} danger
+        onClick={() => deleteAccountSheet({ exportFirst: doExport, onDeleted: () => { nav('/home'); toast(t('Your account was deleted.')) } })} />}
     </Section>
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
     {/* Reset after reading so picking the same file twice still fires onChange. */}
@@ -222,7 +233,8 @@ export default function Settings() {
 
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       openGym · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (CC)
+      <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (MIT) · media <a href="https://gymvisual.com/" target="_blank" rel="noopener">© Gym visual</a>
+      <br />{t('illustrations:')} <a href="https://github.com/bryllim/workout-guide" target="_blank" rel="noopener">Workout Guide</a> by Bryl Lim (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>)
     </div>
   </div>
 }
