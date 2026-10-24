@@ -914,4 +914,6 @@ export default {
   "Get workout notifications": "운동 알림 받기",
   "Close": "닫기",
   "Show me": "방법 보기",
+  "Open openGym in Safari to add it to your Home Screen.": "홈 화면에 추가하려면 Safari에서 openGym을 여세요.",
+  "Open openGym in Chrome to install it.": "설치하려면 Chrome에서 openGym을 여세요.",
 }

@@ -1003,7 +1003,7 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 html .adhs-container{font-family:inherit;color:var(--label);-webkit-font-smoothing:antialiased}
 html .adhs-container.visible{background-color:rgba(0,0,0,.55)}
 html .adhs-container .adhs-modal{
-  width:min(88vw,340px);background:var(--surface);border-radius:var(--r-xl);padding:52px 20px 20px;
+  width:min(92vw,360px);background:var(--surface);border-radius:var(--r-xl);padding:52px 16px 18px;
   box-shadow:0 20px 60px -12px rgba(0,0,0,.5);
 }
 :root[data-theme="light"] .adhs-container .adhs-modal{background:#fff}
@@ -1012,13 +1012,14 @@ html .adhs-container .adhs-logo img{border-radius:18px}
 html .adhs-container .adhs-install-app{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--label-2);margin:0}
 html .adhs-container .adhs-app-name{font-size:22px;font-weight:700;color:var(--label);margin:2px 0 18px}
 html .adhs-container .adhs-modal .adhs-list{gap:14px}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item{margin:0;align-items:center}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-circle{width:28px;height:28px;background:var(--acc);border-radius:50%}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number{color:var(--on-acc);font-size:15px;font-weight:700}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-instruction{font-size:16px;line-height:1.5;color:var(--label)}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item{margin:0;align-items:flex-start}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number-container{margin:2px 6px 0 0}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-circle{width:28px;height:28px;background:var(--acc);border-radius:50%;display:grid;place-items:center}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number{padding:0;line-height:1;color:var(--on-acc);font-size:15px;font-weight:700}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-instruction{font-size:15px;line-height:1.5;padding:0 0 0 4px;color:var(--label)}
 html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{
   outline:0;background:var(--surface-2);border:0;box-shadow:none;border-radius:10px;
-  color:var(--label);font-size:15px;font-weight:500;padding:4px 10px;margin:3px;
+  color:var(--label);font-size:14px;font-weight:500;padding:3px 8px;margin:0 2px;white-space:normal;vertical-align:middle;
 }
 :root[data-theme="light"] .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{background:var(--bg)}
 /* the step icons are drawn black: flip them on dark, hue-rotate keeps any blue blue */

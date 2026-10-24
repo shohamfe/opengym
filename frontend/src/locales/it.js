@@ -914,4 +914,6 @@ export default {
   "Get workout notifications": "Ricevi le notifiche di allenamento",
   "Close": "Chiudi",
   "Show me": "Mostrami",
+  "Open openGym in Safari to add it to your Home Screen.": "Apri openGym in Safari per aggiungerla alla schermata Home.",
+  "Open openGym in Chrome to install it.": "Apri openGym in Chrome per installarla.",
 }
