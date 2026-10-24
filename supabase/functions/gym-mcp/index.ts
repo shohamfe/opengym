@@ -51,7 +51,8 @@ async function handle(msg: any, token: string) {
       const v = VERSIONS.includes(params?.protocolVersion) ? params.protocolVersion : VERSIONS[0]
       return { jsonrpc: '2.0', id, result: {
         protocolVersion: v, capabilities: { tools: {}, prompts: {} },
-        serverInfo: { name: 'opengym', title: 'openGym', version: '1.0.0' },
+        serverInfo: { name: 'opengym', title: 'openGym', version: '1.0.0', websiteUrl: 'https://opengym-alpha-seven.vercel.app',
+          icons: [{ src: 'https://opengym-alpha-seven.vercel.app/icon-512.png', mimeType: 'image/png', sizes: ['512x512'] }] },
         instructions: 'openGym workout planner. Always get exercise ids from search_exercises or get_routines; never guess ids. In pregnancy mode the user must confirm avoid exercises herself.'
       } }
     }
