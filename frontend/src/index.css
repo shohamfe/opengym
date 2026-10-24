@@ -1013,14 +1013,19 @@ html .adhs-container .adhs-install-app{font-size:13px;font-weight:600;letter-spa
 html .adhs-container .adhs-app-name{font-size:22px;font-weight:700;color:var(--label);margin:2px 0 18px}
 html .adhs-container .adhs-modal .adhs-list{gap:14px}
 html .adhs-container .adhs-modal .adhs-list .adhs-list-item{margin:0;align-items:flex-start}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number-container{margin:2px 6px 0 0}
+/* the 28px circle matches the 28px line, so the number sits centred on the first line; !important beats the library's .adhs-mobile/:has() offsets */
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number-container{margin:0 6px 0 0 !important}
 html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-circle{width:28px;height:28px;background:var(--acc);border-radius:50%;display:grid;place-items:center}
 html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number{padding:0;line-height:1;color:var(--on-acc);font-size:15px;font-weight:700}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-instruction{font-size:15px;line-height:1.5;padding:0 0 0 4px;color:var(--label)}
-html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-instruction{font-size:15px;line-height:28px !important;padding:0 0 0 4px !important;color:var(--label)}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button.adhs-list-button{
+  display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;margin:1px 2px;vertical-align:top;   /* 1+26+1 = the 28px line, so the chip sits dead centre */
   outline:0;background:var(--surface-2);border:0;box-shadow:none;border-radius:10px;
-  color:var(--label);font-size:14px;font-weight:500;padding:3px 8px;margin:0 2px;white-space:normal;vertical-align:middle;
+  color:var(--label);font-size:14px;font-weight:500;line-height:1;white-space:nowrap;
 }
+/* the library nudges icon and label with position/top offsets per image; flex centring replaces all of them */
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button img[class]{display:block;position:static;top:auto;margin:0;transform:none;height:18px;width:auto}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button .adhs-list-button-text{position:static;top:auto;font-size:14px;line-height:1}
 :root[data-theme="light"] .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{background:var(--bg)}
 /* the step icons are drawn black: flip them on dark, hue-rotate keeps any blue blue */
 :root:not([data-theme="light"]) .adhs-container .adhs-list-button img{filter:invert(1) hue-rotate(180deg)}
