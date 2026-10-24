@@ -905,4 +905,11 @@ export default {
   "Some": "Alguma",
   "Regular": "Regular",
   "Unsynced changes from the previous account were removed from this phone.": "As alterações não sincronizadas da conta anterior foram removidas deste telefone.",
+  "Full-screen app with workout notifications.": "App em ecrã inteiro com notificações de treino.",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "Toque em Partilhar e depois em Adicionar ao ecrã principal. Também vai receber notificações de treino.",
+  "Install": "Instalar",
+  "Turn on notifications?": "Ativar notificações?",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "Saiba quando o descanso acaba e nos dias de treino, mesmo com o openGym fechado.",
+  "Turn on notifications": "Ativar notificações",
+  "Not now": "Agora não",
 }

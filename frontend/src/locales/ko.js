@@ -905,4 +905,11 @@ export default {
   "Some": "조금",
   "Regular": "꾸준히",
   "Unsynced changes from the previous account were removed from this phone.": "이전 계정의 동기화되지 않은 변경 사항이 이 휴대폰에서 삭제되었습니다.",
+  "Full-screen app with workout notifications.": "운동 알림이 있는 전체 화면 앱.",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "공유를 누른 다음 홈 화면에 추가를 누르세요. 운동 알림도 받을 수 있어요.",
+  "Install": "설치",
+  "Turn on notifications?": "알림을 켤까요?",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "openGym이 닫혀 있어도 휴식이 끝났을 때와 운동하는 날에 알려 드려요.",
+  "Turn on notifications": "알림 켜기",
+  "Not now": "나중에",
 }

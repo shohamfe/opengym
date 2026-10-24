@@ -905,4 +905,11 @@ export default {
   "Some": "थोड़ा",
   "Regular": "नियमित",
   "Unsynced changes from the previous account were removed from this phone.": "पिछले खाते के बिना सिंक हुए बदलाव इस फ़ोन से हटा दिए गए।",
+  "Full-screen app with workout notifications.": "वर्कआउट सूचनाओं के साथ फ़ुल-स्क्रीन ऐप।",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "शेयर पर टैप करें, फिर Add to Home Screen चुनें। आपको वर्कआउट सूचनाएँ भी मिलेंगी।",
+  "Install": "इंस्टॉल करें",
+  "Turn on notifications?": "सूचनाएँ चालू करें?",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "openGym बंद होने पर भी आराम ख़त्म होने और वर्कआउट वाले दिनों पर बताया जाएगा।",
+  "Turn on notifications": "सूचनाएँ चालू करें",
+  "Not now": "अभी नहीं",
 }
