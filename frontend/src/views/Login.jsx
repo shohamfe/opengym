@@ -1,7 +1,8 @@
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { webauthnOK, passkeyLogin, passkeyRegister, api, BIO } from '../lib/api.js'
-import { SUPABASE, signIn as pwSignIn, setupPassword } from '../lib/supabaseSync.js'
+import { SUPABASE, signIn as pwSignIn, signUp, resetPassword } from '../lib/supabaseSync.js'
+import { normCode, fmtCode, authError } from '../lib/codes.js'
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
@@ -43,63 +44,76 @@ function RegisterSheet({ close }) {
   </>
 }
 
-// Supabase build: email + password. The first time, a one-time setup code from Claude sets the
-// password. Errors go to a toast and the sheet keeps its inputs.
-export function EmailSignInSheet({ close }) {
+// Supabase build: email + password, in three modes that swap in place: sign in, join with an
+// invite code (the person picks their own email and password), and reset with a code the admin
+// made. Errors go to a toast and the sheet keeps its inputs.
+const CODE_INPUT = { autoComplete: 'one-time-code', autoCapitalize: 'characters', autoCorrect: 'off', spellCheck: false, maxLength: 14,
+  style: { letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' } }
+export function EmailSignInSheet({ close, start = 'in' }) {
   const { setUser, pullState } = useStore()
+  const [mode, setMode] = useState(start)   // 'in' | 'join' | 'reset'
   const [email, setEmail] = useState(() => localStorage.getItem('gym_email') || '')
   const [pw, setPw] = useState('')
-  const [code, setCode] = useState(null)   // null = normal sign-in, string = setting the password
+  const [pw2, setPw2] = useState('')
+  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
-  useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [])
+  useEffect(() => { setTimeout(() => ref.current?.focus(), 250) }, [mode])
   const toast = m => useUI.getState().toast(m)
+  const fresh = mode !== 'in'   // choosing a new password
   const go = async () => {
     const m = email.trim().toLowerCase()
+    if (fresh && normCode(code).length !== 12) { toast(t('That code is wrong, expired or already used.')); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { toast(t('Enter a valid email address.')); return }
-    if (code !== null && !code.trim()) { toast(t('Enter the setup code.')); return }
-    if (pw.length < (code !== null ? 10 : 1)) { toast(code !== null ? t('Use at least 10 characters.') : t('Enter your password.')); return }
+    if (pw.length < (fresh ? 10 : 1)) { toast(fresh ? t('Use at least 10 characters.') : t('Enter your password.')); return }
+    if (mode === 'join' && pw !== pw2) { toast(t('The passwords don’t match.')); return }
     setBusy(true)
     try {
-      const u = code !== null ? await setupPassword(m, code, pw) : await pwSignIn(m, pw)
+      const c = normCode(code)
+      const u = mode === 'join' ? await signUp(m, pw, c) : mode === 'reset' ? await resetPassword(m, c, pw) : await pwSignIn(m, pw)
       localStorage.setItem('gym_email', m)
-      setUser(u); close()
-      toast(t('Signed in — syncing your workouts.'))
+      const lost = setUser(u); close()
+      toast(lost ? t('Unsynced changes from the previous account were removed from this phone.')
+        : mode === 'join' ? t('Welcome to openGym!') : t('Signed in — syncing your workouts.'))
       await pullState()
     } catch (e) {
       setBusy(false)
-      if (e.status === 0 || !navigator.onLine) toast(t('You’re offline. Connect and try again — your data is safe on this phone.'))
-      else if (e.status === 429) toast(t('Too many tries. Wait a few minutes and try again.'))
-      else if (code !== null && e.status >= 400 && e.status < 500) toast(t('That setup code is wrong, expired or already used.'))
-      else if (e.status >= 400 && e.status < 500) toast(t('Wrong email or password.'))
-      else toast(t('Sign-in failed'))
+      toast(authError(e, mode))
     }
   }
   const enter = e => e.key === 'Enter' && go()
+  const codeField = <><input ref={mode === 'join' ? ref : null} className="input" {...CODE_INPUT} placeholder={mode === 'join' ? t('Invite code') : t('Reset code')}
+    value={code} onChange={e => setCode(fmtCode(e.target.value))} onKeyDown={enter} /><div style={{ height: 10 }} /></>
   return <>
-    <h3>{code !== null ? t('Set your password') : t('Sign in')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
-      {code !== null ? t('Enter the setup code Claude gave you, then choose a password.') : t('Only the owner’s email can sign in.')}
-    </div>
-    <input ref={ref} className="input" type="email" inputMode="email" autoComplete="username" autoCapitalize="none"
+    <h3>{mode === 'join' ? t('Join openGym') : mode === 'reset' ? t('Reset your password') : t('Sign in')}</h3>
+    {mode !== 'in' && <div className="muted small" style={{ marginBottom: 14 }}>
+      {mode === 'join' ? t('Enter the code Shoham sent you, then choose your email and a password.') : t('Ask Shoham for a reset code. It works once, for one hour.')}
+    </div>}
+    {mode === 'join' && codeField}
+    <input ref={mode === 'join' ? null : ref} className="input" type="email" inputMode="email" autoComplete="username" autoCapitalize="none"
       placeholder={t('Email address')} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={enter} />
-    {code !== null && <><div style={{ height: 10 }} />
-      <input className="input" autoComplete="one-time-code" autoCapitalize="characters" placeholder={t('Setup code')}
-        value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={enter} /></>}
     <div style={{ height: 10 }} />
-    <input className="input" type="password" autoComplete={code !== null ? 'new-password' : 'current-password'}
-      placeholder={code !== null ? t('New password') : t('Password')} value={pw} onChange={e => setPw(e.target.value)} onKeyDown={enter} />
+    {mode === 'reset' && codeField}
+    <input className="input" type="password" autoComplete={fresh ? 'new-password' : 'current-password'}
+      placeholder={fresh ? t('New password') : t('Password')} value={pw} onChange={e => setPw(e.target.value)} onKeyDown={enter} />
+    {mode === 'join' && <><div style={{ height: 10 }} />
+      <input className="input" type="password" autoComplete="new-password" placeholder={t('Repeat password')}
+        value={pw2} onChange={e => setPw2(e.target.value)} onKeyDown={enter} /></>}
+    {fresh && <div className="dim small" style={{ marginTop: 6, textAlign: 'left' }}>{t('At least 10 characters.')}</div>}
     <div style={{ height: 12 }} />
-    <Button variant="primary" onClick={go} disabled={busy}>{busy ? t('Checking…') : code !== null ? t('Set password and sign in') : t('Sign in')}</Button>
+    <Button variant="primary" onClick={go} disabled={busy}>
+      {mode === 'join' ? (busy ? t('Creating…') : t('Create account')) : busy ? t('Checking…') : mode === 'reset' ? t('Set password and sign in') : t('Sign in')}
+    </Button>
     <div style={{ height: 6 }} />
-    <Button variant="ghost" size="sm" onClick={() => setCode(code !== null ? null : '')} disabled={busy}>
-      {code !== null ? t('I already have a password') : t('First time? I have a setup code')}
+    <Button variant="ghost" size="sm" onClick={() => setMode(mode === 'in' ? 'reset' : 'in')} disabled={busy}>
+      {mode === 'in' ? t('Forgot password?') : mode === 'join' ? t('I already have an account') : t('I already have a password')}
     </Button>
   </>
 }
 
 export default function Login() {
-  const { setUser, pullState, setGuest } = useStore()
+  const { setUser, pullState, setGuest, canGuest } = useStore()
+  const guest = canGuest()   // false while the phone holds a signed-out account's data
   const signIn = async () => {
     try { const u = await passkeyLogin(); setUser(u); await pullState(); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
     catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(e.message || t('Sign-in failed')) }
@@ -130,7 +144,9 @@ export default function Login() {
       {head}
       <div className="muted" style={{ marginBottom: 34 }}>{t('Your workouts. Your weights. Your profile.')}</div>
       {SUPABASE ? <>
-        <Button variant="primary" icon="person" onClick={() => useUI.getState().openSheet(close => <EmailSignInSheet close={close} />)}>{t('Sign in with email')}</Button>
+        <Button variant="primary" icon="person" onClick={() => useUI.getState().openSheet(close => <EmailSignInSheet close={close} />)}>{t('Sign in')}</Button>
+        <div style={{ height: 10 }} />
+        <Button icon="key" onClick={() => useUI.getState().openSheet(close => <EmailSignInSheet close={close} start="join" />)}>{t('I have an invite code')}</Button>
         <div style={{ height: 10 }} />
       </> : webauthnOK() ? <>
         <Button variant="primary" icon="person" onClick={signIn}>{t('Sign in with passkey')}</Button>
@@ -138,9 +154,9 @@ export default function Login() {
         <Button icon="sparkles" onClick={() => useUI.getState().openSheet(close => <RegisterSheet close={close} />)}>{t('Create new profile')}</Button>
         <div style={{ height: 10 }} />
       </> : <div className="card small muted" style={{ textAlign: 'left' }}>{t("This browser doesn't support passkeys — you can still use openGym locally on this device.")}</div>}
-      <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>
+      {guest && <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>}
       {SUPABASE
-        ? <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Only the owner’s email can sign in.')}<br />{t('Without an account, data stays on this phone.')}</div>
+        ? <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('openGym is invite-only. Ask Shoham for a code.')}{guest && <><br />{t('Without an account, data stays on this phone.')}</>}</div>
         : <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>{t('Passkeys use {0} — no passwords.', BIO)}<br />{t('Each profile keeps its own plan, workouts & body weight.')}</div>}
     </div>
   )

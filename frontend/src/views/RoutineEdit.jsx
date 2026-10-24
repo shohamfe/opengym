@@ -13,7 +13,10 @@ import { glyphOf } from '../lib/glyphs.js'
 import { Button, SelectRow } from '../components/ui.jsx'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC } from '../lib/progression.js'
 import BodyMap from '../components/BodyMap.jsx'
+import { PgBadge } from '../components/Pregnancy.jsx'
+import { labelOf } from '../lib/pregnancy.js'
 import { loadOfRoutine, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { bodyOf } from '../lib/profile.js'
 
 export default function RoutineEdit() {
   const nav = useNavigate()
@@ -82,6 +85,11 @@ export default function RoutineEdit() {
       {t('Applies to every exercise in this routine that does not set its own rule.')}
     </div>
 
+    {(() => {
+      const n = r.ex.filter(e => labelOf(e.id, S) === 'avoid').length
+      return n > 0 && <div className="progline warn pgline" style={{ marginBottom: 10 }}><Icon name="warn" /><span>
+        {n === 1 ? t('1 exercise is usually avoided in pregnancy') : t('{0} exercises are usually avoided in pregnancy', n)}</span></div>
+    })()}
     {r.ex.length ? <div className={'list' + (drag ? ' reordering' : '')} ref={listRef}>{r.ex.map((e, i) => {
       // An unresolvable id is shown rather than skipped — hiding it left an entry you
       // could neither see nor delete, but that still turned up in the workout.
@@ -94,7 +102,7 @@ export default function RoutineEdit() {
         <div className={'item' + (inSS.has(i) ? ' in-ss' : '')} onClick={() => openRow(i, ex, e)}>
           {r.ex.length > 1 && <div className="iconbtn grip" aria-hidden="true" {...grip(i)}><Icon name="grip" /></div>}
           <Thumb ex={ex} />
-          <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss">{exLine(e, S.unit)}</div></div>
+          <div className="grow"><div className="tt capitalize">{ex.n}</div><div className="ss"><PgBadge id={e.id} />{exLine(e, S.unit)}</div></div>
           <Icon name="chevronRight" className="chev" />
           <div style={{ display: 'contents' }}>
             {/* Visually hidden until tabbed to: the keyboard / screen-reader way to reorder. */}
@@ -114,7 +122,7 @@ export default function RoutineEdit() {
       const { worked } = rankOf(load)
       return <div className="card" style={{ marginTop: 12 }}>
         <h2>{t('What this session hits')}</h2>
-        <BodyMap load={load} body={S.body} />
+        <BodyMap load={load} body={bodyOf(S)} />
         <div className="mchips">
           {worked.slice(0, 6).map(m => <span key={m} className="mchip">{t(MUSCLE_NAME[m])}</span>)}
         </div>

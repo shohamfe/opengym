@@ -9,6 +9,7 @@ import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
+import { PregLine } from '../components/Pregnancy.jsx'
 
 const KEY = { done: 'Done', plan: 'Planned', ovr: 'Moved' }
 const MINOR = ['serratus', 'obliques', 'adductors', 'hip-flexors', 'tibialis', 'forearm']
@@ -74,10 +75,11 @@ export default function Home() {
   const onToday = () => { if (S.active) nav('/workout'); else if (routine) startFlow(routine.id); else dayOverrideSheet(todayISO()) }
 
   return <div className="narrow">
-    <div className="hdr">
-      <div><h1>{user ? greeting(today, user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
+    <div className="hdr home-hdr">
+      <div><h1>{user || S.profile ? greeting(today, S.profile?.name || user?.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
     </div>
+    <PregLine ask />
 
     <div className="card">
       <div className="row between" style={{ marginBottom: 8 }}>

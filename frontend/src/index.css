@@ -47,6 +47,8 @@
   --on-acc:#000000;
   /* amber text/ink: the raw orange/yellow fail 4.5:1 on light surfaces, so light redefines them */
   --orange-t:var(--orange); --yellow-t:var(--yellow); --on-orange:#000;
+  /* pregnancy badge ink (design.md 2.3): raw red/green fail 4.5:1 on their tint in light */
+  --red-t:#ff7a72; --green-t:#30d158;
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
@@ -84,6 +86,7 @@
   --acc-2:#248a3d;
   --on-acc:#ffffff;
   --orange-t:#6b4500; --yellow-t:#6b4500;
+  --red-t:#b3140a; --green-t:#17692c;
 }
 
 /* accents — Apple's system colours, so a recolour never looks off-system */
@@ -185,6 +188,7 @@ body.notabs #timer{bottom:calc(12px + var(--sab))}
 body.notabs #toast{bottom:calc(24px + var(--sab))}
 body.resting #toast{bottom:calc(170px + var(--sab))}
 body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
+body:has(.onb-foot) #toast{bottom:calc(96px + var(--sab))}   /* clear of the onboarding Continue */
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
@@ -192,7 +196,11 @@ body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
 .hdr:has(>.iconbtn:first-child){align-items:center}   /* back button sits beside the title block, not at its baseline */
 .hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
+.hdr.home-hdr{align-items:flex-start}
+.hdr.home-hdr h1{font-size:26px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr.home-hdr>div:first-child{min-width:0}
 .hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
+.hdr-sub{color:var(--label-2);font-size:15px;line-height:1.4;letter-spacing:-.006em;margin:0 0 20px}   /* subtitle under a back-button header */
 
 .iconbtn{
   width:40px;height:40px;border-radius:50%;flex:none;
@@ -397,6 +405,22 @@ h4.sec{
   font-weight:500;text-transform:capitalize;
 }
 .tag.acc{background:var(--acc-soft);color:var(--acc)}
+/* pregnancy badges (design.md 2.3): the word and the glyph carry the meaning, not the colour */
+.tag.pg{text-transform:none;white-space:nowrap;vertical-align:1px}
+.tag.pg .icn{font-size:12px}
+.tag.pg.avoid{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red-t)}
+.tag.pg.care{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange-t)}
+.tag.pg.good{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-t)}
+.item .ss .tag.pg{margin-right:6px}
+/* the badge and "abs · band" each wrap as a whole, so a narrow row never splits "abs ·" from its equipment */
+.item .ss:has(> .tag.pg){display:flex;flex-wrap:wrap;align-items:center;row-gap:3px}
+button.pgbtn{position:relative;border:0;font:inherit;font-size:12px;font-weight:500}   /* looks like the tags beside it */
+button.pgbtn::after{content:'';position:absolute;inset:-10px -4px}   /* 40px hit area */
+.seg.pgseg{margin-top:10px}
+.exnote.pgnote{border-left:3px solid var(--orange-t)}
+.exnote.pgnote.avoid{border-color:var(--red-t)}
+.exnote.pgnote.good{border-color:var(--green-t)}
+.progline.warn.pgline{width:100%;text-align:start;min-height:40px;margin:0 0 12px;color:var(--orange-t)}
 
 /* ---------------------------------------------------------------- chips -- */
 /* the row scrolls under the page/sheet padding to the screen edge; the same amount as
@@ -596,6 +620,19 @@ h4.sec{
 .exmedia.mini{float:left;width:76px;height:76px;margin:0 12px 6px 0;border-radius:var(--r)}
 .exmedia.mini img{height:76px}
 .exmedia.mini::after{content:'';position:absolute;right:4px;bottom:4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M14 4h6v6M10 20H4v-6M20 4l-6 6M4 20l6-6'/%3E%3C/svg%3E") center/10px no-repeat}
+/* Workout Guide line art: white figure on transparent, so a dark tile; inverted in light theme.
+   Three frames loop at ~1 s each (frame k shows during second k of a 3 s cycle). */
+.exmedia.wg,.thumb.wg{background:var(--surface-2)}
+/* light: the filter also inverts a thumb's own background, hence black there */
+:root[data-theme="light"] .exmedia.wg img,:root[data-theme="light"] .thumb.wg{filter:invert(1)}
+:root[data-theme="light"] .exmedia.wg{background:#fff}
+:root[data-theme="light"] .thumb.wg{background:#000}
+.wgloop{display:grid}
+.wgloop img{grid-area:1/1;opacity:0;animation:wgf 3s step-end infinite}
+.wgloop img:nth-child(2){animation-delay:-2s}
+.wgloop img:nth-child(3){animation-delay:-1s}
+@keyframes wgf{0%{opacity:1}33.33%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wgloop img{animation:none}.wgloop img:first-child{opacity:1}}
 .settable{clear:both}
 .lasttime{display:flex;align-items:center;gap:4px;width:100%;min-height:44px;margin:-8px 0 -4px;text-align:start}
 .lasttime svg{flex:none;width:14px;height:14px;opacity:.6}
@@ -829,6 +866,8 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .bw-read{display:flex;align-items:baseline;justify-content:center}
 .bw-read .bw-num{width:5.4ch;background:none;border:none;outline:none;padding:0;color:var(--label);font:inherit;letter-spacing:inherit;text-align:center}
 .bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em}
+/* 320px: 46+52px readout+46 overflowed and the unit slid under the + button */
+@media (max-width:359px){.bwstep{gap:8px}.bw-read{font-size:44px;min-width:0}}
 .bwin{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:16px 0}
 .bwin input{
   width:150px;background:none;border:none;outline:none;text-align:right;
@@ -1112,3 +1151,20 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .rt-row.sub .rt-v{font-size:15px;font-weight:400;color:var(--label-2)}
 .wx-set.chain{white-space:normal}
 @media (max-width:340px){.rt-head,.rt-row{column-gap:6px}.rt-head{letter-spacing:.02em}.rt-v{font-size:16px}}
+
+/* --- onboarding (views/Onboarding.jsx): full-screen stepper --- */
+.onb{min-height:calc(100dvh - var(--sat) - 40px);display:flex;flex-direction:column}
+.onb-hdr{align-items:center;margin-bottom:22px}
+.onb-sp{width:44px;height:44px;flex:none}
+.onb-dots{display:flex;gap:6px}
+.onb-dots span{width:8px;height:8px;border-radius:99px;background:var(--label-4)}
+.onb-dots span.on{background:var(--acc)}
+.onb-h{font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.024em}
+.onb-sub{color:var(--label-2);font-size:15px;line-height:1.4;margin:6px 0 20px}
+.onb-opt{min-height:56px}
+.onb-w{margin-bottom:22px}
+.onb-w.untouched .bw-read{opacity:.45}
+.onb-foot{position:sticky;bottom:0;margin:auto calc(-1 * var(--pad)) 0;padding:12px var(--pad) calc(12px + var(--sab));background:var(--bg);border-top:var(--hair) solid var(--sep)}
+/* a stepper as a list row's control (onboarding weeks / height) keeps its size; it used to cover the title */
+.lrow > .stp{flex:none;width:148px}
+.hfield{width:56px;text-align:center;background:var(--surface-2);border:none;border-radius:8px;padding:8px 6px;font-size:16px;color:var(--label);min-height:40px}

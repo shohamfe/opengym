@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/oauth/consent", "destination": "/index.html" },
+    { "source": "/oauth/:path*", "destination": "/:path*" }
+  ]
+}
