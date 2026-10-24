@@ -995,10 +995,37 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 .ib-mid{flex:1;min-width:0}
 .ib-t{font-weight:600;font-size:15px}
 .ib-s{color:var(--label-2);font-size:13px;line-height:1.35}
-.ib-share{display:inline-flex;vertical-align:-3px;margin:0 3px;color:var(--blue)}
 .ib-btn{flex:none;height:40px;border-radius:99px;padding:0 16px;background:var(--acc);color:var(--on-acc);font-weight:600;font-size:15px}
 .ib-x{position:relative;flex:none;width:28px;height:28px;margin-right:4px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--label) 12%,transparent);color:var(--label-2);font-size:14px}
 .ib-x::after{content:'';position:absolute;inset:-6px}
+
+/* install guide: pwa-add-to-homescreen's modal in our dialog look. `html` prefix outranks its stylesheet */
+html .adhs-container{font-family:inherit;color:var(--label);-webkit-font-smoothing:antialiased}
+html .adhs-container.visible{background-color:rgba(0,0,0,.55)}
+html .adhs-container .adhs-modal{
+  width:min(88vw,340px);background:var(--surface);border-radius:var(--r-xl);padding:52px 20px 20px;
+  box-shadow:0 20px 60px -12px rgba(0,0,0,.5);
+}
+:root[data-theme="light"] .adhs-container .adhs-modal{background:#fff}
+html .adhs-container .adhs-logo{width:76px;height:76px;top:-38px;border-radius:18px;box-shadow:0 8px 24px -6px rgba(0,0,0,.5)}
+html .adhs-container .adhs-logo img{border-radius:18px}
+html .adhs-container .adhs-install-app{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--label-2);margin:0}
+html .adhs-container .adhs-app-name{font-size:22px;font-weight:700;color:var(--label);margin:2px 0 18px}
+html .adhs-container .adhs-modal .adhs-list{gap:14px}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item{margin:0;align-items:center}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-circle{width:28px;height:28px;background:var(--acc);border-radius:50%}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-number{color:var(--on-acc);font-size:15px;font-weight:700}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-instruction{font-size:16px;line-height:1.5;color:var(--label)}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{
+  outline:0;background:var(--surface-2);border:0;box-shadow:none;border-radius:10px;
+  color:var(--label);font-size:15px;font-weight:500;padding:4px 10px;margin:3px;
+}
+:root[data-theme="light"] .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-list-button{background:var(--bg)}
+/* the step icons are drawn black: flip them on dark, hue-rotate keeps any blue blue */
+:root:not([data-theme="light"]) .adhs-container .adhs-list-button img{filter:invert(1) hue-rotate(180deg)}
+html .adhs-container .adhs-modal .adhs-list .adhs-list-item .adhs-emphasis{font-size:inherit;font-weight:600;line-height:inherit}
+html .adhs-container .adhs-blurb{font-size:14px;line-height:1.45;color:var(--label-2);margin-top:18px;text-align:center}
+html .adhs-container .adhs-bouncing-arrow img{filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
 
 /* ---------------------------------------------------------------- misc --- */
 .empty{text-align:center;color:var(--label-2);padding:44px 20px;font-size:15px;line-height:1.45}

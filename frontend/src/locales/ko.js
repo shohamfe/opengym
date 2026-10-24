@@ -912,6 +912,6 @@ export default {
   "Not now": "나중에",
   "Install openGym": "openGym 설치",
   "Get workout notifications": "운동 알림 받기",
-  "Tap {0} then Add to Home Screen": "{0}을 누른 다음 홈 화면에 추가",
   "Close": "닫기",
+  "Show me": "방법 보기",
 }

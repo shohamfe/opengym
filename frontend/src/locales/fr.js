@@ -912,6 +912,6 @@ export default {
   "Not now": "Pas maintenant",
   "Install openGym": "Installer openGym",
   "Get workout notifications": "Recevez les notifications d’entraînement",
-  "Tap {0} then Add to Home Screen": "Touchez {0} puis Sur l’écran d’accueil",
   "Close": "Fermer",
+  "Show me": "Me montrer",
 }
