@@ -4,6 +4,7 @@ import { t } from './i18n.js'
 import { IS_ANDROID } from './api.js'
 import { IOS, standalone, pushSupported, enablePush } from './push.js'
 import { confirmSheet } from '../sheets.jsx'
+import Icon from '../components/Icon.jsx'
 
 const SNOOZE_DAYS = 14
 const snoozed = k => { try { return Date.now() - (+localStorage.getItem('gym_snooze_' + k) || 0) < SNOOZE_DAYS * 864e5 } catch { return false } }
@@ -16,16 +17,25 @@ let armed = false
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (armed) installBanner() })
 addEventListener('appinstalled', () => toast.dismiss('install'))
 
+// the Share glyph goes where the translation puts {0}
+const shareSteps = () => { const [a, b] = t('Tap {0} then Add to Home Screen').split('{0}'); return <>{a}<span className="ib-share"><Icon name="upload" /></span>{b}</> }
+
 function installBanner() {
   if (standalone() || snoozed('install') || !(IOS || IS_ANDROID || deferred)) return
-  toast(t('Add openGym to your Home Screen'), {
-    id: 'install', duration: Infinity, closeButton: true,
-    description: deferred ? t('Full-screen app with workout notifications.')
-      : IOS ? t('Tap Share, then Add to Home Screen. You’ll get workout notifications too.')
-      : t('In Chrome: ⋮ menu → Add to Home screen'),
-    action: deferred && { label: t('Install'), onClick: () => { deferred.prompt(); deferred = null; snooze('install') } },
-    onDismiss: () => snooze('install')
-  })
+  const close = () => { toast.dismiss('install'); snooze('install') }
+  const install = () => { deferred.prompt(); deferred = null; close() }
+  toast.custom(() => <div className="ib">
+    <img src="icon-180.png" alt="" />
+    <div className="ib-mid">
+      <div className="ib-t">{t('Install openGym')}</div>
+      {/* iPhone: no API opens Add to Home Screen, Safari's own Share button is the only way */}
+      <div className="ib-s">{deferred ? t('Get workout notifications')
+        : IOS ? shareSteps()
+        : t('In Chrome: ⋮ menu → Add to Home screen')}</div>
+    </div>
+    {deferred && <button className="ib-btn" onClick={install}>{t('Install')}</button>}
+    <button className="ib-x" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
+  </div>, { id: 'install', duration: Infinity, onDismiss: () => snooze('install') })
 }
 
 function pushPrompt(user) {
