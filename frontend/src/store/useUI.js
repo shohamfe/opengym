@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { toast as sonner } from 'sonner'
 import { uid } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
 import { api } from '../lib/api.js'
@@ -25,7 +26,6 @@ export const cancelStale = () => { if (useStore.getState().user) return post('/a
 // Both server alerts, e.g. when the error screen throws the running workout away.
 export const cancelPushes = () => Promise.all([cancelPushRestTimer(), cancelStale()])
 
-let toastTm = null
 let timerInt = null
 let timerTick = null
 let workInt = null
@@ -34,7 +34,6 @@ let workDone = null
 
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center', onDismiss }
-  toastMsg: '',
   timer: null,         // rest countdown between sets — { left, total, endsAt }
   work: null,          // work countdown DURING a timed set (issue #16) — { left, total, endsAt, label }
 
@@ -48,11 +47,7 @@ export const useUI = create((set, get) => ({
   closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
   closeAll() { set({ sheets: [] }) },
 
-  toast(msg) {
-    set({ toastMsg: msg })
-    clearTimeout(toastTm)
-    toastTm = setTimeout(() => set({ toastMsg: '' }), 2200)
-  },
+  toast(msg) { sonner(msg) },
 
   startRest(sec) {
     get().stopRest(true)   // the schedule below replaces the server job; no cancel needed

@@ -7,6 +7,8 @@ import { ACCENTS } from './lib/format.js'
 import { setLang, useLang } from './lib/i18n.js'
 import { setNav } from './lib/nav.js'
 import { useWakeLock } from './lib/wakelock.js'
+import { launchPrompts } from './lib/prompts.js'
+import { MOBILE } from './lib/mobile.js'
 import { startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
@@ -57,6 +59,8 @@ function Shell() {
 
   const authed = user || isGuest
   const onboard = needsOnboarding({ user, synced, S })
+  const settled = authed && !onboard && !MOBILE
+  useEffect(() => { if (settled) return launchPrompts(user) }, [settled, !!user])
   if (!ready && !authed) return (
     <div id="app">
       <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 34, color: 'var(--label-3)' }}>

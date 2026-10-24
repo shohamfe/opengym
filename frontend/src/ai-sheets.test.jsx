@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
+vi.mock('sonner', () => ({ toast: () => {} }))   // its CSS injection needs a real document
 import { renderToString } from 'react-dom/server'
 
 // The store touches these at import time (same stubs as useStore.sync.test.js).

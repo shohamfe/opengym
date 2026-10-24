@@ -185,10 +185,11 @@ body.resting #app{padding-bottom:calc(190px + var(--sab))}
 body.notabs #app{padding-bottom:calc(24px + var(--sab))}
 body.notabs.resting #app{padding-bottom:calc(110px + var(--sab))}
 body.notabs #timer{bottom:calc(12px + var(--sab))}
-body.notabs #toast{bottom:calc(24px + var(--sab))}
-body.resting #toast{bottom:calc(170px + var(--sab))}
-body.notabs.resting #toast{bottom:calc(96px + var(--sab))}
-body:has(.onb-foot) #toast{bottom:calc(96px + var(--sab))}   /* clear of the onboarding Continue */
+body{--toast-bottom:calc(96px + var(--sab))}
+body.notabs{--toast-bottom:calc(24px + var(--sab))}
+body.resting{--toast-bottom:calc(170px + var(--sab))}
+body.notabs.resting{--toast-bottom:calc(96px + var(--sab))}
+body:has(.onb-foot){--toast-bottom:calc(96px + var(--sab))}   /* clear of the onboarding Continue */
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
@@ -965,18 +966,23 @@ button.n.tb{padding:0;position:relative;font-family:inherit}
 }
 .pr .icn{font-size:13px}
 
-/* --- toast --- */
-#toast{
-  position:fixed;left:50%;transform:translateX(-50%) translateY(6px);
-  bottom:calc(96px + var(--sab));z-index:200;
-  background:color-mix(in srgb,var(--surface-2) 88%,transparent);
-  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-  border-radius:99px;padding:11px 20px;font-size:15px;font-weight:500;
-  box-shadow:0 10px 30px -6px rgba(0,0,0,.5);
-  opacity:0;pointer-events:none;transition:opacity var(--med),transform var(--med) var(--ease);
-  max-width:88vw;text-align:center;
+/* --- toast (sonner) --- */
+/* selectors one attribute longer than sonner's own, so these win over its injected stylesheet */
+[data-sonner-toaster][data-sonner-theme]{
+  --normal-bg:color-mix(in srgb,var(--surface-2) 88%,transparent);
+  --normal-text:var(--label);--normal-border:var(--sep);
+  --border-radius:16px;font-family:inherit;
 }
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+[data-sonner-toaster] [data-sonner-toast][data-styled]{
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:0 10px 30px -6px rgba(0,0,0,.45);font-size:15px;padding:14px 16px;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled] [data-title]{font-weight:600}
+[data-sonner-toaster] [data-sonner-toast][data-styled] [data-description]{color:var(--label-2);line-height:1.4}
+[data-sonner-toaster] [data-sonner-toast][data-styled] [data-button]{background:var(--acc);color:var(--on-acc);height:40px;padding:0 16px;border-radius:10px;font-weight:600;font-size:15px}
+/* the corner X stays a small dot; ::after gives it a 40px hit area */
+[data-sonner-toaster] [data-sonner-toast][data-styled] [data-close-button]{width:24px;height:24px;background:var(--surface-2);color:var(--label)}
+[data-sonner-toaster] [data-sonner-toast][data-styled] [data-close-button]::after{content:'';position:absolute;inset:-8px}
 
 /* ---------------------------------------------------------------- misc --- */
 .empty{text-align:center;color:var(--label-2);padding:44px 20px;font-size:15px;line-height:1.45}

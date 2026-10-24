@@ -1,4 +1,5 @@
 import { it, expect, vi } from 'vitest'
+vi.mock('sonner', () => ({ toast: () => {} }))   // its CSS injection needs a real document
 
 globalThis.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
 globalThis.document = { visibilityState: 'visible', addEventListener: () => {}, removeEventListener: () => {} }

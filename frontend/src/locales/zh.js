@@ -905,4 +905,11 @@ export default {
   "Some": "一些",
   "Regular": "规律",
   "Unsynced changes from the previous account were removed from this phone.": "上一个账户未同步的更改已从此手机中删除。",
+  "Full-screen app with workout notifications.": "全屏应用，附带训练通知。",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "轻点“分享”，然后选“添加到主屏幕”。这样也能收到训练通知。",
+  "Install": "安装",
+  "Turn on notifications?": "开启通知？",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "即使 openGym 已关闭，也会在休息结束和训练日提醒你。",
+  "Turn on notifications": "开启通知",
+  "Not now": "以后再说",
 }

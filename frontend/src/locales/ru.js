@@ -905,4 +905,11 @@ export default {
   "Some": "Немного",
   "Regular": "Регулярно",
   "Unsynced changes from the previous account were removed from this phone.": "Несинхронизированные изменения предыдущего аккаунта удалены с этого телефона.",
+  "Full-screen app with workout notifications.": "Полноэкранное приложение с уведомлениями о тренировках.",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "Нажмите «Поделиться», затем «На экран „Домой“». Тогда будут приходить и уведомления о тренировках.",
+  "Install": "Установить",
+  "Turn on notifications?": "Включить уведомления?",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "Узнавайте, когда закончился отдых и когда день тренировки, даже если openGym закрыт.",
+  "Turn on notifications": "Включить уведомления",
+  "Not now": "Не сейчас",
 }

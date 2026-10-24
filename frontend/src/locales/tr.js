@@ -905,4 +905,11 @@ export default {
   "Some": "Biraz",
   "Regular": "Düzenli",
   "Unsynced changes from the previous account were removed from this phone.": "Önceki hesabın eşitlenmemiş değişiklikleri bu telefondan kaldırıldı.",
+  "Full-screen app with workout notifications.": "Antrenman bildirimli tam ekran uygulama.",
+  "Tap Share, then Add to Home Screen. You’ll get workout notifications too.": "Paylaş’a, sonra Ana Ekrana Ekle’ye dokun. Antrenman bildirimleri de alırsın.",
+  "Install": "Yükle",
+  "Turn on notifications?": "Bildirimler açılsın mı?",
+  "Get told when your rest is over and on workout days, even when openGym is closed.": "openGym kapalıyken bile dinlenme bittiğinde ve antrenman günlerinde haber alırsın.",
+  "Turn on notifications": "Bildirimleri aç",
+  "Not now": "Şimdi değil",
 }
