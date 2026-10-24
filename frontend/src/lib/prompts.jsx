@@ -25,6 +25,8 @@ async function installGuide() {
     appName: 'openGym', appIconUrl: 'icon-180.png', showArrow: true,
     assetUrl: `https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@${version}/dist/assets/img/`   // 5.8 MB of step images, so not bundled
   }).show(getLang())
+  // e.g. Firefox on iPhone: no way to install from there, and the library shows nothing
+  if (!document.querySelector('.adhs-container')) toast(IOS ? t('Open openGym in Safari to add it to your Home Screen.') : t('Open openGym in Chrome to install it.'))
 }
 
 function installBanner() {

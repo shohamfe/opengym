@@ -914,4 +914,6 @@ export default {
   "Get workout notifications": "接收训练通知",
   "Close": "关闭",
   "Show me": "告诉我怎么做",
+  "Open openGym in Safari to add it to your Home Screen.": "请在 Safari 中打开 openGym，才能添加到主屏幕。",
+  "Open openGym in Chrome to install it.": "请在 Chrome 中打开 openGym 进行安装。",
 }
