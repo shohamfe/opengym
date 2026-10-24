@@ -912,6 +912,6 @@ export default {
   "Not now": "Şimdi değil",
   "Install openGym": "openGym’i yükle",
   "Get workout notifications": "Antrenman bildirimleri al",
-  "Tap {0} then Add to Home Screen": "{0} simgesine, sonra Ana Ekrana Ekle’ye dokun",
   "Close": "Kapat",
+  "Show me": "Göster",
 }

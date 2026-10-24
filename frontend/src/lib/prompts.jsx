@@ -1,6 +1,6 @@
 // Launch nudges: "add to Home Screen" in the browser, "turn on notifications" in the installed app.
 import { toast } from 'sonner'
-import { t } from './i18n.js'
+import { t, getLang } from './i18n.js'
 import { IS_ANDROID } from './api.js'
 import { IOS, standalone, pushSupported, enablePush } from './push.js'
 import { confirmSheet } from '../sheets.jsx'
@@ -17,23 +17,28 @@ let armed = false
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (armed) installBanner() })
 addEventListener('appinstalled', () => toast.dismiss('install'))
 
-// the Share glyph goes where the translation puts {0}
-const shareSteps = () => { const [a, b] = t('Tap {0} then Add to Home Screen').split('{0}'); return <>{a}<span className="ib-share"><Icon name="upload" /></span>{b}</> }
+// Step-by-step guide for browsers with no install dialog (iPhone, Firefox…): pwa-add-to-homescreen picks the
+// steps for the exact browser/iOS version; its look is restyled in index.css (.adhs-*). Loaded only when opened.
+async function installGuide() {
+  const [{ version }] = await Promise.all([import('pwa-add-to-homescreen/package.json'), import('pwa-add-to-homescreen'), import('pwa-add-to-homescreen/dist/add-to-homescreen.min.css')])
+  window.AddToHomeScreen({
+    appName: 'openGym', appIconUrl: 'icon-180.png', showArrow: true,
+    assetUrl: `https://cdn.jsdelivr.net/npm/pwa-add-to-homescreen@${version}/dist/assets/img/`   // 5.8 MB of step images, so not bundled
+  }).show(getLang())
+}
 
 function installBanner() {
   if (standalone() || snoozed('install') || !(IOS || IS_ANDROID || deferred)) return
   const close = () => { toast.dismiss('install'); snooze('install') }
-  const install = () => { deferred.prompt(); deferred = null; close() }
+  const install = () => { if (deferred) deferred.prompt(); else installGuide(); deferred = null; close() }
   toast.custom(() => <div className="ib">
     <img src="icon-180.png" alt="" />
     <div className="ib-mid">
       <div className="ib-t">{t('Install openGym')}</div>
-      {/* iPhone: no API opens Add to Home Screen, Safari's own Share button is the only way */}
-      <div className="ib-s">{deferred ? t('Get workout notifications')
-        : IOS ? shareSteps()
-        : t('In Chrome: ⋮ menu → Add to Home screen')}</div>
+      <div className="ib-s">{t('Get workout notifications')}</div>
     </div>
-    {deferred && <button className="ib-btn" onClick={install}>{t('Install')}</button>}
+    {/* iPhone has no install API: its button opens the guide to Safari's own Share → Add to Home Screen */}
+    <button className="ib-btn" onClick={install}>{deferred ? t('Install') : t('Show me')}</button>
     <button className="ib-x" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
   </div>, { id: 'install', duration: Infinity, onDismiss: () => snooze('install') })
 }

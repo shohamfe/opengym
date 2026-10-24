@@ -912,6 +912,6 @@ export default {
   "Not now": "अभी नहीं",
   "Install openGym": "openGym इंस्टॉल करें",
   "Get workout notifications": "वर्कआउट सूचनाएँ पाएँ",
-  "Tap {0} then Add to Home Screen": "{0} पर टैप करें, फिर Add to Home Screen",
   "Close": "बंद करें",
+  "Show me": "दिखाएँ",
 }

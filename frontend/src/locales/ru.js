@@ -912,6 +912,6 @@ export default {
   "Not now": "Не сейчас",
   "Install openGym": "Установить openGym",
   "Get workout notifications": "Получайте уведомления о тренировках",
-  "Tap {0} then Add to Home Screen": "Нажмите {0}, затем «На экран „Домой“»",
   "Close": "Закрыть",
+  "Show me": "Показать",
 }
