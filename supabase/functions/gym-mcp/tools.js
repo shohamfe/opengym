@@ -227,7 +227,10 @@ export const TOOLS = [
       entries: { type: 'array', minItems: 1, maxItems: 30, items: { type: 'object', additionalProperties: false, required: ['id', 'sets'], properties: {
         id: { type: 'string', description: 'Exercise id from search_exercises' },
         sets: { type: 'array', minItems: 1, maxItems: 20, items: { type: 'object', additionalProperties: false, required: ['reps'], properties: {
-          reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 } } } } } } } } } }
+          reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 } } } } } } } } } },
+  { name: 'delete_workout', title: 'Delete workout', annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+    description: 'Delete a logged workout from history, e.g. to fix a wrong log (then log it again with log_workout). Get the id from get_recent_workouts. Confirm with the user first.',
+    inputSchema: { type: 'object', additionalProperties: false, required: ['workout_id'], properties: { workout_id: { type: 'string' } } } }
 ]
 
 const H = {
@@ -272,7 +275,7 @@ const H = {
     const { S, now } = await read(ctx)
     const since = new Date(now - (a.days ?? 28) * 864e5).toISOString().slice(0, 10)
     const workouts = (S.workouts || []).filter(w => (w.d || '') >= since).sort((x, y) => (x.d < y.d ? 1 : x.d > y.d ? -1 : (y.start || 0) - (x.start || 0))).slice(0, 60)
-      .map(w => ({ date: w.d, routineName: w.name || null, entries: (w.entries || []).map(e => {
+      .map(w => ({ id: w.id, date: w.d, routineName: w.name || null, entries: (w.entries || []).map(e => {
         const work = (e.sets || []).filter(s => s && s.done && s.tech !== 'warmup')
         const top = work.reduce((b, s) => ((s.w || 0) > (b?.w || 0) ? s : b), null)
         const o = { id: e.id, name: shown(lookup(S, e.id)?.n) || 'Unknown exercise', sets: work.length }
@@ -338,6 +341,18 @@ const H = {
       Object.keys(S.week).forEach(k => { if (S.week[k] === r.id) delete S.week[k] })
       Object.keys(S.dayPlan).forEach(k => { if (S.dayPlan[k] === r.id) delete S.dayPlan[k] })
       return { write: true, out: { status: 'deleted', name: r.name } }
+    })
+  },
+
+  async delete_workout(ctx, a) {
+    strict(a, { workout_id: str(1, 60) }, 'arguments')
+    if (!a.workout_id) fail('workout_id is required')
+    return change(ctx, S => {
+      const w = S.workouts.find(x => x.id === a.workout_id)
+      if (!w) fail(`No workout with id ${a.workout_id}; get ids from get_recent_workouts.`)
+      // Same as the app's Delete workout (views/WorkoutView.jsx).
+      S.workouts = S.workouts.filter(x => x.id !== w.id)
+      return { write: true, out: { status: 'deleted', name: w.name || 'Workout', date: w.d } }
     })
   },
 

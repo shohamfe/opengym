@@ -89,7 +89,7 @@ describe('reads', () => {
       { id: 2, d: '2026-10-20', name: 'Push', entries: [{ id: '0025', sets: [{ w: 20, r: 10, done: true, tech: 'warmup' }, { w: 40, r: 8, done: true }, { w: 45, r: 5, done: false }] }] }
     ] })
     const { structuredContent: o } = await db.call('get_recent_workouts', {})
-    expect(o.workouts).toEqual([{ date: '2026-10-20', routineName: 'Push', entries: [{ id: '0025', name: 'barbell bench press', sets: 1, topWeight: 40, topReps: 8 }] }])
+    expect(o.workouts).toEqual([{ id: 2, date: '2026-10-20', routineName: 'Push', entries: [{ id: '0025', name: 'barbell bench press', sets: 1, topWeight: 40, topReps: 8 }] }])
   })
 })
 
@@ -177,6 +177,14 @@ describe('writes', () => {
     expect((await db.call('log_workout', { entries: [{ id: '9999x', sets: [{ reps: 5 }] }] })).isError).toBe(true)
     expect((await db.call('log_workout', { date: '26/10', entries: [{ id: '0025', sets: [{ reps: 5 }] }] })).isError).toBe(true)
     expect(db.state.workouts).toHaveLength(1)
+  })
+  it('delete_workout removes a logged workout by the id get_recent_workouts gives', async () => {
+    const db = fakeDb({ routines: [], workouts: [], bodyweight: [] })
+    await db.call('log_workout', { entries: [{ id: '0025', sets: [{ weight: 40, reps: 8 }] }] })
+    const id = (await db.call('get_recent_workouts', {})).structuredContent.workouts[0].id
+    expect((await db.call('delete_workout', { workout_id: 'nope' })).isError).toBe(true)
+    expect((await db.call('delete_workout', { workout_id: id })).structuredContent).toMatchObject({ status: 'deleted', date: '2026-10-23' })
+    expect(db.state.workouts).toEqual([])
   })
   it('unknown tool and every tool has a schema', async () => {
     expect((await fakeDb({}).call('drop_tables', {})).isError).toBe(true)
