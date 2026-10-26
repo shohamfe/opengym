@@ -8,9 +8,12 @@ import { exOr, EXIDX } from '../lib/exercises.js'
 import { setLabel, modeOf, isBw, fmtSec, EFFORT } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { pregOf } from '../lib/pregnancy.js'
+import { loadOfWorkouts } from '../lib/muscles.js'
+import { bodyOf } from '../lib/profile.js'
 import { techBadge, techName, partsOf } from '../lib/tech.js'
 import { wStats, StatCell, confirmSheet } from '../sheets.jsx'
 import Media, { Thumb } from '../components/Media.jsx'
+import BodyMap from '../components/BodyMap.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 
@@ -129,6 +132,8 @@ export default function WorkoutView() {
           <Icon name="chevronRight" className="chev" />
         </button>
       })}</div>
+      <h4 className="sec">{t('Muscles worked')}</h4>
+      <div className="card"><BodyMap load={loadOfWorkouts([w])} body={bodyOf(S)} /></div>
     </> : <div className="empty">{t('No exercises were logged.')}</div>}
   </>
 }

@@ -404,6 +404,7 @@ export default {
   'No workouts in this period yet.': 'Bu dönemde henüz antrenman yok.',
   'What this session hits': 'Bu antrenman neyi çalıştırıyor',
   'What you just trained': 'Az önce ne çalıştın',
+  'Muscles worked': 'Çalışan kaslar',
   'Body diagram': 'Vücut diyagramı',
   'Male': 'Erkek',
   'Female': 'Kadın',

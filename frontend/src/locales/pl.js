@@ -404,6 +404,7 @@ export default {
   'No workouts in this period yet.': 'Brak treningów w tym okresie.',
   'What this session hits': 'Co trenuje ta sesja',
   'What you just trained': 'Co właśnie wytrenowałeś',
+  'Muscles worked': 'Pracujące mięśnie',
   'Body diagram': 'Diagram ciała',
   'Male': 'Mężczyzna',
   'Female': 'Kobieta',

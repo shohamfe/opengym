@@ -404,6 +404,7 @@ export default {
   'No workouts in this period yet.': '此期间还没有训练。',
   'What this session hits': '这次训练练到哪里',
   'What you just trained': '你刚刚练了什么',
+  'Muscles worked': '练到的肌肉',
   'Body diagram': '身体图示',
   'Male': '男性',
   'Female': '女性',
