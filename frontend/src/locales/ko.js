@@ -404,6 +404,7 @@ export default {
   'No workouts in this period yet.': '이 기간에 아직 운동이 없습니다.',
   'What this session hits': '이 세션이 자극하는 부위',
   'What you just trained': '방금 훈련한 부위',
+  'Muscles worked': '운동한 근육',
   'Body diagram': '신체 도해',
   'Male': '남성',
   'Female': '여성',

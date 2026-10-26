@@ -404,6 +404,7 @@ export default {
   'No workouts in this period yet.': 'इस अवधि में अभी कोई वर्कआउट नहीं।',
   'What this session hits': 'यह सत्र क्या ट्रेन करता है',
   'What you just trained': 'आपने अभी क्या ट्रेन किया',
+  'Muscles worked': 'काम किए गए मसल्स',
   'Body diagram': 'शरीर आरेख',
   'Male': 'पुरुष',
   'Female': 'महिला',
