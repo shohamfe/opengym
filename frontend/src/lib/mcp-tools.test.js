@@ -166,6 +166,18 @@ describe('writes', () => {
     expect((await db.call('create_routine', { name: 'A', ex: [{ id: '0025', sets: 3 }] })).structuredContent.status).toBe('created')
     expect(db.state.routines).toHaveLength(1)
   })
+  it('log_workout saves a finished workout with volume, PRs and exWeights', async () => {
+    const db = fakeDb({ routines: [], workouts: [], bodyweight: [{ d: '2026-10-20', w: 76.5 }], exWeights: { '0603': { w: 10, d: '2026-10-01' } } })
+    const r = await db.call('log_workout', { name: 'Trainer', entries: [{ id: '0603', sets: [{ weight: 15, reps: 15 }, { weight: 15, reps: 12 }] }, { id: '0179', sets: [{ weight: 50, reps: 10 }] }] })
+    expect(r.structuredContent).toMatchObject({ status: 'logged', date: '2026-10-23', sets: 3, volume: 905, prs: ['0603'] })
+    const w = db.state.workouts[0]
+    expect(w).toMatchObject({ d: '2026-10-23', name: 'Trainer', bw: 76.5, routineId: null })
+    expect(w.entries[0].sets[0]).toEqual({ w: 15, r: 15, done: true })
+    expect(db.state.exWeights).toMatchObject({ '0603': { w: 15 }, '0179': { w: 50 } })
+    expect((await db.call('log_workout', { entries: [{ id: '9999x', sets: [{ reps: 5 }] }] })).isError).toBe(true)
+    expect((await db.call('log_workout', { date: '26/10', entries: [{ id: '0025', sets: [{ reps: 5 }] }] })).isError).toBe(true)
+    expect(db.state.workouts).toHaveLength(1)
+  })
   it('unknown tool and every tool has a schema', async () => {
     expect((await fakeDb({}).call('drop_tables', {})).isError).toBe(true)
     TOOLS.forEach(t => { expect(t.inputSchema.type).toBe('object'); expect(t.annotations).toBeTruthy() })

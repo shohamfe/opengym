@@ -219,7 +219,15 @@ export const TOOLS = [
       week: { type: 'object', additionalProperties: false, properties: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(d => [d, { type: ['string', 'null'] }])) } } } },
   { name: 'delete_routine', title: 'Delete routine', annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
     description: 'Delete a routine. Logged workouts keep their history; days scheduled to it become rest days. Confirm with the user first.',
-    inputSchema: { type: 'object', additionalProperties: false, required: ['routine_id'], properties: { routine_id: { type: 'string' } } } }
+    inputSchema: { type: 'object', additionalProperties: false, required: ['routine_id'], properties: { routine_id: { type: 'string' } } } },
+  { name: 'log_workout', title: 'Log workout', annotations: W,
+    description: `Save a finished workout to the user's history, e.g. one done with a trainer. ${IDS} Weight is in the user's unit; for machines or dumbbells loaded per hand, give the weight of one side.`,
+    inputSchema: { type: 'object', additionalProperties: false, required: ['entries'], properties: {
+      date: { type: 'string', description: 'YYYY-MM-DD, default today' }, name: { type: 'string', maxLength: 40, description: 'e.g. "Trainer session"' },
+      entries: { type: 'array', minItems: 1, maxItems: 30, items: { type: 'object', additionalProperties: false, required: ['id', 'sets'], properties: {
+        id: { type: 'string', description: 'Exercise id from search_exercises' },
+        sets: { type: 'array', minItems: 1, maxItems: 20, items: { type: 'object', additionalProperties: false, required: ['reps'], properties: {
+          reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 } } } } } } } } } }
 ]
 
 const H = {
@@ -330,6 +338,41 @@ const H = {
       Object.keys(S.week).forEach(k => { if (S.week[k] === r.id) delete S.week[k] })
       Object.keys(S.dayPlan).forEach(k => { if (S.dayPlan[k] === r.id) delete S.dayPlan[k] })
       return { write: true, out: { status: 'deleted', name: r.name } }
+    })
+  },
+
+  async log_workout(ctx, a) {
+    const SET = { reps: int(1, 100), weight: num(0, 1000) }
+    strict(a, {
+      date: (v, w) => { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(Date.parse(v))) fail(`${w} must be YYYY-MM-DD`) },
+      name: str(1, 40),
+      entries: (v, w) => {
+        if (!Array.isArray(v) || v.length < 1 || v.length > 30) fail(`${w} must list 1-30 exercises`)
+        v.forEach((e, i) => strict(e, { id: str(1, 40), sets: (ss, sw) => {
+          if (!Array.isArray(ss) || ss.length < 1 || ss.length > 20) fail(`${sw} must list 1-20 sets`)
+          ss.forEach((x, j) => { strict(x, SET, `${sw}[${j}]`); if (x.reps === undefined) fail(`${sw}[${j}] needs reps`) })
+        } }, `${w}[${i}]`))
+        v.forEach((e, i) => { if (!e.id || !e.sets) fail(`${w}[${i}] needs id and sets`) })
+      }
+    }, 'arguments')
+    if (!a.entries) fail('entries is required')
+    return change(ctx, (S, now) => {
+      checkIds(S, a.entries)
+      S.exWeights ||= {}
+      const d = a.date || new Date(now).toISOString().slice(0, 10)
+      const bw = [...S.bodyweight].sort((x, y) => (x.d < y.d ? 1 : -1))[0]
+      const at = ctx.now?.() ?? Date.now()
+      const w = { id: uid(), d, start: at, end: at, routineId: null, name: a.name?.trim() || 'Workout', bw: bw ? bw.w : null, prs: [], vol: 0,
+        entries: a.entries.map(e => ({ id: e.id, sets: e.sets.map(x => ({ w: x.weight ?? 0, r: x.reps, done: true })), topW: null, target: null })) }
+      // Same bookkeeping as the app's Finish workout (sheets.jsx doFinishWorkout).
+      w.entries.forEach(e => {
+        e.sets.forEach(x => { w.vol += x.w * x.r })
+        const mx = Math.max(0, ...e.sets.map(x => x.w))
+        const cur = S.exWeights[e.id]
+        if (mx > 0 && (!cur || mx > cur.w)) { if (cur) w.prs.push(e.id); S.exWeights[e.id] = { w: mx, d } }
+      })
+      S.workouts.push(w)
+      return { write: true, out: { status: 'logged', workout_id: w.id, name: w.name, date: d, exercises: w.entries.length, sets: w.entries.reduce((n, e) => n + e.sets.length, 0), volume: w.vol, prs: w.prs } }
     })
   }
 }
