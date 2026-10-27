@@ -13,7 +13,7 @@ import { t } from '../lib/i18n.js'
 import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, Check, NumberField } from '../components/ui.jsx'
+import { Button, Check, NumberField, Switch } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription, defaultIncrement } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { pregOf } from '../lib/pregnancy.js'
@@ -105,6 +105,7 @@ function TechSheet({ entryIdx, i, close }) {
 const lastTimeSheet = (id, last) => useUI.getState().openSheet(() => <>
   <h3>{t('Last time')}</h3>
   <div className="muted small" style={{ marginBottom: 12 }}>{fmtDate(last.d, true)}</div>
+  {last.hold && <div className="row" style={{ marginBottom: 12 }}><span className="tag nocap">{t('Marked: same weight next time')}</span></div>}
   <div className="sect-b">{last.sets.map((s, i) => <div key={i} className="lrow">
     <span className="tb-i">{i + 1}</span><span className="lrow-m"><span className="lrow-t">{setLabel(id, s, last.target, { effort: false })}</span></span>
     {(s.rir ?? s.rpe) != null && <span className="effpill" style={{ flex: 'none' }}>{EFFORT[s.rir != null ? 'rir' : 'rpe'].hd} {fmtNum(s.rir ?? s.rpe)}</span>}
@@ -287,6 +288,11 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
         {isParts && parts.length < maxParts(s.tech) && <button className="effedit padd" onClick={() => onAddPart(i)}><Icon name="plus" />{s.tech === 'drop' ? t('Add drop') : t('Add mini-set')}</button>}
         {repsMode && s.partials > 0 && <button className="effedit tpart" onClick={() => openTech(i)}>{t('+{0} partial reps', s.partials)}</button>}
       </div>})}
+      {/* A hit with shaky form: next time keeps this weight instead of progressing. */}
+      {repsMode && entry.sets.every(s => s.done) && <label className="row between holdrow">
+        <span>{t("Don't go up next time")}</span>
+        <Switch checked={!!entry.hold} onChange={v => useStore.getState().update(S => { S.active.entries[entryIdx].hold = v || undefined })} />
+      </label>}
       <div style={{ height: 8 }} />
       <div className="row">
         <Button size="sm" icon="minus" disabled={entry.sets.length <= 1} onClick={onRemoveSet}>{t('Remove set')}</Button>

@@ -14,7 +14,7 @@ import { techBadge, techName, partsOf } from '../lib/tech.js'
 import { wStats, StatCell, confirmSheet } from '../sheets.jsx'
 import Media, { Thumb } from '../components/Media.jsx'
 import BodyMap from '../components/BodyMap.jsx'
-import { Button } from '../components/ui.jsx'
+import { Button, Switch } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 
 const done = e => e.sets.filter(s => s.done)
@@ -40,6 +40,7 @@ function TechSlot({ set: s, cols, tpl }) {
 
 function ExerciseView({ w, e }) {
   const S = useStore(s => s.S)
+  const hold = !!(S.workouts.find(x => x.id === w.id)?.entries.find(x => x.id === e.id) || e).hold
   const ex = exOr(e.id), sets = done(e), name = nameOf(e, ex)
   const mode = modeOf({ ...e.target, id: e.id })
   const bw = mode === 'reps' && isBw({ ...e.target, id: e.id })
@@ -72,6 +73,13 @@ function ExerciseView({ w, e }) {
         <TechSlot set={s} cols={cols} tpl={tpl} />
       </div>)}
     </div> : <div className="empty" style={{ padding: 20 }}>{t('No sets logged')}</div>}
+    {mode === 'reps' && sets.length > 0 && <label className="row between holdrow">
+      <span>{t("Don't go up next time")}</span>
+      <Switch checked={hold} onChange={v => useStore.getState().update(s => {
+        const en = s.workouts.find(x => x.id === w.id)?.entries.find(x => x.id === e.id)
+        if (en) en.hold = v || undefined
+      })} />
+    </label>}
   </>
 }
 const exerciseViewSheet = (w, e) => useUI.getState().openSheet(() => <ExerciseView w={w} e={e} />, { label: nameOf(e, exOr(e.id)) })

@@ -566,3 +566,28 @@ describe('pregnancy gate (coach 2026-10-23 A)', () => {
     expect(pregnancyStep(SQUAT, 'kg', 1)).toBe(1)
   })
 })
+
+describe('hold button and RIR rep climb', () => {
+  const T = { sets: 3, reps: 10, weight: 60 }
+  const one = (sets, extra) => ({ unit: 'kg', workouts: [{ d: '2026-01-01', entries: [{ id: LIFT, target: T, sets, ...extra }] }] })
+  const set = (r, rir) => ({ w: 60, r, done: true, ...(rir != null ? { rir } : {}) })
+  const cfg = { id: LIFT, ...T }
+  it('a held hit keeps the weight and is not a stall', () => {
+    const S = one([set(10), set(10), set(10)], { hold: true })
+    expect(nextPrescription(S, cfg)).toMatchObject({ kind: 'hold', weight: 60 })
+    expect(stallCount(sessionsFor(S, LIFT, cfg))).toBe(0)
+  })
+  it('RIR 0-1 on the last set adds a rep at the same weight', () => {
+    expect(nextPrescription(one([set(10), set(10), set(10, 1)]), cfg)).toMatchObject({ kind: 'up', weight: 60, reps: 11 })
+  })
+  it('RPE 9 counts as RIR 1', () => {
+    expect(nextPrescription(one([set(10), set(10), { w: 60, r: 10, done: true, rpe: 9 }]), cfg)).toMatchObject({ weight: 60, reps: 11 })
+  })
+  it('at the top of the climb the weight goes up and reps reset', () => {
+    expect(nextPrescription(one([set(14), set(14), set(14, 0)]), cfg)).toMatchObject({ kind: 'up', weight: 62.5, reps: 10 })
+  })
+  it('RIR 2+ after a climb goes up and resets reps; no RIR is unchanged', () => {
+    expect(nextPrescription(one([set(12), set(12), set(12, 2)]), cfg)).toMatchObject({ weight: 62.5, reps: 10 })
+    expect(nextPrescription(one([set(10), set(10), set(10)]), cfg)).toMatchObject({ weight: 62.5, reps: undefined })
+  })
+})

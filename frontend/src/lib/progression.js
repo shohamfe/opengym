@@ -134,6 +134,7 @@ export function readSession(entry, fallback) {
     // reps in reserve per done set (RPE read as 10 - RPE), null = not logged; pregnancy gate
     rir: sets.filter(s => s.done).map(s => (s.rir != null ? s.rir : s.rpe != null ? 10 - s.rpe : null)),
     low: reps.length ? Math.min(...reps) : 0,
+    hold: !!(entry && entry.hold),                        // "don't go up next time": a hit with shaky form
     amrap: reps.length ? reps[reps.length - 1] : 0,       // Greyskull's final set
     ok: goal > 0 && enough && reps.length > 0 && reps.every(r => r >= goal)
   }
@@ -153,7 +154,7 @@ export function sessionsFor(S, exId, fallback) {
 export function stallCount(sessions) {
   let n = 0
   for (let i = sessions.length - 1; i >= 0; i--) {
-    if (sessions[i].ok) break
+    if (sessions[i].ok || sessions[i].hold) break
     n++
   }
   return n
@@ -246,6 +247,8 @@ function basePrescription(S, cfg, routine) {
   }
 
   const w = last.weight
+  // You marked last time as not clean: same weight, and buildSets carries last time's reps.
+  if (last.hold) return { policy, kind: 'hold', weight: w, why: ['You marked last time as shaky form — same weight again.'] }
   // Bodyweight work carries no external load, so there is nothing to add or take away —
   // "deload your push-ups to 2.5 kg" is not advice. Progress in reps instead. This runs ahead
   // of the individual policies because it is true for all of them. Note the trigger is the
@@ -283,6 +286,19 @@ function basePrescription(S, cfg, routine) {
   }
 
   // linear + greyskull
+  // A hit with 0-1 reps left on the final set (RPE 9-10) was a grind: add reps before load,
+  // up to the range top (or 4 reps over the plan), then load goes up and reps reset.
+  // Rep and load progression grow muscle alike (Plotkin 2022). Greyskull's last set is meant to fail.
+  const lastRir = last.rir[last.rir.length - 1]
+  if (last.ok && policy === 'linear' && lastRir != null && lastRir <= 1 && !pregOf(S)) {   // pregnancy has its own RIR rules
+    const base = cfg.reps || last.goal
+    const top = cfg.repsMax > base ? cfg.repsMax : base + 4 * repStep(cfg)
+    if (last.low < top) {
+      const aim = Math.min(top, last.low + repStep(cfg))
+      return { policy, kind: 'up', weight: w, reps: aim, why: ['Last set was close to failure — same weight, aim for {0} reps.', aim] }
+    }
+    return { policy, kind: 'up', weight: round1(w + inc), reps: base, why: ['Weight up: you hit all your reps last time, so today is {0} {1} × {2}.', round1(w + inc), unit, base] }
+  }
   if (last.ok) {
     // Greyskull's final set is taken to failure: double the target reps there and you have
     // earned a double jump.
@@ -292,6 +308,8 @@ function basePrescription(S, cfg, routine) {
       // Add the step to what was lifted, unsnapped: snapping 18 + 5 onto the 5 grid gave 25,
       // a 7 kg jump under a "5 kg more" line. The logged weight was loadable, so this is too.
       policy, kind: 'up', weight: round1(w + step),
+      // after an RIR rep climb, the new load starts back at the planned reps
+      reps: lastRir != null && cfg.reps > 0 && last.low > cfg.reps ? cfg.reps : undefined,
       why: dbl
         ? ['Last set hit {0} reps — twice the target, so take a double jump of {1} {2}.', last.amrap, step, unit]
         : ['Every rep last time — {0} {1} more.', step, unit]

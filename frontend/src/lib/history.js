@@ -214,7 +214,7 @@ export function lastEntryFor(S, exId) {
     // progression engine can read a session back the way it was logged. Older workouts have
     // none — modeOf() falls back to the body part for them, which is what they were.
     // Working sets only, so a warm-up never shifts the positional prefill.
-    if (en && en.sets.some(isWork)) return { d: S.workouts[i].d, sets: en.sets.filter(isWork), target: en.target || null }
+    if (en && en.sets.some(isWork)) return { d: S.workouts[i].d, sets: en.sets.filter(isWork), target: en.target || null, hold: !!en.hold }
   }
   return null
 }
