@@ -917,4 +917,8 @@ export default {
   "Show me": "दिखाएँ",
   "Open openGym in Safari to add it to your Home Screen.": "होम स्क्रीन पर जोड़ने के लिए openGym को Safari में खोलें।",
   "Open openGym in Chrome to install it.": "इंस्टॉल करने के लिए openGym को Chrome में खोलें।",
+  'You marked last time as shaky form — same weight again.': 'पिछली बार आपने फ़ॉर्म को कमज़ोर चिह्नित किया — फिर वही वज़न।',
+  'Last set was close to failure — same weight, aim for {0} reps.': 'आख़िरी सेट विफलता के क़रीब था — वही वज़न, {0} रेप्स का लक्ष्य।',
+  'Don\'t go up next time': 'अगली बार न बढ़ाएँ',
+  'Marked: same weight next time': 'चिह्नित: अगली बार वही वज़न',
 }

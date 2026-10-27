@@ -917,4 +917,8 @@ export default {
   "Show me": "Göster",
   "Open openGym in Safari to add it to your Home Screen.": "Ana Ekrana eklemek için openGym’i Safari’de aç.",
   "Open openGym in Chrome to install it.": "Yüklemek için openGym’i Chrome’da aç.",
+  'You marked last time as shaky form — same weight again.': 'Geçen sefer formu sallantılı işaretledin — aynı ağırlık bir kez daha.',
+  'Last set was close to failure — same weight, aim for {0} reps.': 'Son set tükenişe yakındı — aynı ağırlık, hedef {0} tekrar.',
+  'Don\'t go up next time': 'Bir dahaki sefere artırma',
+  'Marked: same weight next time': 'İşaretlendi: bir dahaki sefere aynı ağırlık',
 }

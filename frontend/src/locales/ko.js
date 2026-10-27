@@ -917,4 +917,8 @@ export default {
   "Show me": "방법 보기",
   "Open openGym in Safari to add it to your Home Screen.": "홈 화면에 추가하려면 Safari에서 openGym을 여세요.",
   "Open openGym in Chrome to install it.": "설치하려면 Chrome에서 openGym을 여세요.",
+  'You marked last time as shaky form — same weight again.': '지난번 자세가 불안정했다고 표시함 — 같은 무게로 다시.',
+  'Last set was close to failure — same weight, aim for {0} reps.': '마지막 세트가 실패에 가까웠어요 — 같은 무게로 {0}회를 목표로.',
+  'Don\'t go up next time': '다음에 올리지 않기',
+  'Marked: same weight next time': '표시됨: 다음에도 같은 무게',
 }

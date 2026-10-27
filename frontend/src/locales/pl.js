@@ -917,4 +917,8 @@ export default {
   "Show me": "Pokaż jak",
   "Open openGym in Safari to add it to your Home Screen.": "Otwórz openGym w Safari, aby dodać go do ekranu początkowego.",
   "Open openGym in Chrome to install it.": "Otwórz openGym w Chrome, aby go zainstalować.",
+  'You marked last time as shaky form — same weight again.': 'Ostatnio oznaczono słabą technikę — ten sam ciężar.',
+  'Last set was close to failure — same weight, aim for {0} reps.': 'Ostatnia seria była blisko upadku — ten sam ciężar, celuj w {0} powtórzeń.',
+  'Don\'t go up next time': 'Nie zwiększaj następnym razem',
+  'Marked: same weight next time': 'Oznaczono: ten sam ciężar następnym razem',
 }

@@ -917,4 +917,8 @@ export default {
   "Show me": "告诉我怎么做",
   "Open openGym in Safari to add it to your Home Screen.": "请在 Safari 中打开 openGym，才能添加到主屏幕。",
   "Open openGym in Chrome to install it.": "请在 Chrome 中打开 openGym 进行安装。",
+  'You marked last time as shaky form — same weight again.': '你上次标记了动作不够标准——重量保持不变。',
+  'Last set was close to failure — same weight, aim for {0} reps.': '最后一组接近力竭——重量不变，目标 {0} 次。',
+  'Don\'t go up next time': '下次不要加重',
+  'Marked: same weight next time': '已标记：下次重量不变',
 }

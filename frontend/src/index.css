@@ -669,6 +669,7 @@ button.pgbtn::after{content:'';position:absolute;inset:-10px -4px}   /* 40px hit
 .effchip:active{background:var(--surface-3)}
 .effedit{display:flex;align-items:center;gap:10px;min-height:44px;margin:-6px 0 4px 32px;padding:0 4px;font-size:14px;color:var(--acc)}
 /* same box as .effrow (2px above, 10px below) so the row keeps its spacing when the chips collapse to the pill */
+.holdrow{min-height:44px;margin:4px 0 0;font-size:15px}
 .effedit.eff{min-height:0;margin:0 0 0 32px;padding:2px 0 10px;font-size:16px}
 .effedit.eff .effpill{display:inline-flex;align-items:center;height:40px;padding:0 14px;border-radius:10px;font-size:16px;font-weight:600}
 .effpill{font-size:12px;background:var(--acc-soft);border-radius:99px;padding:3px 10px}
