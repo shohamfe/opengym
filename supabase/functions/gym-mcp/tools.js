@@ -182,6 +182,8 @@ const exInSchema = {
     side: { type: 'boolean', description: 'Reps counted per side' }, sg: { type: 'string', maxLength: 12, description: 'Same value on neighbouring exercises = superset' }
   }
 }
+// Same ids as frontend/src/lib/tech.js TECH; parts only for PARTS_TECH.
+const TECHS = ['warmup', 'fail', 'backoff', 'drop', 'myo', 'rp'], PARTS_TECH = ['drop', 'myo', 'rp']
 const exArr = { type: 'array', minItems: 1, maxItems: 30, items: exInSchema }
 const confirmArr = { type: 'array', items: { type: 'string' }, description: 'Avoid-in-pregnancy ids the user explicitly chose to keep' }
 const noArgs = { type: 'object', properties: {}, additionalProperties: false }
@@ -221,13 +223,17 @@ export const TOOLS = [
     description: 'Delete a routine. Logged workouts keep their history; days scheduled to it become rest days. Confirm with the user first.',
     inputSchema: { type: 'object', additionalProperties: false, required: ['routine_id'], properties: { routine_id: { type: 'string' } } } },
   { name: 'log_workout', title: 'Log workout', annotations: W,
-    description: `Save a finished workout to the user's history, e.g. one done with a trainer. ${IDS} Weight is in the user's unit; for machines or dumbbells loaded per hand, give the weight of one side.`,
+    description: `Save a finished workout to the user's history, e.g. one done with a trainer. ${IDS} Weight is in the user's unit; for machines or dumbbells loaded per hand, give the weight of one side. Mark drop sets, myo-reps, rest-pause, warm-ups, failure and back-off sets with tech; a drop set is ONE set with its drops in parts.`,
     inputSchema: { type: 'object', additionalProperties: false, required: ['entries'], properties: {
       date: { type: 'string', description: 'YYYY-MM-DD, default today' }, name: { type: 'string', maxLength: 40, description: 'e.g. "Trainer session"' },
       entries: { type: 'array', minItems: 1, maxItems: 30, items: { type: 'object', additionalProperties: false, required: ['id', 'sets'], properties: {
         id: { type: 'string', description: 'Exercise id from search_exercises' },
         sets: { type: 'array', minItems: 1, maxItems: 20, items: { type: 'object', additionalProperties: false, required: ['reps'], properties: {
-          reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 } } } } } } } } } },
+          reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 },
+          tech: { enum: TECHS, description: 'Set type: warmup (left out of stats), fail (to failure), backoff, drop (drop set), myo (myo-reps), rp (rest-pause). Omit for a normal set.' },
+          parts: { type: 'array', minItems: 1, maxItems: 6, description: 'Only with drop, myo or rp: the drops / mini-sets after the main set, in order. E.g. drop set 35x6 then 20x4 then 10x8 = one set {weight 35, reps 6, tech "drop", parts [{weight 20, reps 4}, {weight 10, reps 8}]}.',
+            items: { type: 'object', additionalProperties: false, required: ['reps'], properties: { reps: { type: 'integer', minimum: 1, maximum: 100 }, weight: { type: 'number', minimum: 0, maximum: 1000 } } } },
+          partials: { type: 'integer', minimum: 1, maximum: 50, description: 'Partial reps after the full reps' } } } } } } } } } },
   { name: 'delete_workout', title: 'Delete workout', annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
     description: 'Delete a logged workout from history, e.g. to fix a wrong log (then log it again with log_workout). Get the id from get_recent_workouts. Confirm with the user first.',
     inputSchema: { type: 'object', additionalProperties: false, required: ['workout_id'], properties: { workout_id: { type: 'string' } } } }
@@ -357,7 +363,11 @@ const H = {
   },
 
   async log_workout(ctx, a) {
-    const SET = { reps: int(1, 100), weight: num(0, 1000) }
+    const PART = { reps: int(1, 100), weight: num(0, 1000) }
+    const SET = { ...PART, tech: oneOf(...TECHS), partials: int(1, 50), parts: (v, w) => {
+      if (!Array.isArray(v) || v.length < 1 || v.length > 6) fail(`${w} must list 1-6 parts`)
+      v.forEach((p, k) => { strict(p, PART, `${w}[${k}]`); if (p.reps === undefined) fail(`${w}[${k}] needs reps`) })
+    } }
     strict(a, {
       date: (v, w) => { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(Date.parse(v))) fail(`${w} must be YYYY-MM-DD`) },
       name: str(1, 40),
@@ -365,7 +375,10 @@ const H = {
         if (!Array.isArray(v) || v.length < 1 || v.length > 30) fail(`${w} must list 1-30 exercises`)
         v.forEach((e, i) => strict(e, { id: str(1, 40), sets: (ss, sw) => {
           if (!Array.isArray(ss) || ss.length < 1 || ss.length > 20) fail(`${sw} must list 1-20 sets`)
-          ss.forEach((x, j) => { strict(x, SET, `${sw}[${j}]`); if (x.reps === undefined) fail(`${sw}[${j}] needs reps`) })
+          ss.forEach((x, j) => {
+            strict(x, SET, `${sw}[${j}]`); if (x.reps === undefined) fail(`${sw}[${j}] needs reps`)
+            if (x.parts && !PARTS_TECH.includes(x.tech)) fail(`${sw}[${j}].parts needs tech drop, myo or rp`)
+          })
         } }, `${w}[${i}]`))
         v.forEach((e, i) => { if (!e.id || !e.sets) fail(`${w}[${i}] needs id and sets`) })
       }
@@ -378,16 +391,19 @@ const H = {
       const bw = [...S.bodyweight].sort((x, y) => (x.d < y.d ? 1 : -1))[0]
       const at = ctx.now?.() ?? Date.now()
       const w = { id: uid(), d, start: at, end: at, routineId: null, name: a.name?.trim() || 'Workout', bw: bw ? bw.w : null, prs: [], vol: 0,
-        entries: a.entries.map(e => ({ id: e.id, sets: e.sets.map(x => ({ w: x.weight ?? 0, r: x.reps, done: true })), topW: null, target: null })) }
+        entries: a.entries.map(e => ({ id: e.id, sets: e.sets.map(x => ({ w: x.weight ?? 0, r: x.reps, done: true,
+          ...(x.tech ? { tech: x.tech } : {}), ...(x.parts ? { parts: x.parts.map(p => ({ w: p.weight ?? 0, r: p.reps })) } : {}), ...(x.partials ? { partials: x.partials } : {}) })), topW: null, target: null })) }
       // Same bookkeeping as the app's Finish workout (sheets.jsx doFinishWorkout).
       w.entries.forEach(e => {
-        e.sets.forEach(x => { w.vol += x.w * x.r })
-        const mx = Math.max(0, ...e.sets.map(x => x.w))
+        // Same rules as lib/tech.js setVolume / isWork: warm-ups don't count, parts add tonnage.
+        const work = e.sets.filter(x => x.tech !== 'warmup')
+        work.forEach(x => { w.vol += x.w * x.r + (x.parts || []).reduce((t, p) => t + p.w * p.r, 0) })
+        const mx = Math.max(0, ...work.map(x => x.w))
         const cur = S.exWeights[e.id]
         if (mx > 0 && (!cur || mx > cur.w)) { if (cur) w.prs.push(e.id); S.exWeights[e.id] = { w: mx, d } }
       })
       S.workouts.push(w)
-      return { write: true, out: { status: 'logged', workout_id: w.id, name: w.name, date: d, exercises: w.entries.length, sets: w.entries.reduce((n, e) => n + e.sets.length, 0), volume: w.vol, prs: w.prs } }
+      return { write: true, out: { status: 'logged', workout_id: w.id, name: w.name, date: d, exercises: w.entries.length, sets: w.entries.reduce((n, e) => n + e.sets.filter(x => x.tech !== 'warmup').length, 0), volume: w.vol, prs: w.prs } }
     })
   }
 }

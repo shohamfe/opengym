@@ -178,6 +178,24 @@ describe('writes', () => {
     expect((await db.call('log_workout', { date: '26/10', entries: [{ id: '0025', sets: [{ reps: 5 }] }] })).isError).toBe(true)
     expect(db.state.workouts).toHaveLength(1)
   })
+  it('log_workout keeps set types: drop/myo parts, warm-ups out of stats, partials', async () => {
+    const db = fakeDb({ routines: [], workouts: [], bodyweight: [] })
+    const r = await db.call('log_workout', { entries: [{ id: '0576', sets: [
+      { weight: 50, reps: 5, tech: 'warmup' }, { weight: 35, reps: 8, tech: 'fail', partials: 3 },
+      { weight: 35, reps: 6, tech: 'drop', parts: [{ weight: 20, reps: 4 }, { weight: 10, reps: 8 }] },
+      { weight: 20, reps: 12, tech: 'myo', parts: [{ weight: 20, reps: 5 }] }] }] })
+    expect(r.structuredContent).toMatchObject({ status: 'logged', sets: 3, volume: 35 * 8 + 35 * 6 + 80 + 80 + 240 + 100 })
+    const ss = db.state.workouts[0].entries[0].sets
+    expect(ss[0]).toEqual({ w: 50, r: 5, done: true, tech: 'warmup' })
+    expect(ss[1]).toEqual({ w: 35, r: 8, done: true, tech: 'fail', partials: 3 })
+    expect(ss[2]).toEqual({ w: 35, r: 6, done: true, tech: 'drop', parts: [{ w: 20, r: 4 }, { w: 10, r: 8 }] })
+    expect(db.state.exWeights['0576'].w).toBe(35)   // the warm-up's 50 is not a PR
+    const bad = (x) => db.call('log_workout', { entries: [{ id: '0576', sets: [x] }] })
+    expect((await bad({ reps: 5, tech: 'superset' })).isError).toBe(true)
+    expect((await bad({ reps: 5, parts: [{ reps: 3 }] })).isError).toBe(true)
+    expect((await bad({ reps: 5, tech: 'fail', parts: [{ reps: 3 }] })).isError).toBe(true)
+    expect(db.state.workouts).toHaveLength(1)
+  })
   it('delete_workout removes a logged workout by the id get_recent_workouts gives', async () => {
     const db = fakeDb({ routines: [], workouts: [], bodyweight: [] })
     await db.call('log_workout', { entries: [{ id: '0025', sets: [{ weight: 40, reps: 8 }] }] })
