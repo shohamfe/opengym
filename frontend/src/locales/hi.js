@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': 'आख़िरी सेट विफलता के क़रीब था — वही वज़न, {0} रेप्स का लक्ष्य।',
   'Don\'t go up next time': 'अगली बार न बढ़ाएँ',
   'Marked: same weight next time': 'चिह्नित: अगली बार वही वज़न',
+  'Per side: {0}': 'हर तरफ़: {0}',
+  'Light session': 'हल्का सत्र',
+  'Saved in your history and stats, but it won\'t change your next targets.': 'इतिहास और आँकड़ों में सेव होगा, पर अगले लक्ष्य नहीं बदलेगा।',
+  'Rotate routines': 'रूटीन बारी-बारी से',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': 'कोई दिन छूट गया? ट्रेनिंग के दिन वही रहेंगे, पर हर दिन पिछली की हुई रूटीन के बाद वाली रूटीन मिलेगी।',
 }

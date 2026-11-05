@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': 'Последний подход был близок к отказу — тот же вес, цель {0} повторений.',
   'Don\'t go up next time': 'Не повышать в следующий раз',
   'Marked: same weight next time': 'Отмечено: в следующий раз тот же вес',
+  'Per side: {0}': 'На сторону: {0}',
+  'Light session': 'Лёгкая тренировка',
+  'Saved in your history and stats, but it won\'t change your next targets.': 'Сохранится в истории и статистике, но не изменит следующие цели.',
+  'Rotate routines': 'Чередовать программы',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': 'Пропустили день? Дни тренировок остаются прежними, но каждый получает программу после последней выполненной.',
 }

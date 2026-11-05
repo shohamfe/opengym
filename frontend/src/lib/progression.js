@@ -144,6 +144,7 @@ export function readSession(entry, fallback) {
 export function sessionsFor(S, exId, fallback) {
   const out = []
   ;(S.workouts || []).forEach(w => {
+    if (w.light) return   // light session: kept in history, left out of progression
     const entry = w.entries.find(e => e.id === exId)
     if (entry && entry.sets.some(s => s.done && isProgSet(s))) out.push({ d: w.d, ...readSession(entry, fallback) })
   })

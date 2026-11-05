@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
-import { effectiveRoutine, lastEntryFor, lastLine, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
+import { effectiveRoutine, lastEntryFor, lastLine, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, platesPerSide, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { play, vibrate } from '../lib/sound.js'
 import confetti from 'canvas-confetti'
@@ -150,6 +150,13 @@ function Elapsed({ start }) {
   return <span>{t}</span>
 }
 
+// What to load on each side of the bar for the set in front of you.
+function Plates({ w, unit }) {
+  const p = platesPerSide(w || 0, unit)
+  if (!p) return null
+  return <span className="tag acc nocap">{t('Per side: {0}', p.plates.join(' + ') + (p.rest > 0 ? ' (+' + p.rest + ')' : ''))}</span>
+}
+
 /* ---------- one exercise block (reps: weight×reps · time: a held duration · cardio: duration+speed) ---------- */
 function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onAddPart, onRemovePart, onAddSet, onRemoveSet, onStartTimed, onSwap }) {
   const S = useStore(s => s.S)
@@ -241,6 +248,7 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
       {/* You log the total; this is the split, so the set in front of you is unambiguous
           without the rep count having to mean two different things (issue #31). */}
       {!cardio && !timed && isPerSide(cfg) && <span className="tag acc nocap"><Icon name="shuffle" />{t('{0} per side', fmtNum(sideReps(entry.sets.find(s => !s.done)?.r ?? entry.sets[0]?.r)))}</span>}
+      {repsMode && /^(olympic )?barbell$/.test(ex.eq) && <Plates w={(entry.sets.find(s => !s.done) || entry.sets[0] || {}).w} unit={S.unit} />}
       {(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && !pregOf(S) && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
