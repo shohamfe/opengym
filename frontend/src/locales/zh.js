@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': '最后一组接近力竭——重量不变，目标 {0} 次。',
   'Don\'t go up next time': '下次不要加重',
   'Marked: same weight next time': '已标记：下次重量不变',
+  'Per side: {0}': '每侧：{0}',
+  'Light session': '轻松训练',
+  'Saved in your history and stats, but it won\'t change your next targets.': '会保存在历史和统计中，但不会改变下次的目标。',
+  'Rotate routines': '轮换训练计划',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': '错过一天？训练日不变，但每次都会安排你上次完成的计划之后的那个。',
 }

@@ -1,5 +1,5 @@
 // Pure helpers over the state object S (ported 1:1 from the vanilla app).
-import { todayISO, isoOf, weekKey, fmtNum } from './format.js'
+import { todayISO, isoOf, weekKey, fmtNum, weekOrder } from './format.js'
 import { isCardio, isBodyweightEq, isUnilateralEx } from './exercises.js'
 import { t } from './i18n.js'
 import { isWork, setVolume, withTech } from './tech.js'
@@ -209,6 +209,7 @@ export function swapConfig(cfg, from, to) {
 
 export function lastEntryFor(S, exId) {
   for (let i = S.workouts.length - 1; i >= 0; i--) {
+    if (S.workouts[i].light) continue   // a light session never seeds the next one
     const en = S.workouts[i].entries.find(e => e.id === exId)
     // `target` is what the session prescribed; finished workouts carry it so labels and the
     // progression engine can read a session back the way it was logged. Older workouts have
@@ -233,7 +234,42 @@ export function effectiveRoutineId(S, iso) {
   if (ov === 'rest') return null
   if (ov && S.routines.some(r => r.id === ov)) return ov
   const wd = new Date(iso + 'T12:00:00').getDay()
-  return S.week[wd] || null
+  const id = S.week[wd] || null
+  return id && S.rotate ? rotationPick(S, iso) || id : id
+}
+// Rotation order: the week plan's routines, each once, in week order (Mon Push, Wed Pull,
+// Fri Legs → Push, Pull, Legs).
+export function rotationOrder(S) {
+  const ids = []
+  weekOrder(S.weekStart).forEach(d => { const id = S.week[d]; if (id && !ids.includes(id) && S.routines.some(r => r.id === id)) ids.push(id) })
+  return ids
+}
+// With rotation on, training days stay where the week plan puts them, but each one gets the
+// routine after the last one trained, so a missed day moves the plan instead of skipping it.
+function rotationPick(S, iso) {
+  const today = todayISO()
+  const order = rotationOrder(S)
+  if (iso < today || order.length < 2) return null
+  const lastW = [...S.workouts].reverse().find(w => order.includes(w.routineId))
+  if (!lastW) return null
+  if (lastW.d === today && iso === today) return lastW.routineId
+  let k = 0   // plain training days between now and iso still to come
+  for (const d = new Date(today + 'T12:00:00'); isoOf(d) < iso; d.setDate(d.getDate() + 1)) {
+    const x = isoOf(d)
+    if (x !== lastW.d && S.dayPlan[x] === undefined && S.week[d.getDay()]) k++
+  }
+  return order[(order.indexOf(lastW.routineId) + 1 + k) % order.length]
+}
+// Plates on each side of a standard bar (20 kg / 45 lb), heaviest first. `rest` is what
+// no plate can make up. null when the weight is the bar or less.
+const PLATES = { kg: [25, 20, 15, 10, 5, 2.5, 1.25], lb: [45, 35, 25, 10, 5, 2.5] }
+export function platesPerSide(total, unit) {
+  const lb = unit === 'lb'
+  let left = Math.round((total - (lb ? 45 : 20)) / 2 * 100) / 100
+  if (!(left > 0)) return null
+  const plates = []
+  for (const p of PLATES[lb ? 'lb' : 'kg']) while (left >= p) { plates.push(p); left = Math.round((left - p) * 100) / 100 }
+  return { plates, rest: left }
 }
 export function effectiveRoutine(S, iso) {
   const id = effectiveRoutineId(S, iso)

@@ -869,7 +869,7 @@ export function WorkoutRow({ w, onClick }) {
     <span className="wr-m">
       <span className="wr-top"><span className="tt wr-name" dir="auto">{w.name}</span>
         {n > 0 && <span className="pr wr-pr" role="img" aria-label={t('{0} PR', n)}><Icon name="trophy" />{n > 99 ? '99+' : n}<span className="wr-prw"> PR</span></span>}</span>
-      <span className="ss wr-date">{fmtDate(w.d, true)}</span>
+      <span className="ss wr-date">{fmtDate(w.d, true)}{w.light && ' · ' + t('Light session')}</span>
       <span className="wr-stats">{wStats(w, st.unit).map((v, i) => <StatCell key={i} v={v} cls="wr-c" />)}</span>
     </span>
     <Icon name="chevronRight" className="chev" />
@@ -967,6 +967,7 @@ function FinishSheet({ close, phase, auto }) {
   const st = useStore(s => s.S)
   const [res, setRes] = useState(null)
   const [tops, setTops] = useState({})
+  const [light, setLight] = useState(false)
   const A = st.active
   useEffect(() => { if (!A && !res) close() }, [!A, !res])
   if (res) return <FinishSummary {...res} close={close} />
@@ -978,7 +979,7 @@ function FinishSheet({ close, phase, auto }) {
   const finish = () => {
     update(s => { Object.entries(tops).forEach(([i, v]) => { s.active.entries[i].topW = v }) })
     phase.done = true
-    setRes(doFinishWorkout())
+    setRes(doFinishWorkout(light))
   }
   return <>
     <h3>{auto ? t("That's the whole workout!") : t('Finish workout?')}</h3>
@@ -991,6 +992,9 @@ function FinishSheet({ close, phase, auto }) {
         <Stepper className="fin-stp" value={tops[i] ?? maxW(e)} step={2.5} unit={st.unit} onChange={v => setTops(o => ({ ...o, [i]: v }))} />
       </div>)}
     </Section>}
+    <Section footer={t("Saved in your history and stats, but it won't change your next targets.")}>
+      <Row title={t('Light session')}><Switch checked={light} onChange={setLight} /></Row>
+    </Section>
     <Button variant="primary" icon="flag" onClick={finish}>{t('Finish workout')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" onClick={close}>{t('Keep going')}</Button>
@@ -1001,7 +1005,7 @@ export function finishWorkout(auto = false) {
   const phase = { done: false }
   ui().openSheet(close => <FinishSheet close={close} phase={phase} auto={auto} />, { finish: true, onDismiss: () => { if (phase.done) nav('/home') } })
 }
-function doFinishWorkout() {
+function doFinishWorkout(light) {
   const st = S()
   const A = st.active
   if (!A) return
@@ -1023,6 +1027,7 @@ function doFinishWorkout() {
     entries: A.entries.map(e => ({ id: e.id, sets: e.sets.map(cleanSet), topW: e.topW || null, target: e.target || null, ...(e.hold ? { hold: true } : {}) })).filter(e => e.sets.some(s => s.done)),
     prs
   }
+  if (light) w.light = true
   w.vol = workoutVolume(w)
   update(s => {
     w.entries.forEach(e => {

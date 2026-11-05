@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': 'Son set tükenişe yakındı — aynı ağırlık, hedef {0} tekrar.',
   'Don\'t go up next time': 'Bir dahaki sefere artırma',
   'Marked: same weight next time': 'İşaretlendi: bir dahaki sefere aynı ağırlık',
+  'Per side: {0}': 'Taraf başına: {0}',
+  'Light session': 'Hafif antrenman',
+  'Saved in your history and stats, but it won\'t change your next targets.': 'Geçmişe ve istatistiklere kaydedilir ama sonraki hedefleri değiştirmez.',
+  'Rotate routines': 'Rutinleri döndür',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': 'Bir gün mü kaçırdın? Antrenman günlerin aynı kalır ama her biri en son yaptığın rutinden sonrakini alır.',
 }

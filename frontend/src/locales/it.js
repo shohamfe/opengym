@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': 'L\'ultima serie era vicina al cedimento — stesso peso, punta a {0} ripetizioni.',
   'Don\'t go up next time': 'Non aumentare la prossima volta',
   'Marked: same weight next time': 'Segnato: stesso peso la prossima volta',
+  'Per side: {0}': 'Per lato: {0}',
+  'Light session': 'Sessione leggera',
+  'Saved in your history and stats, but it won\'t change your next targets.': 'Salvata nella cronologia e nelle statistiche, ma non cambia i prossimi obiettivi.',
+  'Rotate routines': 'Ruota le routine',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': 'Saltato un giorno? I giorni di allenamento restano uguali, ma ognuno prende la routine dopo l’ultima che hai fatto.',
 }

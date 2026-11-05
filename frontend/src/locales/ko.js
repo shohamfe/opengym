@@ -921,4 +921,9 @@ export default {
   'Last set was close to failure — same weight, aim for {0} reps.': '마지막 세트가 실패에 가까웠어요 — 같은 무게로 {0}회를 목표로.',
   'Don\'t go up next time': '다음에 올리지 않기',
   'Marked: same weight next time': '표시됨: 다음에도 같은 무게',
+  'Per side: {0}': '한쪽당: {0}',
+  'Light session': '가벼운 세션',
+  'Saved in your history and stats, but it won\'t change your next targets.': '기록과 통계에는 저장되지만 다음 목표는 바뀌지 않아요.',
+  'Rotate routines': '루틴 순환',
+  'Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.': '하루 빠졌나요? 운동하는 요일은 그대로지만, 매번 마지막으로 한 루틴의 다음 루틴이 배정돼요.',
 }

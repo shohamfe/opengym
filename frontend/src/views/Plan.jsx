@@ -5,7 +5,7 @@ import { t } from '../lib/i18n.js'
 import { dayAssignSheet, loadStarterPlan, planToolsSheet } from '../sheets.jsx'
 import { aiSheet } from '../ai-sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button } from '../components/ui.jsx'
+import { Button, Section, Row, Switch } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 
 export default function Plan() {
@@ -37,6 +37,9 @@ export default function Plan() {
             <Icon name="chevronRight" className="chev" /></div>
         })}
       </div>
+      <Section className="rot" footer={t('Missed a day? Your training days stay the same, but each one gets the routine after the last one you did.')}>
+        <Row title={t('Rotate routines')}><Switch checked={!!S.rotate} onChange={v => update(s => { s.rotate = v || undefined })} /></Row>
+      </Section>
     </div><div>
       <div className="row between" style={{ marginTop: 22, marginBottom: 10 }}>
         <h4 className="sec" style={{ margin: 0 }}>{t('Routines')}</h4>
