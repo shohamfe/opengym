@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI, armStale, cancelStale } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
-import { effectiveRoutine, lastEntryFor, lastLine, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, platesPerSide, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
+import { effectiveRoutine, lastEntryFor, lastLine, bestWeightFor, buildSets, supersetUnits, swapConfig, unitOf, setLabel, modeOf, isBw, isPerSide, sideReps, repStep, platesPerSide, fmtSec, EFFORT, effortOf, stepEffort, capEffort } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { play, vibrate } from '../lib/sound.js'
 import confetti from 'canvas-confetti'
@@ -13,8 +13,9 @@ import { t } from '../lib/i18n.js'
 import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Button, Check, NumberField, Switch } from '../components/ui.jsx'
-import { nextPrescription, applyPrescription, defaultIncrement } from '../lib/progression.js'
+import { Button, Check, NumberField, Switch, Stepper } from '../components/ui.jsx'
+import { nextPrescription, applyPrescription, defaultIncrement, sessionsFor } from '../lib/progression.js'
+import { readyForHarder, EASY_REPS } from '../lib/extras.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { pregOf } from '../lib/pregnancy.js'
 import { PgBadge, pregnancySheet, PregLine, GentleTip } from '../components/Pregnancy.jsx'
@@ -157,6 +158,39 @@ function Plates({ w, unit }) {
   return <span className="tag acc nocap">{t('Per side: {0}', p.plates.join(' + ') + (p.rest > 0 ? ' (+' + p.rest + ')' : ''))}</span>
 }
 
+// "Rest 1:30. Next: barbell squat, 8 reps at 100 kg." for the workout voice. `e` is the entry
+// just ticked (its new state); a superset unit goes back to its first exercise.
+function voiceNext(A, idx, e) {
+  const S = useStore.getState().S
+  if (!S.voice) return null
+  const units = supersetUnits(A.entries), unit = unitOf(units, idx)
+  const order = [...unit, ...A.entries.map((_, k) => k).filter(k => !unit.includes(k))]
+  for (const k of order) {
+    const en = k === idx ? e : A.entries[k]
+    const s = en.sets.find(x => !x.done)
+    if (!s) continue
+    const load = s.r > 0 ? (s.w > 0 ? t('{0} reps at {1}', s.r, fmtNum(s.w) + ' ' + S.unit) : t('{0} reps', s.r)) : ''
+    return t('Rest {0}. Next: {1}', fmtSec(S.restSec), exOr(en.id).n + (load ? ', ' + load : '')) + '.'
+  }
+  return null
+}
+
+// Each side of a per-side set, for when one arm or leg did fewer. The total stays in s.r.
+function LRSheet({ entryIdx, i, close }) {
+  const s0 = useStore.getState().S.active.entries[entryIdx].sets[i]
+  const [lr, setLr] = useState(s0.lr || [Math.ceil((s0.r || 0) / 2), Math.floor((s0.r || 0) / 2)])
+  const save = v => { useStore.getState().update(S => { const s = S.active.entries[entryIdx].sets[i]; if (v) { s.lr = v; s.r = v[0] + v[1] } else delete s.lr }); close() }
+  return <>
+    <h3>{t('Left / right')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Progression counts the weaker side.')}</div>
+    <div className="row between" style={{ marginBottom: 10 }}><span style={{ minWidth: 70 }}>{t('Left')}</span><Stepper value={lr[0]} decimal={false} onChange={v => setLr([v, lr[1]])} /></div>
+    <div className="row between" style={{ marginBottom: 16 }}><span style={{ minWidth: 70 }}>{t('Right')}</span><Stepper value={lr[1]} decimal={false} onChange={v => setLr([lr[0], v])} /></div>
+    <Button variant="primary" onClick={() => save(lr)}>{t('Save')}</Button>
+    {s0.lr && <><div style={{ height: 8 }} /><Button variant="ghost" onClick={() => save(null)}>{t('Same on both sides')}</Button></>}
+  </>
+}
+const lrSheet = (entryIdx, i) => useUI.getState().openSheet(close => <LRSheet entryIdx={entryIdx} i={i} close={close} />)
+
 /* ---------- one exercise block (reps: weight×reps · time: a held duration · cardio: duration+speed) ---------- */
 function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onAddPart, onRemovePart, onAddSet, onRemoveSet, onStartTimed, onSwap }) {
   const S = useStore(s => s.S)
@@ -259,6 +293,10 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span>{t(...plan.why)}</span>
     </div>}
+    {repsMode && isBw(cfg) && !entry.sets.some(s => s.w > 0) && readyForHarder(sessionsFor(S, entry.id, cfg)) && <div className="progline">
+      <Icon name="arrowUp" /><span>{t('{0}+ reps on every set, two sessions running. Time for a harder version?', EASY_REPS)}</span>
+      <button className="effedit" onClick={onSwap}>{t('Swap')}</button>
+    </div>}
     <div className="card settable" id={'ex-' + entryIdx} style={{ marginTop: 10, marginBottom: 0 }}>
       {hint && repsMode && !S.seenTechHint && <div className="progline thint">
         <Icon name="lightbulb" /><span>{t('Tap a set number for warm-up, drop set and more.')}</span>
@@ -295,6 +333,8 @@ function ExerciseBlock({ entryIdx, compact, hint, onToggle, onField, onPart, onA
         </div>)}
         {isParts && parts.length < maxParts(s.tech) && <button className="effedit padd" onClick={() => onAddPart(i)}><Icon name="plus" />{s.tech === 'drop' ? t('Add drop') : t('Add mini-set')}</button>}
         {repsMode && s.partials > 0 && <button className="effedit tpart" onClick={() => openTech(i)}>{t('+{0} partial reps', s.partials)}</button>}
+        {repsMode && s.done && isPerSide(cfg) && <button className="effedit" onClick={() => lrSheet(entryIdx, i)}>
+          {s.lr ? <span className="effpill">L {s.lr[0]} · R {s.lr[1]}</span> : t('Left / right')}{s.lr && t('Edit')}</button>}
       </div>})}
       {/* A hit with shaky form: next time keeps this weight instead of progressing. */}
       {repsMode && entry.sets.every(s => s.done) && <label className="row between holdrow">
@@ -345,6 +385,7 @@ function ActiveWorkout() {
   const setField = (idx, i, field, v) => mutEntry(idx, e => {
     const x = e.sets[i], old = x.w, step = stepOf(e, S.unit)
     if (v == null) delete x[field]; else x[field] = v
+    if (field === 'r') delete x.lr   // a new total makes the old left/right split wrong
     if (field === 'w' && x.parts) follow(x, -1, old, step)
     // an untouched, unticked warm-up keeps tracking the first working set's weight
     const wu = e.sets.find(isWarm)
@@ -401,7 +442,7 @@ function ActiveWorkout() {
         armStale()
         const isLastExInUnit = idx === unit[unit.length - 1]
         const unitDone = unit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
-        if (isLastExInUnit && !unitDone) startRest(S.restSec)
+        if (isLastExInUnit && !unitDone) startRest(S.restSec, voiceNext(A, idx, e))
         else if (unitDone) stopRest()
         // done means every set of every exercise, not just reaching the last one (QA: fired at 1/6)
         if (unitDone && A.entries.every((en, k) => (k === idx ? e : en).sets.every(x => x.done))) workoutDone = true

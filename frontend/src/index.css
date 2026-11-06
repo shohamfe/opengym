@@ -1224,3 +1224,12 @@ html .adhs-container .adhs-bouncing-arrow img{filter:drop-shadow(0 4px 10px rgba
 /* a stepper as a list row's control (onboarding weeks / height) keeps its size; it used to cover the title */
 .lrow > .stp{flex:none;width:148px}
 .hfield{width:56px;text-align:center;background:var(--surface-2);border:none;border-radius:8px;padding:8px 6px;font-size:16px;color:var(--label);min-height:40px}
+/* stats extras: photos, strength balance */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photo-cell{display:flex;flex-direction:column;gap:4px;padding:0;background:none;border:0;color:var(--label-2,inherit);text-align:start}
+.photo-cell img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--r-sm)}
+.photo-cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.photo-cmp figure{margin:0}
+.photo-cmp img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--r-sm)}
+.bal-bar{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden;margin-top:4px}
+.bal-bar span{display:block;height:100%;border-radius:4px}
