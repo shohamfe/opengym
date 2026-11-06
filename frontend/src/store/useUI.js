@@ -5,6 +5,7 @@ import { beep, vibrate } from '../lib/sound.js'
 import { api } from '../lib/api.js'
 import { t } from '../lib/i18n.js'
 import { useStore, DEF } from './useStore.js'
+import { say } from '../lib/voice.js'
 
 // Fire-and-forget: lets the server push a "rest over" alert if this tab gets suspended
 // before the local timer completes. No-ops for guests / offline / that alert switched off.
@@ -49,7 +50,9 @@ export const useUI = create((set, get) => ({
 
   toast(msg) { sonner(msg) },
 
-  startRest(sec) {
+  // next: what the voice reads out as the rest starts ("Rest 1:30. Next: …")
+  startRest(sec, next) {
+    say(next)
     get().stopRest(true)   // the schedule below replaces the server job; no cancel needed
     const endsAt = Date.now() + sec * 1000
     set({ timer: { left: sec, total: sec, endsAt } })
@@ -62,11 +65,13 @@ export const useUI = create((set, get) => ({
       const snd = useStore.getState().S.sound
       if (left <= 0) {
         beep(snd, 880, 0.15); beep(snd, 880, 0.15, 0.25); beep(snd, 1320, 0.4, 0.5)
+        say(t('Go!'))
         vibrate([200, 100, 200]); get().toast(t('Rest over — next set!'))
         // iOS keeps a locked Home Screen app running: cancelling here would kill the push it needs
         get().stopRest(document.visibilityState === 'hidden'); return
       }
       if (left <= 3) beep(snd, 660, 0.1)
+      if (left === 10 && tm.total > 20) say(t('10 seconds'))
       set({ timer: { ...tm, left } })
     }
     timerInt = setInterval(timerTick, 1000)

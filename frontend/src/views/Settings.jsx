@@ -11,6 +11,7 @@ import { EmailSignInSheet } from './Login.jsx'
 import { MembersCard, deleteAccountSheet } from './Members.jsx'
 import { pushSupported, enablePush, disablePush, sendTestPush, saveSubscription, notifyState, IOS, standalone } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
+import { voiceSupported, say } from '../lib/voice.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
@@ -167,6 +168,9 @@ export default function Settings() {
       <Row icon="bell" iconTint="var(--pink)" title={t('Sounds')}>
         <Switch checked={!!S.sound} onChange={v => update(s => { s.sound = v })} />
       </Row>
+      {voiceSupported() && <Row icon="bell" iconTint="var(--purple)" title={t('Workout voice')} subtitle={t('Reads your next set and the end of the rest out loud')}>
+        <Switch checked={!!S.voice} onChange={v => { update(s => { s.voice = v || undefined }); if (v) say(t('Voice on')) }} />
+      </Row>}
       {/* Two names for the same judgement, so the column asks in the scale you already think in.
           The (i) sits before the control — you read it on the way to the choice, not after it. */}
       <Row icon="target" iconTint="var(--purple)" title={t('Effort per set')}>

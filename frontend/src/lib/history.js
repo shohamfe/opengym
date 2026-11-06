@@ -3,6 +3,7 @@ import { todayISO, isoOf, weekKey, fmtNum, weekOrder } from './format.js'
 import { isCardio, isBodyweightEq, isUnilateralEx } from './exercises.js'
 import { t } from './i18n.js'
 import { isWork, setVolume, withTech } from './tech.js'
+import { offWeeks } from './extras.js'
 
 // How an exercise is logged (issue #16). This used to be derived from the body part alone,
 // which meant a plank or a farmer's carry could only be timed by filing it under cardio.
@@ -102,7 +103,7 @@ export function setLabel(id, s, cfg, o) {
   // rather than "0×12", which says a set was performed with no weight and means nothing.
   // A per-side set needs no mark here: the number logged is the total, the same as every
   // other set in the app.
-  const reps = s.r || 0
+  const reps = (s.r || 0) + (Array.isArray(s.lr) ? ` (L${s.lr[0]} R${s.lr[1]})` : '')
   const w = x => withTech(s, x)
   if (isBw({ ...c, id: c.id ?? id })) {
     const load = s.w > 0 ? `+${fmtNum(s.w)} × ` : ''
@@ -344,12 +345,13 @@ export function unitOf(units, idx) { return units.find(u => u.includes(idx)) || 
 export function streakWeeks(S) {
   if (!S.workouts.length) return 0
   const weeks = new Set(S.workouts.map(w => weekKey(w.d, S.weekStart)))
+  const off = offWeeks(S)
   let streak = 0
   const cur = new Date()
   for (let i = 0; i < 520; i++) {
     const wk = weekKey(isoOf(cur), S.weekStart)
     if (weeks.has(wk)) streak++
-    else if (i > 0) break
+    else if (i > 0 && !off.has(wk)) break
     cur.setDate(cur.getDate() - 7)
   }
   return streak

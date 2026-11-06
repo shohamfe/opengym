@@ -761,10 +761,17 @@ function DayOverride({ iso, close }) {
   const weeklyR = st.routines.find(r => r.id === st.week[wd])
   const hasOvr = st.dayPlan[iso] !== undefined
   const effId = effectiveRoutineId(st, iso)
+  const isOff = (st.offDays || []).includes(iso)
   const set = v => {
-    update(s => { if (!v) delete s.dayPlan[iso]; else s.dayPlan[iso] = v })
+    update(s => {
+      s.offDays = (s.offDays || []).filter(d => d !== iso)
+      if (v === 'off') s.offDays.push(iso)
+      if (!s.offDays.length) delete s.offDays
+      // a day off is planned as rest, so the server's day reminder stays quiet too
+      if (!v) delete s.dayPlan[iso]; else s.dayPlan[iso] = v === 'off' ? 'rest' : v
+    })
     close()
-    toast(v === '' ? t('Back to weekly plan') : v === 'rest' ? t('{0} set to rest', fmtDate(iso)) : t('{0} planned for {1}', (st.routines.find(r => r.id === v) || {}).name, fmtDate(iso)))
+    toast(v === '' ? t('Back to weekly plan') : v === 'off' ? t('{0} is a day off. Your streak is safe.', fmtDate(iso)) : v === 'rest' ? t('{0} set to rest', fmtDate(iso)) : t('{0} planned for {1}', (st.routines.find(r => r.id === v) || {}).name, fmtDate(iso)))
   }
   // a logged day is history: show what was done instead of offering to re-plan it
   const done = st.workouts.filter(w => w.d === iso)
@@ -781,7 +788,8 @@ function DayOverride({ iso, close }) {
     </div>
     {/* pinned so they stay in reach however many routines there are */}
     <div className="sheet-foot row" style={{ gap: 8 }}>
-      <Button variant="tinted" icon={effId === null ? 'check' : 'moon'} aria-pressed={effId === null} style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('rest')}>{t('Rest day')}</Button>
+      <Button variant="tinted" icon={effId === null && !isOff ? 'check' : 'moon'} aria-pressed={effId === null && !isOff} style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('rest')}>{t('Rest day')}</Button>
+      <Button variant="tinted" icon={isOff ? 'check' : 'flame'} aria-pressed={isOff} style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('off')}>{t('Day off')}</Button>
       {hasOvr && <Button variant="tinted" icon="reset" style={{ flex: 1, fontSize: 15, padding: '12px 10px' }} onClick={() => set('')}>{t('Weekly plan')}</Button>}
     </div>
   </>

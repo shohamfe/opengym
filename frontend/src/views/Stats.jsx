@@ -20,6 +20,7 @@ import {
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
 import { Button, Segmented, SelectRow } from '../components/ui.jsx'
+import { MeasuresCard, PhotosCard, BalanceCard, RecapCard } from './StatsExtras.jsx'
 
 // Which muscles the training in a window actually hit — and, the point of the card,
 // which ones it keeps missing. Shading is relative within the window (lib/muscles.js).
@@ -244,7 +245,9 @@ export default function Stats() {
       <Heatmap S={S} onDay={iso => { const ws = S.workouts.filter(w => w.d === iso); if (ws.length === 1) nav('/history/' + ws[0].id); else if (ws.length) calendarSheet(iso) }} />
     </div>
 
+    {S.workouts.length > 0 && <RecapCard S={S} />}
     {S.workouts.length > 0 && <MuscleBalance S={S} />}
+    <BalanceCard S={S} />
     {anyEffort && <EffortCard S={S} />}
 
     <div className="cols">
@@ -260,6 +263,8 @@ export default function Stats() {
           options={[{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
         <div className="chart"><LineChart points={bwPts} h={160} unit={S.unit} goal={S.targetW} /></div>
       </div>
+      <MeasuresCard S={S} />
+      <PhotosCard />
 
     </div>
 

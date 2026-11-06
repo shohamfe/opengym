@@ -19,6 +19,7 @@
 import { modeOf, repStep, effortOf } from './history.js'
 import { EXIDX } from './exercises.js'
 import { isProgSet, snap } from './tech.js'
+import { progReps } from './extras.js'
 import { pregOf, labelOf, gentle, conceptionISO } from './pregnancy.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
@@ -126,7 +127,7 @@ export function readSession(entry, fallback) {
     }
   }
   const goal = target.reps || 0
-  const reps = sets.map(s => (s.done ? (s.r || 0) : 0))
+  const reps = sets.map(s => (s.done ? progReps(s) : 0))
   return {
     mode, goal, reps,
     weight: Math.max(0, ...sets.filter(s => s.done).map(s => s.w || 0)),
